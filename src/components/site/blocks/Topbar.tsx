@@ -19,23 +19,25 @@ export function Topbar({
 
   return (
     <header className={styles.bar}>
-      {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          ref={ref}
-          src={logoUrl!}
-          alt={topbar.display_name}
-          className={styles.logoImg}
-          onError={onError}
+      <div className={styles.inner}>
+        {showImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            ref={ref}
+            src={logoUrl!}
+            alt={topbar.display_name}
+            className={styles.logoImg}
+            onError={onError}
+          />
+        ) : (
+          <span className={styles.logotype}>{topbar.display_name}</span>
+        )}
+        <CtaButton
+          href={resolveCtaHref(topbar.action_button.type, info)}
+          label={topbar.action_button.label}
+          size="sm"
         />
-      ) : (
-        <span className={styles.logotype}>{topbar.display_name}</span>
-      )}
-      <CtaButton
-        href={resolveCtaHref(topbar.action_button.type, info)}
-        label={topbar.action_button.label}
-        size="sm"
-      />
+      </div>
     </header>
   );
 }

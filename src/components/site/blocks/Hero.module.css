@@ -3,7 +3,7 @@
   min-height: max(420px, calc(100svh - var(--topbar-h) - var(--stickycta-h)));
   max-height: 760px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   overflow: hidden;
   color: white;
 }
@@ -16,15 +16,12 @@
   object-fit: cover;
 }
 
+/* 콘텐츠가 히어로 정중앙에 오므로, 사진 구도와 무관하게 전체를 균일하게
+   어둡게 깔아 대비를 보장한다. */
 .bgOverlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--brand-deep) 92%, black) 0%,
-    color-mix(in srgb, var(--brand-deep) 55%, transparent) 55%,
-    color-mix(in srgb, var(--brand-deep) 20%, transparent) 100%
-  );
+  background: color-mix(in srgb, var(--brand-deep) 60%, transparent);
 }
 
 /* 배경 사진이 없을 때: 톤 브랜드 단색 + 도트 텍스처 폴백 */
@@ -45,6 +42,7 @@
   padding: 28px 20px 40px;
   max-width: var(--container-width);
   margin-inline: auto;
+  text-align: center;
   animation: fade-up 0.6s ease both;
 }
 
@@ -76,7 +74,7 @@
   font-size: 15px;
   line-height: 1.6;
   color: color-mix(in srgb, white 88%, transparent);
-  margin: 0 0 22px;
+  margin: 0 auto 22px;
   max-width: 42ch;
 }
 

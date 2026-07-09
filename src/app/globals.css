@@ -25,6 +25,8 @@
   --headline-weight: 800;
   --headline-tracking: -0.02em;
   --motion-level: 1;
+  --font-sans: "Jua", var(--font-pretendard), -apple-system,
+    "Apple SD Gothic Neo", sans-serif;
 }
 
 [data-tone="trust"] {
@@ -39,6 +41,8 @@
   --headline-weight: 700;
   --headline-tracking: -0.01em;
   --motion-level: 0;
+  --font-sans: "Noto Sans KR", var(--font-pretendard), -apple-system,
+    "Apple SD Gothic Neo", sans-serif;
 }
 
 [data-tone="driven"] {
@@ -53,6 +57,8 @@
   --headline-weight: 800;
   --headline-tracking: 0;
   --motion-level: 2;
+  --font-sans: "Nanum Gothic", var(--font-pretendard), -apple-system,
+    "Apple SD Gothic Neo", sans-serif;
 }
 
 * {
@@ -112,6 +118,10 @@ body {
 .mhp-page {
   background: var(--paper);
   color: var(--ink);
+  /* body의 font-family는 :root 기본값으로 고정 해석되어 버려서(커스텀 프로퍼티는
+     조상에서 자손 방향으로만 흐름), 톤별 --font-sans 오버라이드가 실제로 반영되려면
+     [data-tone]이 걸리는 이 요소 자신에서 다시 선언해야 한다. */
+  font-family: var(--font-sans);
 }
 
 /* 데스크톱: 미니홈페이지 정체성 유지를 위해 480px 카드로 중앙 정렬(풀와이드 확장 안 함) */

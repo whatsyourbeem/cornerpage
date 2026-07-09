@@ -14,7 +14,7 @@
 /* ---------- 톤 프리셋 (축 A) ---------- */
 
 [data-tone="warm"] {
-  /* 감성형 */
+  /* 감성형 — 헤드라인만 Gmarket Sans, 본문은 공통 Pretendard */
   --brand: #7a5c3e;
   --brand-deep: #5c4530;
   --accent: #c26b3a;
@@ -22,15 +22,14 @@
   --ink: #2b2622;
   --radius-cta: 12px;
   --shadow-cta: 0 6px 16px rgb(122 92 62 / 0.25);
-  --headline-weight: 800;
-  --headline-tracking: -0.02em;
+  --font-headline: "Gmarket Sans", var(--font-sans);
+  --headline-weight: 700;
+  --headline-tracking: -0.01em;
   --motion-level: 1;
-  --font-sans: "Jua", var(--font-pretendard), -apple-system,
-    "Apple SD Gothic Neo", sans-serif;
 }
 
 [data-tone="trust"] {
-  /* 신뢰형 */
+  /* 신뢰형 — 별도 디스플레이체 없이 Pretendard Black 굵기로 "꾸미지 않은 확신감" */
   --brand: #2e4756;
   --brand-deep: #22343f;
   --accent: #86754f;
@@ -38,15 +37,14 @@
   --ink: #23272b;
   --radius-cta: 8px;
   --shadow-cta: 0 2px 6px rgb(0 0 0 / 0.08);
-  --headline-weight: 700;
+  --font-headline: var(--font-sans);
+  --headline-weight: 900;
   --headline-tracking: -0.01em;
   --motion-level: 0;
-  --font-sans: "Noto Sans KR", var(--font-pretendard), -apple-system,
-    "Apple SD Gothic Neo", sans-serif;
 }
 
 [data-tone="driven"] {
-  /* 혼합형 */
+  /* 혼합형 — 헤드라인만 S-Core Dream Heavy */
   --brand: #2d4a43;
   --brand-deep: #1f3630;
   --accent: #e0793c;
@@ -54,11 +52,10 @@
   --ink: #24211c;
   --radius-cta: 10px;
   --shadow-cta: 0 6px 18px rgb(45 74 67 / 0.25);
+  --font-headline: "S-Core Dream", var(--font-sans);
   --headline-weight: 800;
-  --headline-tracking: 0;
+  --headline-tracking: 0.01em;
   --motion-level: 2;
-  --font-sans: "Nanum Gothic", var(--font-pretendard), -apple-system,
-    "Apple SD Gothic Neo", sans-serif;
 }
 
 * {

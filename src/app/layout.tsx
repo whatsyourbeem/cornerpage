@@ -23,15 +23,19 @@ export default function RootLayout({
     <html lang="ko" className={`${pretendard.variable} h-full antialiased`}>
       <head>
         {/*
-          톤 전용 서체: Jua(감성형)·Noto Sans KR(신뢰형)·Nanum Gothic(혼합형).
-          next/font/google의 번들 메타데이터엔 이 폰트들의 "korean" subset이
-          빠져 있어(라틴만 인식) next/font로는 한글이 안 나온다. Google Fonts CDN
-          스타일시트로 직접 로드 — unicode-range로 청크가 나뉘어 있어 실제 쓰는
-          글자의 청크만 지연 로드된다.
+          본문·UI는 전 톤 공통 Pretendard(자체 호스팅, layout.tsx 상단).
+          히어로 헤드라인에만 톤별 개성 서체를 얹는다: 감성형 Gmarket Sans,
+          혼합형 S-Core Dream(신뢰형은 별도 서체 없이 Pretendard Black 굵기로).
+          둘 다 next/font/google 번들 메타데이터에 korean subset이 없어
+          커뮤니티 CDN(jsdelivr, fonts-archive) 스타일시트로 직접 로드한다.
         */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&family=Nanum+Gothic:wght@400;700;800&subset=korean&display=swap"
+          href="https://cdn.jsdelivr.net/gh/fonts-archive/GmarketSans/GmarketSans.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/fonts-archive/S-CoreDream/S-CoreDream.css"
         />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>

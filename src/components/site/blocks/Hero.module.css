@@ -63,6 +63,7 @@
 }
 
 .headline {
+  font-family: var(--font-headline, inherit);
   font-size: clamp(28px, 7vw, 36px);
   line-height: 1.28;
   font-weight: var(--headline-weight);

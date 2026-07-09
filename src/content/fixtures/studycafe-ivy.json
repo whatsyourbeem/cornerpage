@@ -1,0 +1,211 @@
+{
+  "meta": {
+    "business_name": "아이비스터디카페 매탄권선점",
+    "industry_category": "스터디카페",
+    "axis_a_tone": "신뢰형",
+    "axis_b_layout": "갤러리우선",
+    "cta_primary_action": "direction",
+    "cta_interaction_mode": "functional",
+    "logo_url": "https://images.example.com/ivy-logo.png",
+    "brand_color": null
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "아이비스터디카페",
+      "action_button": {
+        "type": "direction",
+        "label": "오시는 길"
+      }
+    },
+    "hero": {
+      "badge": "권선동 · 24시간 무인 스터디카페",
+      "headline": "24시간 언제나, 포커스존부터 프라이빗룸까지",
+      "tagline": "카페존과 포커스존이 분리돼 있어 집중하기 좋고, 사물함 대여도 가능해요.",
+      "background_image_url": "https://images.example.com/ivy-hero.jpg",
+      "cta": {
+        "type": "direction",
+        "label": "오시는 길"
+      }
+    },
+    "trust_strip": {
+      "items": [
+        {
+          "value": "24시간",
+          "label": "무인 운영"
+        },
+        {
+          "value": "1인실",
+          "label": "프라이빗룸"
+        },
+        {
+          "value": "분리형",
+          "label": "포커스존·카페존"
+        }
+      ]
+    },
+    "about": null,
+    "menu": {
+      "label": "이용권",
+      "mode": "package_table",
+      "items": null,
+      "categories": [
+        {
+          "category_name": "당일권",
+          "tiers": [
+            {
+              "label": "2시간",
+              "price": "4,000원"
+            },
+            {
+              "label": "4시간",
+              "price": "5,000원"
+            },
+            {
+              "label": "8시간",
+              "price": "9,000원"
+            },
+            {
+              "label": "12시간",
+              "price": "11,000원"
+            }
+          ],
+          "representative_tier_index": 0
+        },
+        {
+          "category_name": "시간권",
+          "tiers": [
+            {
+              "label": "30시간",
+              "price": "50,000원"
+            },
+            {
+              "label": "50시간",
+              "price": "70,000원"
+            },
+            {
+              "label": "100시간",
+              "price": "120,000원"
+            }
+          ],
+          "representative_tier_index": 0
+        },
+        {
+          "category_name": "기간권",
+          "tiers": [
+            {
+              "label": "2주",
+              "price": "70,000원"
+            },
+            {
+              "label": "4주",
+              "price": "120,000원"
+            },
+            {
+              "label": "8주",
+              "price": "230,000원"
+            }
+          ],
+          "representative_tier_index": 1
+        },
+        {
+          "category_name": "고정석",
+          "tiers": [
+            {
+              "label": "4주",
+              "price": "180,000원"
+            },
+            {
+              "label": "8주",
+              "price": "350,000원"
+            }
+          ],
+          "representative_tier_index": 0
+        }
+      ],
+      "full_list_link_enabled": true
+    },
+    "gallery": {
+      "images": [
+        "https://images.example.com/ivy-1.jpg",
+        "https://images.example.com/ivy-2.jpg",
+        "https://images.example.com/ivy-3.jpg"
+      ],
+      "more_link_url": "https://naver.me/5gYYWNrJ"
+    },
+    "reviews": {
+      "items": [
+        {
+          "body": "이 동네 스카 다 다녀봤지만 가장 좋습니다. 분위기 흐리는 친구도 없고, 시스템·편의시설·준비물 등등 다른 곳 대비 완벽합니다.",
+          "rating": null,
+          "author": "익명",
+          "source": "네이버 리뷰"
+        },
+        {
+          "body": "프라이빗룸이 있어서 다른 스터디카페보다 집중하기 좋아요.",
+          "rating": null,
+          "author": "익명",
+          "source": "네이버 리뷰"
+        }
+      ]
+    },
+    "info": {
+      "address": "경기 수원시 권선구 동수원로242번길 20 2층 204호",
+      "map_coordinates": {
+        "lat": 37.26,
+        "lng": 127.02
+      },
+      "hours": {
+        "type": "24h",
+        "structured": null
+      },
+      "phone": "010-3026-9321",
+      "external_links": [
+        {
+          "platform": "naver_reservation",
+          "url": "https://naver.me/5gYYWNrJ"
+        }
+      ],
+      "business_info": null
+    },
+    "sticky_cta": {
+      "buttons": [
+        {
+          "type": "direction",
+          "label": "오시는 길",
+          "action_value": "#info"
+        },
+        {
+          "type": "call",
+          "label": "전화 문의",
+          "action_value": "01030269321"
+        }
+      ]
+    },
+    "how_it_works": {
+      "steps": [
+        {
+          "order": 1,
+          "title": "좌석·이용권 선택",
+          "description": "현장 키오스크에서 원하는 좌석과 이용권 선택"
+        },
+        {
+          "order": 2,
+          "title": "결제 후 이용",
+          "description": "결제 즉시 바로 이용 시작"
+        }
+      ]
+    },
+    "faq": {
+      "items": [
+        {
+          "question": "위치가 어디인가요?",
+          "answer": "롯데마트 뒤 롯데리아 건물 2층입니다."
+        },
+        {
+          "question": "대여 가능한 물품은 뭐가 있나요?",
+          "answer": "스탠드, 담요, 독서대 등 다양한 문구·사무용품이 구비되어있습니다."
+        }
+      ]
+    }
+  }
+}

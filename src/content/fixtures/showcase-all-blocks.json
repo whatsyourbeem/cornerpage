@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "business_name": "브런치클럽 코너",
+    "industry_category": "브런치카페",
+    "axis_a_tone": "감성형",
+    "axis_b_layout": "갤러리우선",
+    "cta_primary_action": "reservation",
+    "cta_interaction_mode": "guided",
+    "logo_url": "https://picsum.photos/seed/cornerpage-logo/120/120",
+    "brand_color": "#4A9FD8"
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "브런치클럽 코너",
+      "action_button": {
+        "type": "reservation",
+        "label": "예약하기"
+      }
+    },
+    "hero": {
+      "badge": "성수동 · 브런치 카페",
+      "headline": "여유로운 아침, 브런치클럽 코너",
+      "tagline": "직접 구운 빵과 그날그날의 계절 재료로 만든 브런치를 성수동 골목에서 즐기세요.",
+      "background_image_url": "https://picsum.photos/seed/cornerpage-hero/1200/1500",
+      "cta": {
+        "type": "reservation",
+        "label": "예약하기"
+      }
+    },
+    "trust_strip": {
+      "items": [
+        { "value": "4.9", "label": "평균 별점" },
+        { "value": "3,200+", "label": "누적 방문" },
+        { "value": "6년", "label": "운영 기간" }
+      ]
+    },
+    "about": {
+      "body": "성수동 골목의 오래된 주택을 개조해 만든 공간입니다. 매일 아침 직접 빵을 굽고, 그날 들어온 재료로 메뉴를 조금씩 바꿔가며 브런치를 준비합니다. 창가 자리에 앉아 천천히 한 끼를 즐기다 가세요.",
+      "signature_quote": "좋은 재료로, 서두르지 않고 만듭니다.",
+      "supporting_image_url": "https://picsum.photos/seed/cornerpage-about/900/700"
+    },
+    "menu": {
+      "label": "브런치 메뉴",
+      "mode": "item_price",
+      "items": [
+        {
+          "name": "코너 에그 베네딕트",
+          "price": "16,000원",
+          "description": "수란과 홀랜다이즈 소스, 매일 굽는 사워도우",
+          "image_url": "https://picsum.photos/seed/cornerpage-menu-1/640/480",
+          "badge": "시그니처"
+        },
+        {
+          "name": "제철 버섯 리조또",
+          "price": "15,000원",
+          "description": "그날 들어온 제철 버섯과 파마산",
+          "image_url": "https://picsum.photos/seed/cornerpage-menu-2/640/480",
+          "badge": "인기"
+        },
+        {
+          "name": "크로플 플레이트",
+          "price": "12,000원",
+          "description": "바삭한 크로플과 바닐라 아이스크림, 제철 과일",
+          "image_url": "https://picsum.photos/seed/cornerpage-menu-3/640/480",
+          "badge": null
+        }
+      ],
+      "full_list_link_enabled": true
+    },
+    "gallery": {
+      "images": [
+        "https://picsum.photos/seed/cornerpage-gallery-1/900/700",
+        "https://picsum.photos/seed/cornerpage-gallery-2/700/900",
+        "https://picsum.photos/seed/cornerpage-gallery-3/700/900",
+        "https://picsum.photos/seed/cornerpage-gallery-4/700/900",
+        "https://picsum.photos/seed/cornerpage-gallery-5/700/900"
+      ],
+      "more_link_url": "https://instagram.com/corner.brunchclub"
+    },
+    "reviews": {
+      "items": [
+        {
+          "body": "창가 자리 햇살이 정말 좋아요. 에그 베네딕트가 이 동네 최고입니다.",
+          "rating": 5,
+          "author": "박○진",
+          "source": "네이버 리뷰"
+        },
+        {
+          "body": "평일 오전에 가면 여유롭게 즐길 수 있어요. 리조또 추천합니다.",
+          "rating": 4,
+          "author": "이○수",
+          "source": "구글 리뷰"
+        },
+        {
+          "body": "빵이 정말 맛있어요. 매번 다른 계절 메뉴가 있어서 자주 가게 돼요.",
+          "rating": 5,
+          "author": "김○영",
+          "source": "인스타그램"
+        }
+      ]
+    },
+    "info": {
+      "address": "서울 성동구 성수이로 12길 8",
+      "map_coordinates": { "lat": 37.544, "lng": 127.056 },
+      "hours": {
+        "type": "structured",
+        "structured": [
+          { "day": "mon", "open": "09:00", "close": "21:00", "break": null, "last_order": "20:00", "closed": false },
+          { "day": "tue", "open": "09:00", "close": "21:00", "break": null, "last_order": "20:00", "closed": false },
+          { "day": "wed", "open": null, "close": null, "break": null, "last_order": null, "closed": true },
+          { "day": "thu", "open": "09:00", "close": "21:00", "break": null, "last_order": "20:00", "closed": false },
+          { "day": "fri", "open": "09:00", "close": "22:00", "break": null, "last_order": "21:00", "closed": false },
+          { "day": "sat", "open": "10:00", "close": "22:00", "break": ["15:00", "17:00"], "last_order": "21:00", "closed": false },
+          { "day": "sun", "open": "10:00", "close": "20:00", "break": ["15:00", "17:00"], "last_order": "19:00", "closed": false }
+        ]
+      },
+      "phone": "02-3141-0192",
+      "external_links": [
+        { "platform": "instagram", "url": "https://instagram.com/corner.brunchclub" },
+        { "platform": "naver_reservation", "url": "https://naver.me/corner-brunch" },
+        { "platform": "kakao", "url": "https://pf.kakao.com/_cornerBrunch" },
+        { "platform": "blog", "url": "https://blog.naver.com/corner-brunch" }
+      ],
+      "business_info": {
+        "registered_name": "주식회사 코너페이지 브런치클럽",
+        "ceo_name": "박코너",
+        "registration_number": "123-45-67890"
+      }
+    },
+    "sticky_cta": {
+      "buttons": [
+        { "type": "reservation", "label": "예약하기", "action_value": "https://naver.me/corner-brunch" },
+        { "type": "call", "label": "전화 문의", "action_value": "0231410192" }
+      ]
+    },
+    "how_it_works": {
+      "steps": [
+        { "order": 1, "title": "예약 확인", "description": "네이버예약 또는 전화로 인원과 시간을 예약해요" },
+        { "order": 2, "title": "방문", "description": "예약 시간에 맞춰 방문해주세요" },
+        { "order": 3, "title": "주문", "description": "테이블에서 메뉴를 주문해주세요" },
+        { "order": 4, "title": "즐기기", "description": "여유롭게 브런치를 즐기다 가세요" }
+      ]
+    },
+    "faq": {
+      "items": [
+        { "question": "주차가 가능한가요?", "answer": "매장 앞 공영주차장을 1시간 무료로 이용하실 수 있습니다." },
+        { "question": "웨이팅이 있나요?", "answer": "주말 브런치 타임(11-14시)에는 대기가 있을 수 있어 예약을 권장드려요." },
+        { "question": "반려동물 동반이 가능한가요?", "answer": "테라스 좌석에 한해 소형견 동반이 가능합니다." }
+      ]
+    }
+  }
+}

@@ -1,0 +1,148 @@
+.cardGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.card {
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  border-radius: 14px;
+  overflow: hidden;
+  background: white;
+}
+
+[data-tone="warm"] .card {
+  background: color-mix(in srgb, var(--paper) 40%, white);
+}
+
+.cardImage {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+}
+
+.cardBody {
+  padding: 14px 16px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.listRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.listRow:last-child {
+  border-bottom: none;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.itemName {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.itemDesc {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--button-text, white);
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.price {
+  font-weight: 700;
+  color: var(--brand-deep);
+  white-space: nowrap;
+  font-size: 14.5px;
+}
+
+.priceConsult {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  font-size: 13.5px;
+}
+
+/* package_table 모드 */
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.categoryName {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--brand);
+  margin: 0 0 10px;
+}
+
+.tierTable {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tierRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  font-size: 14px;
+  background: white;
+}
+
+.tierRow:not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.tierRepresentative {
+  background: color-mix(in srgb, var(--brand) 9%, white);
+  font-weight: 700;
+}
+
+.tierRepBadge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--brand);
+  border: 1px solid var(--brand);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+
+.fullListHint {
+  margin-top: 16px;
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

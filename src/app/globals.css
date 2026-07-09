@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: var(--font-pretendard), -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --container-width: 480px;
+  --motion-level: 1;
+  /* topbar/sticky_cta는 항상 화면에 고정으로 떠 있으므로,
+     히어로 높이 계산 시 이 두 칸을 확보해줘야 히어로 CTA가 하단 고정바에 가려지지 않는다. */
+  --topbar-h: 64px;
+  --stickycta-h: 92px;
+}
+
+/* ---------- 톤 프리셋 (축 A) ---------- */
+
+[data-tone="warm"] {
+  /* 감성형 */
+  --brand: #7a5c3e;
+  --brand-deep: #5c4530;
+  --accent: #c26b3a;
+  --paper: #f7f3ec;
+  --ink: #2b2622;
+  --radius-cta: 12px;
+  --shadow-cta: 0 6px 16px rgb(122 92 62 / 0.25);
+  --headline-weight: 800;
+  --headline-tracking: -0.02em;
+  --motion-level: 1;
+}
+
+[data-tone="trust"] {
+  /* 신뢰형 */
+  --brand: #2e4756;
+  --brand-deep: #22343f;
+  --accent: #86754f;
+  --paper: #f4f5f6;
+  --ink: #23272b;
+  --radius-cta: 8px;
+  --shadow-cta: 0 2px 6px rgb(0 0 0 / 0.08);
+  --headline-weight: 700;
+  --headline-tracking: -0.01em;
+  --motion-level: 0;
+}
+
+[data-tone="driven"] {
+  /* 혼합형 */
+  --brand: #2d4a43;
+  --brand-deep: #1f3630;
+  --accent: #e0793c;
+  --paper: #f5f4f0;
+  --ink: #24211c;
+  --radius-cta: 10px;
+  --shadow-cta: 0 6px 18px rgb(45 74 67 / 0.25);
+  --headline-weight: 800;
+  --headline-tracking: 0;
+  --motion-level: 2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* 키보드 포커스 */
+:focus-visible {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- 공용 레이아웃 유틸 ---------- */
+
+.mhp-page {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* 데스크톱: 미니홈페이지 정체성 유지를 위해 480px 카드로 중앙 정렬(풀와이드 확장 안 함) */
+@media (min-width: 640px) {
+  body {
+    background: #e5e5e3;
+  }
+
+  .mhp-page {
+    max-width: var(--container-width);
+    margin-inline: auto;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.04), 0 24px 60px rgb(0 0 0 / 0.12);
+  }
+}
+
+.mhp-container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+.mhp-section {
+  padding-block: 44px;
+}
+
+.mhp-section + .mhp-section {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.mhp-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--brand);
+  margin: 0 0 8px;
+}
+
+.mhp-section-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+/* 사진 없을 때 쓰는 도트 텍스처 (완전 단색은 밋밋해 보임 방지) */
+.mhp-dot-texture {
+  background-image: radial-gradient(
+    color-mix(in srgb, white 22%, transparent) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 18px 18px;
+}

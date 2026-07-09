@@ -1,0 +1,27 @@
+.image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.body {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink);
+  margin: 0;
+  white-space: pre-line;
+}
+
+.quote {
+  margin: 20px 0 0;
+  padding: 16px 18px;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  border-radius: 0 10px 10px 0;
+  font-size: 14.5px;
+  font-style: normal;
+  color: var(--brand-deep);
+  line-height: 1.6;
+}

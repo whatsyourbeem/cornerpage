@@ -1,0 +1,48 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: var(--radius-cta);
+  background: var(--brand);
+  color: var(--button-text, white);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: var(--shadow-cta);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+[data-tone="warm"] .button {
+  background: var(--accent);
+}
+
+[data-tone="driven"] .button {
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+}
+
+.outline {
+  background: transparent;
+  color: var(--brand);
+  border: 1.5px solid color-mix(in srgb, var(--brand) 45%, transparent);
+  box-shadow: none;
+}
+
+[data-tone="warm"] .outline {
+  color: var(--brand-deep);
+}
+
+.small {
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 14px;
+}

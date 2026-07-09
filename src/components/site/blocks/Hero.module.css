@@ -1,0 +1,91 @@
+.hero {
+  position: relative;
+  min-height: max(420px, calc(100svh - var(--topbar-h) - var(--stickycta-h)));
+  max-height: 760px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  color: white;
+}
+
+.bgImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bgOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--brand-deep) 92%, black) 0%,
+    color-mix(in srgb, var(--brand-deep) 55%, transparent) 55%,
+    color-mix(in srgb, var(--brand-deep) 20%, transparent) 100%
+  );
+}
+
+/* 배경 사진이 없을 때: 톤 브랜드 단색 + 도트 텍스처 폴백 */
+.bgFallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    var(--brand-deep),
+    var(--brand) 70%
+  );
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 28px 20px 40px;
+  max-width: var(--container-width);
+  margin-inline: auto;
+  animation: fade-up 0.6s ease both;
+}
+
+[data-tone="trust"] .content {
+  animation: fade-in 0.5s ease both;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, white 18%, transparent);
+  backdrop-filter: blur(4px);
+  margin-bottom: 14px;
+}
+
+.headline {
+  font-size: clamp(28px, 7vw, 36px);
+  line-height: 1.28;
+  font-weight: var(--headline-weight);
+  letter-spacing: var(--headline-tracking);
+  margin: 0 0 12px;
+}
+
+.tagline {
+  font-size: 15px;
+  line-height: 1.6;
+  color: color-mix(in srgb, white 88%, transparent);
+  margin: 0 0 22px;
+  max-width: 42ch;
+}
+
+/* 감성형 시그니처: 히어로 하단 곡선 구분선 */
+.wavyDivider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 36px;
+  width: 100%;
+}

@@ -11,46 +11,48 @@ export function Menu({ menu, info }: { menu: MenuType; info: Info }) {
   const isTable = menu.mode === "package_table";
 
   return (
-    <div className="mhp-container mhp-section">
-      <p className="mhp-eyebrow">메뉴</p>
-      <h2 className="mhp-section-title">{menu.label}</h2>
+    <div className="mhp-band mhp-band-light mhp-section">
+      <div className="mhp-container">
+        <p className="mhp-eyebrow">메뉴</p>
+        <h2 className="mhp-section-title">{menu.label}</h2>
 
-      {!isTable && <ItemList menu={menu} />}
-      {isTable && (
-        <div className={styles.categories}>
-          {menu.categories.map((category) => (
-            <div key={category.category_name}>
-              <p className={styles.categoryName}>{category.category_name}</p>
-              <div className={styles.tierTable}>
-                {category.tiers.map((tier, i) => (
-                  <div
-                    key={tier.label}
-                    className={`${styles.tierRow} ${
-                      i === category.representative_tier_index
-                        ? styles.tierRepresentative
-                        : ""
-                    }`}
-                  >
-                    <span>
-                      {tier.label}
-                      {i === category.representative_tier_index && (
-                        <span className={styles.tierRepBadge}>대표</span>
-                      )}
-                    </span>
-                    <span>{tier.price}</span>
-                  </div>
-                ))}
+        {!isTable && <ItemList menu={menu} />}
+        {isTable && (
+          <div className={styles.categories}>
+            {menu.categories.map((category) => (
+              <div key={category.category_name}>
+                <p className={styles.categoryName}>{category.category_name}</p>
+                <div className={styles.tierTable}>
+                  {category.tiers.map((tier, i) => (
+                    <div
+                      key={tier.label}
+                      className={`${styles.tierRow} ${
+                        i === category.representative_tier_index
+                          ? styles.tierRepresentative
+                          : ""
+                      }`}
+                    >
+                      <span>
+                        {tier.label}
+                        {i === category.representative_tier_index && (
+                          <span className={styles.tierRepBadge}>대표</span>
+                        )}
+                      </span>
+                      <span>{tier.price}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {menu.full_list_link_enabled && (
-        <a href={fullListHref(info)} className={styles.fullListHint}>
-          전체 메뉴 보기 →
-        </a>
-      )}
+        {menu.full_list_link_enabled && (
+          <a href={fullListHref(info)} className={styles.fullListHint}>
+            전체 메뉴 보기 →
+          </a>
+        )}
+      </div>
     </div>
   );
 }

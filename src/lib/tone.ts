@@ -55,6 +55,7 @@ export function resolveBrandCssVars(
     "--brand": palette.brand,
     "--brand-deep": palette.brandDeep,
     "--accent": palette.accent,
+    "--accent-on-dark": palette.accentOnDark,
     "--button-text": palette.buttonText,
   };
 }

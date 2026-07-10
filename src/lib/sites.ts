@@ -28,3 +28,17 @@ export async function getSiteBySlug(slug: string): Promise<SiteRow | null> {
   }
   return data as SiteRow | null;
 }
+
+/** /preview 인덱스(개발용)에서 전체 목록을 보여주는 용도. */
+export async function listSites(): Promise<SiteRow[]> {
+  const { data, error } = await supabase
+    .from("sites")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("listSites failed:", error.message);
+    return [];
+  }
+  return data as SiteRow[];
+}

@@ -6,7 +6,7 @@
   /* 카드(콘텐츠) 폭: 모바일 480px → 데스크톱 최대 700px로 소폭 확장.
      완전 반응형(풀와이드)도 완전 고정도 아닌 절충 — design-guide.md 6장. */
   --container-width: clamp(480px, 55vw, 700px);
-  --page-backdrop: #e5e5e3;
+  --page-backdrop: #ededE9;
   --motion-level: 1;
   /* topbar/sticky_cta는 항상 화면에 고정으로 떠 있으므로,
      히어로 높이 계산 시 이 두 칸을 확보해줘야 히어로 CTA가 하단 고정바에 가려지지 않는다. */
@@ -21,7 +21,9 @@
   --brand: #7a5c3e;
   --brand-deep: #5c4530;
   --accent: #c26b3a;
+  --accent-on-dark: #e1b49b;
   --paper: #f7f3ec;
+  --paper-alt: #f0e6d6;
   --ink: #2b2622;
   --radius-cta: 12px;
   --shadow-cta: 0 6px 16px rgb(122 92 62 / 0.25);
@@ -36,7 +38,9 @@
   --brand: #2e4756;
   --brand-deep: #22343f;
   --accent: #86754f;
+  --accent-on-dark: #ad9c74;
   --paper: #f4f5f6;
+  --paper-alt: #e7eaec;
   --ink: #23272b;
   --radius-cta: 8px;
   --shadow-cta: 0 2px 6px rgb(0 0 0 / 0.08);
@@ -51,7 +55,9 @@
   --brand: #2d4a43;
   --brand-deep: #1f3630;
   --accent: #e0793c;
+  --accent-on-dark: #e28147;
   --paper: #f5f4f0;
+  --paper-alt: #eae4d8;
   --ink: #24211c;
   --radius-cta: 10px;
   --shadow-cta: 0 6px 18px rgb(45 74 67 / 0.25);
@@ -143,14 +149,51 @@ body {
   max-width: var(--container-width);
   margin-inline: auto;
   padding-inline: 20px;
-  background: var(--paper);
 }
 
 .mhp-section {
   padding-block: 44px;
 }
 
-.mhp-section + .mhp-section {
+/*
+  섹션 배경띠(design-guide.md 6-1-①): 배경은 뷰포트 전체 폭으로 칠하고
+  .mhp-container(안쪽)가 텍스트만 카드 폭으로 잡아준다. 데스크톱에서 카드
+  바깥 회색 여백이 너무 넓어 "휑해 보이는" 문제를 해결하는 장치라, 모바일
+  에서도 동일하게 적용해 톤/명도로 섹션을 구분한다(휘어리 보더 대신).
+
+  -dark는 --paper/--ink/--brand/--accent를 그 자리에서 반전시켜서, 각 블록이
+  이미 쓰고 있는 var(--ink), var(--brand), var(--accent), color-mix(...,
+  var(--ink), ...) 패턴이 전부 자동으로 밝은 배경/어두운 배경 양쪽에 맞게
+  재계산되도록 한다 — 블록 컴포넌트 CSS를 따로 손댈 필요가 없다.
+
+  --brand/--accent는 둘 다 --accent-on-dark로 바꿔치기한다(단순 --accent가
+  아니라): --accent는 paper 대비로만 맞춘 값이라 --brand-deep처럼 어두운
+  배경 위에서는 대비가 부족할 수 있다(같은 색이 밝은/어두운 배경 양쪽에서
+  4.5:1을 만족하는건 명도差 때문에 대체로 불가능) — 색상.ts의
+  deriveBrandPalette 주석 참고.
+*/
+.mhp-band {
+  width: 100%;
+}
+
+.mhp-band-light {
+  background: var(--paper);
+}
+
+.mhp-band-light-alt {
+  background: var(--paper-alt);
+}
+
+.mhp-band-dark {
+  background: var(--brand-deep);
+  --paper: var(--brand-deep);
+  --ink: #ffffff;
+  --brand: var(--accent-on-dark);
+  --accent: var(--accent-on-dark);
+  color: var(--ink);
+}
+
+.mhp-band + .mhp-band {
   border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
 }
 

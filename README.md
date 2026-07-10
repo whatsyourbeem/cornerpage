@@ -145,8 +145,8 @@ handoff-README.md                0단계 핸드오프 배경 문서 원본
 
 - **톤 3종(축 A)**: 감성형(따뜻함·Gmarket Sans 헤드라인·웨이브 디바이더)·신뢰형(절제·Pretendard Black 헤드라인·미니멀 모션)·혼합형(임팩트·S-Core Dream 헤드라인·카운트업 애니메이션). 색상·모션·시그니처 요소가 톤마다 다름
 - **레이아웃 2종(축 B)**: 갤러리우선/메뉴우선이 블록 순서를 결정, 해당없음이면 갤러리 블록 자체가 트리에서 빠짐
-- **brand_color 오버라이드**: 사장님이 브랜드 컬러를 지정하면 그 hex를 씨앗 삼아 `--brand`/`--brand-deep`/`--accent`/`--button-text`를 결정적으로 유도(`src/lib/color.ts`). WCAG 4.5:1 미달이면 색조는 유지한 채 명도만 조정. 타이포·모션 같은 구조적 토큰은 축 A(톤) 그대로 유지 — 팔레트만 바뀌고 톤의 "성격"은 안 바뀜
-- **반응형 폭 규칙**: 카드 폭이 `clamp(480px, 55vw, 700px)`로 모바일~데스크톱 소폭 확장. 히어로 배경·topbar·갤러리 그리드 3개만 카드 폭을 벗어나 풀블리드로 확장 가능하고, 나머지 블록은 카드 폭 안에 머물며 바깥은 톤 낮춘 배경(`--page-backdrop`)이 보임
+- **brand_color 오버라이드**: 사장님이 브랜드 컬러를 지정하면 그 hex를 씨앗 삼아 `--brand`/`--brand-deep`/`--accent`/`--accent-on-dark`/`--button-text`를 결정적으로 유도(`src/lib/color.ts`). `--accent`는 밝은 배경(paper) 기준, `--accent-on-dark`는 어두운 배경(brand-deep) 기준으로 각각 WCAG 4.5:1을 맞춘다 — 같은 색으로 밝은/어두운 배경 양쪽 대비를 동시에 만족시키는 건 명도差 때문에 대체로 불가능해서 배경 밝기별로 분리했다. 타이포·모션 같은 구조적 토큰은 축 A(톤) 그대로 유지 — 팔레트만 바뀌고 톤의 "성격"은 안 바뀜
+- **반응형 폭 규칙**: 카드 폭이 `clamp(480px, 55vw, 700px)`. `.mhp-page` 자체는 폭을 제한하지 않고, Hero 배경·Topbar·StickyCta·갤러리 그리드는 배경이 뷰포트 전체 폭(풀블리드)까지 퍼진다. 나머지 블록(TrustStrip/About/Menu/Reviews/HowItWorks/Faq/Info)도 각자 `mhp-band`로 감싸 배경을 풀블리드로 채우고, 안쪽 `mhp-container`만 카드 폭으로 텍스트를 정렬 — 데스크톱에서 카드 바깥이 빈 여백으로 남지 않도록 하는 장치(design-guide.md 6-1장). 밴드는 밝음(`--paper`)·보조 밝음(`--paper-alt`)·어두움(`--brand-deep`, `--accent-on-dark`)을 블록별로 번갈아 써서 스크롤 시 섹션 구분이 드러난다
 - **null 폴백**: 사진 없으면 톤 브랜드 색+도트 텍스처, 로고 없으면 텍스트 로고타입, about/gallery/reviews/how_it_works/faq는 블록째로 렌더링 트리에서 제거(빈 공간 안 남김)
 - **폰트 CDN**: Gmarket Sans·S-Core Dream 모두 `next/font/google`의 번들 메타데이터에 korean subset이 빠져있어서(라틴만 인식), `jsdelivr` + `fonts-archive` GitHub 저장소 스타일시트를 `layout.tsx`에서 직접 `<link>`로 로드
 

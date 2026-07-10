@@ -157,6 +157,122 @@ function PageRenderer({ content }: { content: MiniHomepageContent }) {
 - 색상 대비: 텍스트 4.5:1, 큰 텍스트(24px+) 3:1 이상(WCAG AA).
 - 이미지 alt 텍스트: 콘텐츠 스키마 확장 시점(백로그)에 필드가 추가되면 렌더러가 필수로 사용하도록 미리 구조 대비.
 
+### 6-1. 데스크톱 채움 기법 (카드 폭 규칙만으로는 부족할 때)
+
+실측 검증(1512px 데스크톱 프리뷰) 결과, 카드 폭을 640~720px로 넓히는 것만으로는 넓은 화면에서 "휑해 보이는" 인상이 완전히 해소되지 않았다. 아래 기법을 **우선순위 순서대로** 적용한다. 1~2번은 필수, 3번 이후는 권장.
+
+**① 섹션별 풀블리드 배경띠 (최우선 · 모든 섹션에 적용)**
+
+카드 바깥을 밋밋한 단색으로 두지 말고, **섹션마다 배경색을 화면 전체 폭으로 채우고 텍스트만 카드 폭 안에 정렬**한다. 히어로에서 이미 하고 있는 "배경 풀블리드 + 텍스트 카드폭" 패턴을 신뢰스트립·정보 블록 등 배경색이 있는 모든 섹션으로 확장.
+
+```css
+.section {
+  width: 100%;              /* 배경은 뷰포트 전체 폭 */
+  padding: 48px 24px;
+}
+.section-inner {
+  max-width: 720px;         /* 텍스트 콘텐츠만 카드 폭으로 제한 */
+  margin: 0 auto;
+}
+/* 톤별 섹션 배경색 예시 (신뢰스트립) */
+.trust-strip { background: var(--brand-deep); }   /* 화면 끝까지 */
+.about       { background: var(--paper-warm); }
+.info        { background: var(--brand-deep); }
+```
+일반 콘텐츠 섹션(소개·메뉴·리뷰·FAQ)은 배경을 `--paper`(기본 배경)와 살짝 다른 톤(`--paper-warm` 등)으로 교대로 주면, 섹션 경계가 시각적으로 구분되면서 화면이 "줄무늬"처럼 채워져 허전함이 줄어든다.
+
+**② 카드 그림자·프레임감 (필수)**
+
+카드 전체를 감싸는 컨테이너에 은은한 그림자를 줘서, 좁은 폭이 "미완성"이 아니라 "의도된 모바일 프레임 룩"으로 읽히게 한다.
+
+```css
+@media (min-width: 768px) {
+  .page-container {
+    max-width: 720px;
+    margin: 0 auto;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.08);
+    min-height: 100vh;
+  }
+  body {
+    background: #EDEDE9;   /* 카드 바깥 배경 — 순백색 금지, 살짝 톤 낮춘 뉴트럴 */
+  }
+}
+```
+
+**③ 톤별 장식 배경 (권장, 데스크톱 전용)**
+
+카드 양옆 여백(`body` 배경)에 톤별로 다른 은은한 장식을 깔아 화면을 채운다. **카드 콘텐츠보다 절대 튀면 안 되며**, `opacity` 낮게 또는 매우 옅은 색상으로 처리.
+
+```css
+/* 감성형: 부드러운 원형 블러 글로우 */
+body[data-tone="감성형"]::before {
+  content: "";
+  position: fixed; top: -10%; left: -10%;
+  width: 40vw; height: 40vw;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  opacity: 0.08;
+  filter: blur(60px);
+  z-index: -1;
+}
+
+/* 신뢰형: 거의 안 보이는 옅은 도트 패턴 */
+body[data-tone="신뢰형"] {
+  background-image: radial-gradient(var(--brand) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: #EDEDE9;
+  background-blend-mode: normal;
+}
+/* 도트 자체의 색상 opacity를 5% 이하로: rgba(46,71,86,0.05) 형태로 --brand를 rgba 변환해 사용 */
+
+/* 혼합형: 살짝 각진 기하학 도형 1~2개, 옅게 */
+body[data-tone="혼합형"]::after {
+  content: "";
+  position: fixed; bottom: -5%; right: -5%;
+  width: 30vw; height: 30vw;
+  background: var(--accent);
+  opacity: 0.06;
+  clip-path: polygon(20% 0%, 100% 0%, 80% 100%, 0% 100%);
+  z-index: -1;
+}
+```
+
+**④ 리뷰 가로 캐러셀 (풀블리드, 권장)**
+
+리뷰가 2개 이상이면 세로 스택 대신 가로 스크롤 캐러셀로 전환, 갤러리처럼 화면 폭을 활용한다.
+
+```css
+.reviews-track {
+  width: 100%;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 0 24px;
+  scroll-snap-type: x mandatory;
+}
+.review-card {
+  flex: 0 0 320px;
+  scroll-snap-align: start;
+}
+```
+
+**⑤ 콘텐츠 많은 블록의 2열 그리드 (선택, 업종별 판단)**
+
+메뉴·FAQ 항목이 6개 이상으로 많은 업체(쇼케이스 샘플처럼 풀옵션인 경우)에 한해, 카드 폭을 800~900px로 예외 확장하고 2열 그리드를 적용할 수 있다. 단 이 경우 "명함처럼 압축된" 인상이 옅어지므로, **항목 수가 실제로 많을 때만** 조건부 적용하고 기본값으로 삼지 않는다.
+
+```css
+@media (min-width: 768px) {
+  .menu-list.is-dense,     /* 항목 6개 이상일 때만 렌더러가 이 클래스 부여 */
+  .faq-list.is-dense {
+    max-width: 880px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+  }
+}
+```
+
+**적용 순서 요약**: ①②는 모든 페이지에 기본 적용 → ③은 톤 시스템과 함께 적용 → ④는 리뷰 2개 이상일 때 → ⑤는 항목이 실제로 많을 때만 조건부.
+
 ---
 
 ## 7. 다음 단계 (To-Do)
@@ -165,3 +281,4 @@ function PageRenderer({ content }: { content: MiniHomepageContent }) {
 - [ ] 블록별 React 컴포넌트 설계(컴포넌트 = content.types.ts의 각 블록 타입을 prop으로 받음)
 - [ ] 3개 톤 프리셋으로 실제 프로토타입 렌더러 구축, 기존 6개 업종 콘텐츠 JSON으로 검증
 - [ ] 7원칙 체크리스트를 렌더러 자체 QA 스크립트로 구현 가능한지 검토(대비율 자동 검사 등)
+- [ ] 6-1 데스크톱 채움 기법(①②는 필수) 적용 후 7개 프리뷰 샘플 데스크톱 화면 재검토

@@ -106,6 +106,20 @@ function ensureReadableOnLight(hex: string, bgHex: string, minRatio = 4.5): stri
   return candidate;
 }
 
+/** 색조는 유지한 채, bgHex(어두운 배경) 위에서 minRatio 대비를 만족할 때까지 명도만 높인다. */
+function ensureReadableOnDark(hex: string, bgHex: string, minRatio = 4.5): string {
+  const hsl = rgbToHsl(hexToRgb(hex));
+  let l = hsl.l;
+  let candidate = hex;
+  let steps = 0;
+  while (contrastRatio(candidate, bgHex) < minRatio && l < 0.96 && steps < 40) {
+    l += 0.025;
+    candidate = rgbToHex(hslToRgb({ ...hsl, l }));
+    steps += 1;
+  }
+  return candidate;
+}
+
 function darken(hex: string, amount: number): string {
   const hsl = rgbToHsl(hexToRgb(hex));
   const l = Math.max(0, hsl.l - amount);
@@ -122,6 +136,7 @@ export interface BrandPalette {
   brand: string;
   brandDeep: string;
   accent: string;
+  accentOnDark: string;
   buttonText: string;
 }
 
@@ -130,14 +145,21 @@ export interface BrandPalette {
  * --accent는 브랜드 컬러와 동일하게 맞춘다(스펙에 명시되진 않았지만, 그렇지 않으면
  * 감성형/혼합형 CTA가 브랜드 컬러 대신 톤 기본 액센트색으로 남아 오버라이드가 반쪽만
  * 적용되는 문제가 생긴다 — 구조적 토큰이 아니라 팔레트 레벨의 일관성 문제로 판단).
+ *
+ * --accent-on-dark는 별도로 유도한다: TrustStrip/Info처럼 --brand-deep을 배경으로 쓰는
+ * 다크 밴드 위에서 텍스트로 쓰이는 색인데, brand/accent는 paper(밝은 배경) 기준으로만
+ * 대비를 맞춘 값이라 어두운 배경 위에서는 대비가 부족하다(같은 색을 밝은/어두운 배경
+ * 양쪽에서 4.5:1을 만족시키는 것은 수학적으로 불가능 — paper와 brand-deep의 명도差가 큼).
  */
 export function deriveBrandPalette(seedHex: string, paperHex: string): BrandPalette {
   const brand = ensureReadableOnLight(seedHex, paperHex, 4.5);
   const brandDeep = darken(brand, 0.16);
+  const accentOnDark = ensureReadableOnDark(seedHex, brandDeep, 4.5);
   return {
     brand,
     brandDeep,
     accent: brand,
+    accentOnDark,
     buttonText: pickReadableTextColor(brand),
   };
 }

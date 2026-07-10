@@ -80,15 +80,17 @@ export function TrustStrip({
 }) {
   const animate = toneSlug === "driven";
   return (
-    <div className={`mhp-container mhp-section ${styles.strip}`}>
-      {trustStrip.items.map((item, i) => (
-        <div className={styles.item} key={i}>
-          <span className={styles.value}>
-            <CountUpValue value={item.value} animate={animate} />
-          </span>
-          <span className={styles.label}>{item.label}</span>
-        </div>
-      ))}
+    <div className="mhp-band mhp-band-dark mhp-section">
+      <div className={`mhp-container ${styles.strip}`}>
+        {trustStrip.items.map((item, i) => (
+          <div className={styles.item} key={i}>
+            <span className={styles.value}>
+              <CountUpValue value={item.value} animate={animate} />
+            </span>
+            <span className={styles.label}>{item.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

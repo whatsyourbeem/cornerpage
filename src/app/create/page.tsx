@@ -367,10 +367,22 @@ export default function CreatePage() {
           </fieldset>
 
           <Field label="대표 사진">
-            <input type="file" accept="image/*" onChange={(e) => setHeroFile(e.target.files?.[0] ?? null)} />
+            <input
+              type="file"
+              accept="image/*"
+              style={fileInputStyle}
+              onChange={(e) => setHeroFile(e.target.files?.[0] ?? null)}
+            />
+            {heroFile && <p style={fileNameStyle}>선택됨: {heroFile.name}</p>}
           </Field>
           <Field label="로고">
-            <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} />
+            <input
+              type="file"
+              accept="image/*"
+              style={fileInputStyle}
+              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+            />
+            {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
           </Field>
 
           <Field label="손님이 가장 먼저 하길 바라는 행동">
@@ -468,11 +480,10 @@ export default function CreatePage() {
               type="file"
               accept="image/*"
               multiple
+              style={fileInputStyle}
               onChange={(e) => setGalleryFiles(Array.from(e.target.files ?? []))}
             />
-            {galleryFiles.length > 0 && (
-              <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{galleryFiles.length}장 선택됨</p>
-            )}
+            {galleryFiles.length > 0 && <p style={fileNameStyle}>{galleryFiles.length}장 선택됨</p>}
           </Field>
         </Section>
       )}
@@ -603,6 +614,23 @@ export default function CreatePage() {
     </main>
   );
 }
+
+/**
+ * 전역 CSS(Tailwind preflight)가 폼 요소에 appearance:none을 적용해서, 이 스타일
+ * 없이는 <input type="file">의 네이티브 "파일 선택" 버튼이 아예 안 보인다(빈 공간만
+ * 남음). 명시적으로 되돌리고, 항상 보이는 테두리 박스를 씌워 클릭 영역을 분명히 한다.
+ */
+const fileInputStyle: React.CSSProperties = {
+  appearance: "auto",
+  display: "block",
+  width: "100%",
+  padding: "10px",
+  borderRadius: 8,
+  border: "1px solid #ddd",
+  fontSize: 13,
+};
+
+const fileNameStyle: React.CSSProperties = { fontSize: 12, color: "#666", marginTop: 4 };
 
 const navButtonStyle: React.CSSProperties = {
   flex: 1,

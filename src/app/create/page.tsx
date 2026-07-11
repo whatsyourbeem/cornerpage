@@ -10,59 +10,20 @@ import type {
 
 /**
  * 실제 서비스의 질문형 입력 폼. skill/references/input-questions.md의 STEP
- * 구성을 그대로 따른다 — 업종을 먼저 물어서 이후 문항(강점·FAQ 후보)의 라벨을
- * 바꾸고, 필수 정보를 먼저·선택 정보를 나중에 묻는다. 톤(axis_a_tone)·
- * 레이아웃(axis_b_layout)·카피는 여기서 확정하지 않는다 — 그건 스킬(Claude)이
- * 이 원본 사업 정보를 보고 직접 판단할 몫이다(generate-content.ts 참고).
+ * 구성을 그대로 따른다. 업종은 자유 텍스트로만 받고(축A/B 판단은 이 값이 아니라
+ * 스킬이 전체 답변을 보고 내림 — SKILL.md), 이후 문항 라벨은 업종별로 프론트가
+ * 미리 분기하지 않고 전부 중립적으로 유지한다("메뉴" 대신 "대표 서비스·상품" 등).
+ * 강점·FAQ도 업종별 후보 버튼 대신 완전 자유 텍스트로 받는다 — 프론트가 업종
+ * 문자열을 보고 애매하게 분기하려 하지 않고 스킬에 온전히 맡긴다는 원칙과 같은
+ * 이유(2026-07 input-questions.md 개정 근거).
+ *
+ * 톤(axis_a_tone)·레이아웃(axis_b_layout)·카피는 여기서 확정하지 않는다 — 그건
+ * 스킬(Claude)이 이 원본 사업 정보를 보고 직접 판단할 몫이다(generate-content.ts 참고).
  *
  * 이미지는 첫 화면부터 File로 들고 있다가, 최종 제출 시점에만 draft id를
  * 발급받고 /api/upload로 업로드해서 URL로 바꾼 뒤 answers에 담아 보낸다
  * (스킬은 파일이 아니라 이미 발급된 URL만 받는다는 원칙 — input-questions.md).
  */
-
-const INDUSTRY_OPTIONS = [
-  "카페/식당",
-  "미용실/네일",
-  "헬스장",
-  "병의원",
-  "학원",
-  "공방",
-  "스터디카페",
-  "장례/긴급",
-  "기타",
-] as const;
-
-const INDUSTRY_STRENGTHS: Record<string, string[]> = {
-  "카페/식당": [
-    "직접 로스팅/제조",
-    "오래된 운영 연차",
-    "시그니처 메뉴",
-    "좌석·공간 분위기",
-    "예약 가능",
-    "반려동물 동반",
-    "주차",
-  ],
-  "미용실/네일": ["동시 시술 인원", "역세권 접근성", "이달의 아트", "원장 경력", "프라이빗룸", "예약제 운영"],
-  헬스장: ["규모(평수)", "트레이너 경력", "1:1 전문", "편의시설(샤워실·주차)", "24시간", "접근성"],
-  병의원: ["전문의 자격", "임상경력 연차", "대학병원 이력", "협진 체계", "최신 장비", "야간진료", "주차"],
-  학원: ["강사 경력", "소수정예", "커리큘럼 체계", "합격·성과 실적", "접근성"],
-  공방: ["작가·강사 경력", "소수정예 클래스", "체험 가능", "재료 직접 준비", "프라이빗 공간", "접근성"],
-  스터디카페: ["24시간 무인", "좌석 구분(포커스/카페존)", "프라이빗룸", "사물함·대여", "접근성"],
-  "장례/긴급": ["운영 연차", "24시간 대응", "직접 제작·공급", "빠른 준비", "종교별 구비"],
-  기타: [],
-};
-
-const INDUSTRY_FAQS: Record<string, string[]> = {
-  "카페/식당": ["주차 되나요?", "예약 되나요?", "반려동물 동반 가능한가요?", "단체 가능한가요?", "포장 되나요?", "콘센트·와이파이 있나요?"],
-  "미용실/네일": ["예약 필수인가요?", "시술 시간 얼마나 걸리나요?", "제거만도 가능한가요?", "주차 되나요?", "아이 동반 가능한가요?"],
-  헬스장: ["회원권 종류가 어떻게 되나요?", "환불 규정은요?", "주차 되나요?", "샤워실 있나요?", "PT 상담은 어떻게 하나요?"],
-  병의원: ["주차 되나요?", "실손보험 적용되나요?", "당일 진료 가능한가요?", "어린이 진료도 하나요?", "야간진료 하나요?"],
-  학원: ["체험 수업 있나요?", "수강료는 어떻게 되나요?", "재료비 별도인가요?", "초보도 가능한가요?"],
-  공방: ["체험 수업 있나요?", "재료비 별도인가요?", "초보도 가능한가요?", "주차 되나요?"],
-  스터디카페: ["회원가입 어떻게 하나요?", "24시간 언제나 들어갈 수 있나요?", "환불 가능한가요?", "대여 물품 있나요?", "위치가 어디인가요?"],
-  "장례/긴급": ["비용은 어떻게 되나요?", "급하게 당일 준비 가능한가요?", "종교별 용품도 있나요?", "상담만 받아도 되나요?"],
-  기타: [],
-};
 
 const DAYS: { key: DayOfWeek; label: string }[] = [
   { key: "mon", label: "월" },
@@ -88,7 +49,12 @@ interface ReviewDraft {
   rating: string;
 }
 
-const STEPS = ["업종", "기본 정보", "강점·소개", "메뉴·사진", "신뢰·링크", "이용방법·FAQ"];
+interface FaqPairDraft {
+  question: string;
+  answer: string;
+}
+
+const STEPS = ["업종", "기본 정보", "강점·소개", "서비스·사진", "신뢰·링크", "이용방법·FAQ"];
 
 async function uploadImage(siteId: string, slot: string, file: File): Promise<string> {
   const form = new FormData();
@@ -124,8 +90,7 @@ export default function CreatePage() {
 
   // STEP 3
   const [intro, setIntro] = useState("");
-  const [selectedStrengths, setSelectedStrengths] = useState<string[]>([]);
-  const [customStrength, setCustomStrength] = useState("");
+  const [strengthsText, setStrengthsText] = useState("");
 
   // STEP 4
   const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([{ name: "", price: "", consult: false }]);
@@ -146,29 +111,25 @@ export default function CreatePage() {
 
   // 신규 블록 문항
   const [howItWorksNote, setHowItWorksNote] = useState("");
-  const [faqChecked, setFaqChecked] = useState<Record<string, boolean>>({});
-  const [faqAnswerText, setFaqAnswerText] = useState<Record<string, string>>({});
+  const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<{ slug: string } | null>(null);
 
-  const strengthCandidates = INDUSTRY_STRENGTHS[industry] ?? [];
-  const faqCandidates = INDUSTRY_FAQS[industry] ?? [];
-
   function canProceed(): boolean {
-    if (step === 0) return industry !== "";
+    if (step === 0) return industry.trim() !== "";
     if (step === 1) return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "";
     if (step === 3) return menuItems.some((item) => item.name.trim() !== "");
     return true;
   }
 
-  function toggleStrength(s: string) {
-    setSelectedStrengths((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
-  }
-
   function updateMenuItem(i: number, patch: Partial<MenuItemDraft>) {
     setMenuItems((prev) => prev.map((item, idx) => (idx === i ? { ...item, ...patch } : item)));
+  }
+
+  function updateFaqPair(i: number, patch: Partial<FaqPairDraft>) {
+    setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
   }
 
   async function handleSubmit() {
@@ -184,11 +145,14 @@ export default function CreatePage() {
         galleryFiles.map((file, i) => uploadImage(id, `gallery-${i}`, file))
       );
 
-      const finalStrengths = [...selectedStrengths, ...(customStrength.trim() ? [customStrength.trim()] : [])];
+      const finalStrengths = strengthsText
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
 
-      const faqAnswers = faqCandidates
-        .filter((q) => faqChecked[q] && faqAnswerText[q]?.trim())
-        .map((q) => ({ question: q, answer: faqAnswerText[q].trim() }));
+      const faqAnswers = faqPairs
+        .filter((pair) => pair.question.trim() && pair.answer.trim())
+        .map((pair) => ({ question: pair.question.trim(), answer: pair.answer.trim() }));
 
       const answers = {
         industry_category: industry,
@@ -284,27 +248,13 @@ export default function CreatePage() {
 
       {step === 0 && (
         <Section title="어떤 업종이세요?">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {INDUSTRY_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setIndustry(opt)}
-                style={{
-                  padding: "14px 10px",
-                  borderRadius: 8,
-                  border: industry === opt ? "2px solid #111" : "1px solid #ddd",
-                  background: industry === opt ? "#111" : "white",
-                  color: industry === opt ? "white" : "#111",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          <input
+            value={industry}
+            onChange={(e) => setIndustry(e.target.value)}
+            placeholder="예: 카페, 미용실, 헬스장, 학원, 병의원, 스터디카페, 장례용품..."
+            style={{ fontSize: 16, padding: "14px 12px" }}
+            autoFocus
+          />
         </Section>
       )}
 
@@ -405,45 +355,25 @@ export default function CreatePage() {
               placeholder="이미 쓰시는 문구가 있으면 넣어주세요. 없으면 저희가 만들어 드리니 비워두셔도 괜찮아요."
             />
           </Field>
-          {strengthCandidates.length > 0 && (
-            <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-              <legend style={{ fontSize: 13, fontWeight: 700 }}>해당되는 강점을 골라주세요</legend>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {strengthCandidates.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => toggleStrength(s)}
-                    style={{
-                      padding: "6px 12px",
-                      borderRadius: 999,
-                      border: selectedStrengths.includes(s) ? "1px solid #111" : "1px solid #ddd",
-                      background: selectedStrengths.includes(s) ? "#111" : "white",
-                      color: selectedStrengths.includes(s) ? "white" : "#111",
-                      fontSize: 13,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-          <Field label="그 외 강점이 있다면 직접 입력">
-            <input value={customStrength} onChange={(e) => setCustomStrength(e.target.value)} placeholder="예: 24년째 한자리에서 운영" />
+          <Field label="해당되는 강점이 있다면 적어주세요">
+            <textarea
+              value={strengthsText}
+              onChange={(e) => setStrengthsText(e.target.value)}
+              rows={3}
+              placeholder="쉼표나 줄바꿈으로 구분해서 적어주세요. 예: 오래된 운영 연차, 주차 가능, 반려동물 동반"
+            />
           </Field>
         </Section>
       )}
 
       {step === 3 && (
-        <Section title="메뉴/서비스·사진">
+        <Section title="대표 서비스·상품·사진">
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 메뉴/서비스</legend>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 서비스·상품</legend>
             {menuItems.map((item, i) => (
               <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
                 <input
-                  placeholder="이름 (예: 아메리카노)"
+                  placeholder="이름 (예: 아메리카노, 커트, 개인레슨 1회)"
                   value={item.name}
                   onChange={(e) => updateMenuItem(i, { name: e.target.value })}
                 />
@@ -471,7 +401,7 @@ export default function CreatePage() {
               onClick={() => setMenuItems((prev) => [...prev, { name: "", price: "", consult: false }])}
               style={{ fontSize: 13 }}
             >
-              + 메뉴 추가
+              + 항목 추가
             </button>
           </fieldset>
 
@@ -553,33 +483,30 @@ export default function CreatePage() {
               placeholder="업종별 기본 흐름은 자동으로 만들어져요. 특이한 절차만 적어주세요."
             />
           </Field>
-          {faqCandidates.length > 0 && (
-            <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-              <legend style={{ fontSize: 13, fontWeight: 700 }}>자주 묻는 질문 — 답할 것만 체크해서 입력해주세요</legend>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {faqCandidates.map((q) => (
-                  <div key={q}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
-                      <input
-                        type="checkbox"
-                        checked={!!faqChecked[q]}
-                        onChange={(e) => setFaqChecked((prev) => ({ ...prev, [q]: e.target.checked }))}
-                      />
-                      {q}
-                    </label>
-                    {faqChecked[q] && (
-                      <input
-                        placeholder="답변"
-                        value={faqAnswerText[q] ?? ""}
-                        onChange={(e) => setFaqAnswerText((prev) => ({ ...prev, [q]: e.target.value }))}
-                        style={{ marginTop: 4, width: "100%" }}
-                      />
-                    )}
-                  </div>
-                ))}
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>자주 묻는 질문이 있다면 적어주세요</legend>
+            {faqPairs.map((pair, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                <input
+                  placeholder="질문 (예: 주차 되나요?)"
+                  value={pair.question}
+                  onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+                />
+                <input
+                  placeholder="답변"
+                  value={pair.answer}
+                  onChange={(e) => updateFaqPair(i, { answer: e.target.value })}
+                />
               </div>
-            </fieldset>
-          )}
+            ))}
+            <button
+              type="button"
+              onClick={() => setFaqPairs((prev) => [...prev, { question: "", answer: "" }])}
+              style={{ fontSize: 13 }}
+            >
+              + 질문 추가
+            </button>
+          </fieldset>
         </Section>
       )}
 

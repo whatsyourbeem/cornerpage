@@ -41,6 +41,7 @@ interface MenuItemDraft {
   name: string;
   price: string;
   consult: boolean;
+  image: File | null;
 }
 
 interface ReviewDraft {
@@ -93,7 +94,7 @@ export default function CreatePage() {
   const [strengthsText, setStrengthsText] = useState("");
 
   // STEP 4
-  const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([{ name: "", price: "", consult: false }]);
+  const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([{ name: "", price: "", consult: false, image: null }]);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
   // STEP 5
@@ -145,6 +146,11 @@ export default function CreatePage() {
         galleryFiles.map((file, i) => uploadImage(id, `gallery-${i}`, file))
       );
 
+      const namedMenuItems = menuItems.filter((item) => item.name.trim());
+      const menuItemImageUrls = await Promise.all(
+        namedMenuItems.map((item, i) => (item.image ? uploadImage(id, `menu-${i}`, item.image) : Promise.resolve(null)))
+      );
+
       const finalStrengths = strengthsText
         .split(/[,\n]/)
         .map((s) => s.trim())
@@ -175,9 +181,11 @@ export default function CreatePage() {
         cta_primary_action: ctaPrimaryAction,
         intro: intro.trim() || null,
         strengths: finalStrengths,
-        menu_items: menuItems
-          .filter((item) => item.name.trim())
-          .map((item) => ({ name: item.name.trim(), price: item.consult ? null : item.price.trim() || null })),
+        menu_items: namedMenuItems.map((item, i) => ({
+          name: item.name.trim(),
+          price: item.consult ? null : item.price.trim() || null,
+          image_url: menuItemImageUrls[i],
+        })),
         gallery_image_urls: galleryUrls,
         external_links: (Object.keys(links) as ExternalLinkPlatform[])
           .filter((platform) => links[platform].trim())
@@ -394,11 +402,18 @@ export default function CreatePage() {
                     상담 문의
                   </label>
                 </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={fileInputStyle}
+                  onChange={(e) => updateMenuItem(i, { image: e.target.files?.[0] ?? null })}
+                />
+                {item.image && <p style={fileNameStyle}>선택됨: {item.image.name}</p>}
               </div>
             ))}
             <button
               type="button"
-              onClick={() => setMenuItems((prev) => [...prev, { name: "", price: "", consult: false }])}
+              onClick={() => setMenuItems((prev) => [...prev, { name: "", price: "", consult: false, image: null }])}
               style={{ fontSize: 13 }}
             >
               + 항목 추가

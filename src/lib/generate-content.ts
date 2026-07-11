@@ -67,7 +67,7 @@ export interface DraftAnswers {
   strengths: string[];
 
   // STEP 4 — 메뉴/서비스·사진 (필수)
-  menu_items: { name: string; price: string | null }[];
+  menu_items: { name: string; price: string | null; image_url: string | null }[];
   gallery_image_urls: string[];
 
   // STEP 5 — 신뢰·링크 (선택)

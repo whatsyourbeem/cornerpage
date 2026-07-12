@@ -1,0 +1,20 @@
+.quoteMark {
+  font-family: var(--font-headline);
+  font-size: clamp(44px, 9vw, 64px);
+  line-height: 1;
+  margin: 0 0 -14px;
+  color: var(--accent);
+  opacity: 0.55;
+}
+
+.text {
+  font-family: var(--font-headline);
+  font-weight: var(--headline-weight);
+  letter-spacing: var(--headline-tracking);
+  font-size: clamp(22px, 5.2vw, 32px);
+  line-height: 1.4;
+  margin: 0;
+  max-width: 620px;
+  color: var(--ink);
+  white-space: pre-line;
+}

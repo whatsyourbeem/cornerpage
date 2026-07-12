@@ -76,16 +76,16 @@ export interface About {
   supporting_image_url: string | null;
 }
 
-// ---------- 블록 3-1: philosophy (선택, about과 독립된 top-level 블록) ----------
+// ---------- 블록 3-1: philosophy (선택, about과 독립된 블록) ----------
 
-/** 계기·철학 답변 기반. Manifesto 변형(큰 타이포 강조)으로 about과 시각적·위치적으로 독립 렌더링 */
+/** 계기·철학 답변 기반. Manifesto 변형(큰 타이포 강조) 렌더링 대상 — about과 시각적으로 다르게 처리한다 */
 export interface Philosophy {
   text: string;
 }
 
-// ---------- 블록 3-2: atmosphere (선택, about과 독립된 top-level 블록) ----------
+// ---------- 블록 3-2: atmosphere (선택, about과 독립된 블록) ----------
 
-/** 공간·분위기 답변 기반. about·philosophy와도 독립적으로 배치 가능 */
+/** 공간·분위기 답변 기반. about과 다른 위치·스타일로 배치 가능(예: 갤러리 인접) */
 export interface Atmosphere {
   text: string;
 }

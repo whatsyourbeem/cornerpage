@@ -62,7 +62,8 @@ interface MiniHomepageContent {
   };
   blocks: {
     topbar, hero, trust_strip,           // 필수
-    about, gallery, reviews,             // nullable (블록째로 꺼짐)
+    about, philosophy, atmosphere,       // nullable (블록째로 꺼짐) — 서로 독립된 top-level 블록
+    gallery, reviews,                    // nullable (블록째로 꺼짐)
     menu,                                // item_price | item_consult | package_table 3분기
     info, sticky_cta,                    // 필수
     how_it_works, faq,                   // nullable
@@ -78,7 +79,7 @@ interface MiniHomepageContent {
 2. 빌드/개발 시작 시(`predev`/`prebuild` npm 스크립트) `scripts/build-skill-prompt.ts`가 `skill/SKILL.md` + `skill/references/*.md`를 하나의 시스템 프롬프트로 결합해 `src/lib/skill-prompt.generated.ts`를 생성한다(자동 생성 파일, 직접 수정 금지).
 3. `generateContent()`가 주소를 OpenStreetMap Nominatim으로 지오코딩(`src/lib/geocode.ts`, 무료·키 불필요)한 뒤, 결합된 스킬 프롬프트를 system으로 Claude(`claude-sonnet-5`)를 호출해 콘텐츠 JSON을 얻는다.
 4. Structured Outputs(`output_config.format`)는 쓰지 않는다 — 이 스키마(11개 블록, 다수 `$defs`, `if/then` 조건부, 배열 제약)가 Claude Structured Outputs가 지원하는 JSON Schema 범위를 넘어 여러 종류의 400 에러를 냈다(실측: minItems/maxItems 제약, if/then 분기, 최종적으로 "compiled grammar is too large"). 대신 프롬프트로 구조를 지시하고 **ajv로 전체 스키마를 사후 검증**하는 이중 안전망 방식을 쓴다.
-5. `map_coordinates`, hours의 `break`/`last_order`, about의 `philosophy`/`atmosphere` 같은 nullable 필수 필드는 Claude가 종종 키 자체를 누락시켜서(값이 없으면 `null`을 명시해야 하는데 생략하는 경우) 백엔드가 결정적으로 보정한 뒤 검증한다.
+5. `map_coordinates`, hours의 `break`/`last_order` 같은 nullable 필수 필드는 Claude가 종종 키 자체를 누락시켜서(값이 없으면 `null`을 명시해야 하는데 생략하는 경우) 백엔드가 결정적으로 보정한 뒤 검증한다. `philosophy`/`atmosphere`는 `about`과 독립된 top-level 블록(선택)이라 아예 키 자체가 없어도 스키마상 유효한데, TS 타입은 항상 `Philosophy | null`을 기대하므로 키가 없으면 `null`로 채워 형태를 통일한다.
 6. ajv(`ajv/dist/2020` — plain `Ajv`는 이 스키마의 `2020-12` `$schema` 선언과 안 맞아 에러남) 검증에 실패하거나 네트워크/레이트리밋 오류가 나면 1회 재시도 후 포기한다(데이터를 지어내지 않음).
 
 ## 5. 프로젝트 구조

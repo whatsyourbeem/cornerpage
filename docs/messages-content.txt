@@ -1,0 +1,81 @@
+이 파일은 messages[0].content의 실제 "값"이다(타입은 그냥 string 하나 — JSON이 아니라
+"고정 지시문 + \n\n + JSON.stringify(answers, null, 2)"를 이어붙인 순수 텍스트다).
+generate-content.ts:119-127 코드가 그대로 만드는 문자열을 재현했고, DraftAnswers의
+모든 필드(선택 항목 포함)를 답변이 채워진 상태로 채웠다 — 즉 null이 하나도 없는 케이스.
+
+---------------------------------------------------------------------------
+
+다음은 사장님이 입력한 사업 정보(가공 전 원본)다. axis_a_tone·axis_b_layout 같은 판단 필드부터 각 블록의 온오프·순서·카피까지 전부 스킬 지침에 따라 직접 판단해서 콘텐츠 JSON을 생성해줘. 출력은 콘텐츠 JSON 하나만 — 다른 설명 문구나 마크다운 코드펜스 없이 순수 JSON만 응답해.
+
+{
+  "industry_category": "카페",
+  "business_name": "밀물다방",
+  "address": "경기도 수원시 팔달구 행궁로 12",
+  "phone": "031-123-4567",
+  "hours": {
+    "type": "structured",
+    "structured": [
+      { "day": "mon", "open": "10:00", "close": "21:00", "closed": false },
+      { "day": "tue", "open": "10:00", "close": "21:00", "closed": false },
+      { "day": "wed", "open": "10:00", "close": "21:00", "closed": false },
+      { "day": "thu", "open": "10:00", "close": "21:00", "closed": false },
+      { "day": "fri", "open": "10:00", "close": "22:00", "closed": false },
+      { "day": "sat", "open": "11:00", "close": "22:00", "closed": false },
+      { "day": "sun", "open": "11:00", "close": "18:00", "closed": false }
+    ]
+  },
+  "hero_image_url": "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/hero.jpg",
+  "logo_url": "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/logo.png",
+  "cta_primary_action": "reservation",
+  "intro": "오래된 다방 자리를 그대로 살려서 커피를 내리는 작은 카페입니다. 1998년부터 이 자리를 지키고 있어요.",
+  "philosophy": "손님이 아니라 단골이 되어주셨으면 합니다. 그래서 매일 아침 같은 시간에 문을 엽니다.",
+  "atmosphere": "낡은 나무 창틀과 오래된 라디오 소리가 늘 배어있어요. 창가 자리에 앉으면 골목이 그대로 보입니다.",
+  "strengths": [
+    "1998년부터 한자리",
+    "원두 직접 로스팅",
+    "반려동물 동반 가능",
+    "주차 2대 가능",
+    "단골 손님이 많음"
+  ],
+  "menu_items": [
+    {
+      "name": "흑임자 라떼",
+      "price": "6000",
+      "description": "국산 흑임자를 직접 갈아 넣어요",
+      "image_url": "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/menu-0.jpg"
+    },
+    {
+      "name": "드립 커피",
+      "price": "5000",
+      "description": "매일 아침 그날 볶은 원두로만 내려요",
+      "image_url": "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/menu-1.jpg"
+    },
+    {
+      "name": "레몬 파운드케이크",
+      "price": "4500",
+      "description": "직접 구운 케이크, 주말엔 일찍 품절돼요",
+      "image_url": "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/menu-2.jpg"
+    }
+  ],
+  "gallery_image_urls": [
+    "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/gallery-0.jpg",
+    "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/gallery-1.jpg",
+    "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/gallery-2.jpg",
+    "https://xxxx.supabase.co/storage/v1/object/public/site-images/7a84ed3d-6381-413d-a39f-88f451c37f3c/gallery-3.jpg"
+  ],
+  "external_links": [
+    { "platform": "instagram", "url": "https://instagram.com/millmuldabang" },
+    { "platform": "naver_reservation", "url": "https://booking.naver.com/booking/13/bizes/millmuldabang" }
+  ],
+  "reviews": [
+    { "body": "조용하고 커피가 진해서 좋아요. 창가 자리가 명당입니다.", "author": "김O영", "rating": 5 },
+    { "body": "케이크가 항상 신선해요. 강아지랑 같이 갈 수 있어서 자주 옵니다.", "author": "박O수", "rating": 5 }
+  ],
+  "cta_interaction_mode": "functional",
+  "how_it_works_note": "네이버 예약으로 시간대를 먼저 잡고 오시면 자리 걱정 없이 편하게 즐기실 수 있어요.",
+  "faq_answers": [
+    { "question": "주차 되나요?", "answer": "가게 앞 2대까지 무료로 가능해요." },
+    { "question": "반려동물 동반 가능한가요?", "answer": "네, 목줄만 해주시면 실내 동반 가능합니다." },
+    { "question": "단체 가능한가요?", "answer": "6인 이상은 미리 전화 주시면 좋아요." }
+  ]
+}

@@ -77,13 +77,27 @@
 ```json
 "about": {
   "body": "string | null (2~3문장, 기본 소개)",
-  "philosophy": "string | null (계기·철학 답변 기반, 있으면 Manifesto 변형 렌더링 후보)",
-  "atmosphere": "string | null (공간·분위기 답변 기반)",
   "signature_quote": "string | null",
   "supporting_image_url": "url | null"
 }
 ```
-세 텍스트 필드(body/philosophy/atmosphere)는 서로 독립적으로 null 가능 — 답변받은 것만 채운다(서로 다른 질문의 답을 하나의 문단으로 합치지 않음, 렌더러가 다르게 취급할 수 있도록). 세 필드 모두 null이면 블록 전체 생략(about: null로).
+body가 null이면 블록 전체 생략(about: null로).
+
+### 3-1. philosophy (선택 — about과 독립된 top-level 블록)
+```json
+"philosophy": {
+  "text": "string"
+} | null
+```
+계기·철학 답변이 있을 때만. Manifesto 변형(큰 타이포 강조) 렌더링 대상 — about과 시각적으로 다르게 취급된다.
+
+### 3-2. atmosphere (선택 — about과 독립된 top-level 블록)
+```json
+"atmosphere": {
+  "text": "string"
+} | null
+```
+공간·분위기 답변이 있을 때만. about·philosophy와도 독립적으로 배치 가능(예: 갤러리 인접).
 
 ### 4. menu (필수, mode에 따라 구조 분기)
 ```json

@@ -4,6 +4,8 @@ import { Topbar } from "./blocks/Topbar";
 import { Hero } from "./blocks/Hero";
 import { TrustStrip } from "./blocks/TrustStrip";
 import { About } from "./blocks/About";
+import { Philosophy } from "./blocks/Philosophy";
+import { Atmosphere } from "./blocks/Atmosphere";
 import { Menu } from "./blocks/Menu";
 import { Gallery } from "./blocks/Gallery";
 import { Reviews } from "./blocks/Reviews";
@@ -28,6 +30,14 @@ export function MiniHomepageSite({ content }: { content: MiniHomepageContent }) 
         );
       case "about":
         return blocks.about ? <About about={blocks.about} key={key} /> : null;
+      case "philosophy":
+        return blocks.philosophy ? (
+          <Philosophy philosophy={blocks.philosophy} key={key} />
+        ) : null;
+      case "atmosphere":
+        return blocks.atmosphere ? (
+          <Atmosphere atmosphere={blocks.atmosphere} key={key} />
+        ) : null;
       case "menu":
         return <Menu menu={blocks.menu} info={blocks.info} key={key} />;
       case "gallery":
@@ -59,7 +69,7 @@ export function MiniHomepageSite({ content }: { content: MiniHomepageContent }) 
     >
       <Topbar topbar={blocks.topbar} logoUrl={meta.logo_url} info={blocks.info} />
       <main>{order.map(renderBlock)}</main>
-      <StickyCta stickyCta={blocks.sticky_cta} />
+      <StickyCta stickyCta={blocks.sticky_cta} info={blocks.info} />
     </div>
   );
 }

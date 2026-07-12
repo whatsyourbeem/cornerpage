@@ -38,9 +38,6 @@ export default function Home() {
       >
         내 홈페이지 만들기 →
       </Link>
-      <Link href="/preview" style={{ color: "#2563eb", fontWeight: 600, fontSize: 13, marginTop: 4 }}>
-        만들어진 예시 먼저 보기
-      </Link>
     </main>
   );
 }

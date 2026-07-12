@@ -21,7 +21,7 @@
 .bgOverlay {
   position: absolute;
   inset: 0;
-  background: color-mix(in srgb, var(--brand-deep) 60%, transparent);
+  background: color-mix(in srgb, var(--brand-deep) 70%, transparent);
 }
 
 /* 배경 사진이 없을 때: 톤 브랜드 단색 + 도트 텍스처 폴백 */

@@ -15,6 +15,12 @@ export function About({ about }: { about: AboutType }) {
           />
         )}
         {about.body && <p className={styles.body}>{about.body}</p>}
+        {about.philosophy && (
+          <p className={styles.philosophy}>{about.philosophy}</p>
+        )}
+        {about.atmosphere && (
+          <p className={styles.atmosphere}>{about.atmosphere}</p>
+        )}
         {about.signature_quote && (
           <blockquote className={styles.quote}>
             &ldquo;{about.signature_quote}&rdquo;

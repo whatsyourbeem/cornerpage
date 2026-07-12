@@ -22,15 +22,15 @@
        ↓ 렌더러(MiniHomepageSite)가 그 JSON을 받아 LLM 호출 없이 결정적으로 화면을 그림
 ```
 
-이 프로젝트는 **6번부터 거꾸로** 구현해왔다. "콘텐츠 JSON이 이미 있다고 가정했을 때 그걸 어떻게 예쁘게, 어떤 URL로 보여줄 것인가"를 먼저 완성하고, 그 다음 "콘텐츠 JSON을 어떻게 만들어서 저장할 것인가"로 거슬러 올라가는 순서다. 그래서 지금 시점에는 6→4번은 실제로 동작하고, 3번(진짜 LLM 생성)과 1번(진짜 입력 폼 UI)은 아직 자리만 잡혀있다.
+이 프로젝트는 **6번부터 거꾸로** 구현해왔다. "콘텐츠 JSON이 이미 있다고 가정했을 때 그걸 어떻게 예쁘게, 어떤 URL로 보여줄 것인가"를 먼저 완성하고, 그 다음 "콘텐츠 JSON을 어떻게 만들어서 저장할 것인가"로 거슬러 올라가는 순서다. 지금은 1→6번 전 구간이 실제로 동작한다 — 남은 일은 유저 인증/소유권, 슬러그 커스터마이징 같은 파이프라인 바깥의 기능들이다(12절 참고).
 
 ## 2. 구현 상태
 
 | 단계 | 상태 | 비고 |
 |---|---|---|
-| 1. 입력 폼 | 🟡 임시 | `/create` — 파이프라인 검증용 뼈대 폼. 실제 질문형 UX 아님 |
-| 2. 백엔드 API | 🟡 임시 | `/api/sites/draft`, `/api/upload`, `/api/sites` 존재. 스키마 검증(ajv 등) 없음 |
-| 3. LLM 콘텐츠 생성 | 🔴 목업 | `src/lib/mock-generate-content.ts`가 폼 입력을 스키마 모양대로 조립만 함. 실제 Claude 호출 없음 |
+| 1. 입력 폼 | 🟢 완료 | `/create` — 업종·기본정보·강점/소개·서비스/사진·신뢰/링크·이용방법/FAQ 6단계 질문형 UI |
+| 2. 백엔드 API | 🟢 완료 | `/api/sites/draft`, `/api/upload`, `/api/sites`. ajv로 콘텐츠 JSON 런타임 스키마 검증 |
+| 3. LLM 콘텐츠 생성 | 🟢 완료 | `src/lib/generate-content.ts` — `mini-homepage-builder` 스킬 결합 프롬프트로 실제 Claude API 호출 |
 | 4. DB 저장 | 🟢 완료 | Supabase `sites` 테이블, RLS, GitHub 연동 마이그레이션 |
 | 5. URL 안내 | 🟢 완료 | `/create` 제출 후 결과 화면에 표시 |
 | 6. 렌더링 + 배포 | 🟢 완료 | 서브도메인 라우팅, 디자인 템플릿 10블록, Vercel 배포, 커스텀 도메인 |
@@ -40,13 +40,15 @@
 - **Next.js 16** (App Router, Turbopack) — ⚠️ 이 버전은 학습 데이터 기준과 다른 breaking change가 있다. 예: `middleware.ts`가 `proxy.ts`로 이름이 바뀌고 `export function proxy`를 씀. 새 API를 쓰기 전엔 `node_modules/next/dist/docs/`를 먼저 확인할 것 (`AGENTS.md` 참고).
 - **TypeScript**
 - **Tailwind CSS v4** — 레이아웃 보조용으로만 소량 사용. 디자인은 대부분 CSS Modules + CSS 커스텀 프로퍼티(토큰) 기반
+- **Anthropic SDK** (`@anthropic-ai/sdk`) — 콘텐츠 생성용 Claude API 호출(`claude-sonnet-5`)
+- **ajv**(`ajv/dist/2020`) — LLM 출력 콘텐츠 JSON의 런타임 스키마 검증(9절 참고)
 - **Supabase** — Postgres DB, Storage, GitHub 연동 자동 마이그레이션 배포
 - **Vercel** — 배포, 커스텀 도메인(`cornerpage.co` + 와일드카드)
 - **Pretendard**(자체 호스팅 가변 폰트, 본문 공통) + 톤별 헤드라인 서체(Gmarket Sans / Pretendard Black / S-Core Dream, jsdelivr `fonts-archive` CDN으로 로드 — 이유는 8절 참고)
 
-## 4. 콘텐츠 스키마
+## 4. 콘텐츠 스키마 & 생성 파이프라인
 
-렌더러의 입력 계약은 `src/lib/content-types.ts`의 `MiniHomepageContent`. 원본 스키마 문서는 `design-guide.md`(디자인 규칙)와 `handoff-README.md`(핸드오프 배경)에 있다.
+렌더러의 입력 계약은 `src/lib/content-types.ts`의 `MiniHomepageContent`. 원본 스키마 문서는 `skill/references/content.schema.json`(JSON Schema, ajv 검증에 실제로 쓰이는 파일)과 `design-guide.md`(디자인 규칙)에 있다.
 
 ```ts
 interface MiniHomepageContent {
@@ -70,20 +72,29 @@ interface MiniHomepageContent {
 
 핵심 원칙: **LLM(스킬)은 카피·블록 온오프·톤 판단만 하고, 이미지 URL이나 brand_color처럼 이미 확정된 값은 그대로 통과시키기만 한다.** 렌더러는 이 JSON을 받아 LLM 호출 없이 결정적으로 화면을 그린다.
 
+**생성 파이프라인** (`src/lib/generate-content.ts`):
+
+1. `/create` 6단계 폼이 가공되지 않은 원본 사업 정보(`DraftAnswers` — 업종·기본정보·강점/소개·메뉴/서비스·신뢰/링크·이용방법/FAQ)를 모아 `/api/sites`에 제출한다. 톤·레이아웃·카피 판단은 프론트가 미리 정하지 않고 전부 스킬이 한다.
+2. 빌드/개발 시작 시(`predev`/`prebuild` npm 스크립트) `scripts/build-skill-prompt.ts`가 `skill/SKILL.md` + `skill/references/*.md`를 하나의 시스템 프롬프트로 결합해 `src/lib/skill-prompt.generated.ts`를 생성한다(자동 생성 파일, 직접 수정 금지).
+3. `generateContent()`가 주소를 OpenStreetMap Nominatim으로 지오코딩(`src/lib/geocode.ts`, 무료·키 불필요)한 뒤, 결합된 스킬 프롬프트를 system으로 Claude(`claude-sonnet-5`)를 호출해 콘텐츠 JSON을 얻는다.
+4. Structured Outputs(`output_config.format`)는 쓰지 않는다 — 이 스키마(11개 블록, 다수 `$defs`, `if/then` 조건부, 배열 제약)가 Claude Structured Outputs가 지원하는 JSON Schema 범위를 넘어 여러 종류의 400 에러를 냈다(실측: minItems/maxItems 제약, if/then 분기, 최종적으로 "compiled grammar is too large"). 대신 프롬프트로 구조를 지시하고 **ajv로 전체 스키마를 사후 검증**하는 이중 안전망 방식을 쓴다.
+5. `map_coordinates`, hours의 `break`/`last_order`, about의 `philosophy`/`atmosphere` 같은 nullable 필수 필드는 Claude가 종종 키 자체를 누락시켜서(값이 없으면 `null`을 명시해야 하는데 생략하는 경우) 백엔드가 결정적으로 보정한 뒤 검증한다.
+6. ajv(`ajv/dist/2020` — plain `Ajv`는 이 스키마의 `2020-12` `$schema` 선언과 안 맞아 에러남) 검증에 실패하거나 네트워크/레이트리밋 오류가 나면 1회 재시도 후 포기한다(데이터를 지어내지 않음).
+
 ## 5. 프로젝트 구조
 
 ```
 src/
   app/
-    page.tsx                    루트(cornerpage.co) 랜딩 — 아직 placeholder
-    create/page.tsx              파이프라인 검증용 임시 입력 폼
+    page.tsx                    루트(cornerpage.co) 랜딩 페이지
+    create/page.tsx              6단계 질문형 입력 폼 (업종/기본정보/강점·소개/서비스·사진/신뢰·링크/이용방법·FAQ)
     site/[slug]/page.tsx         실서비스 렌더링 경로 (proxy.ts가 여기로 rewrite)
     preview/page.tsx             개발용 — DB의 전체 사이트 목록
     preview/[slug]/page.tsx      개발용 — 톤/레이아웃/브랜드컬러 스위처 얹은 프리뷰
     api/
       sites/draft/route.ts       site id(uuid) 발급
       upload/route.ts            이미지 업로드 → Supabase Storage
-      sites/route.ts             폼 답변 → (목업)콘텐츠 생성 → DB insert
+      sites/route.ts             폼 답변(DraftAnswers) → 실제 콘텐츠 생성 → DB insert
   components/site/
     MiniHomepageSite.tsx         최상위 렌더러 — 레이아웃 조립 + 브랜드컬러 오버라이드
     blocks/                      10개 블록 컴포넌트 (Topbar/Hero/TrustStrip/About/Menu/
@@ -98,8 +109,18 @@ src/
     supabase.ts                  공개 읽기 전용 클라이언트 (publishable key)
     supabase-admin.ts            서버 전용 쓰기 클라이언트 (secret key, RLS 우회)
     sites.ts                     getSiteBySlug / listSites
-    mock-generate-content.ts     임시 콘텐츠 생성기 (실제 LLM 호출로 교체 예정)
+    generate-content.ts          실제 콘텐츠 생성기 — 스킬 프롬프트 결합 Claude 호출 + ajv 검증(4절)
+    geocode.ts                   주소 → 위경도 (Nominatim, 키 불필요)
+    skill-prompt.generated.ts    자동 생성됨 — scripts/build-skill-prompt.ts 산출물, 직접 수정 금지
   proxy.ts                       서브도메인 → /site/[slug] rewrite (구 middleware.ts)
+scripts/
+  build-skill-prompt.ts          skill/ 문서를 결합해 skill-prompt.generated.ts 생성 (predev/prebuild 훅)
+skill/
+  SKILL.md                       mini-homepage-builder 스킬 본문(톤/레이아웃/카피 판단 지침)
+  references/
+    content.schema.json          콘텐츠 JSON의 실제 원본 스키마 (ajv가 이 파일을 컴파일)
+    prompt-schema-summary.md     content.schema.json의 프롬프트용 축약본
+    blocks.md / copywriting.md / industry-data.md   블록별·업종별 판단 지침
 supabase/
   migrations/                    스키마 변경 이력 (GitHub 연동이 main push 시 자동 적용)
 design-guide.md                  디자인 톤/레이아웃/반응형/null폴백 규칙 원본
@@ -157,6 +178,9 @@ handoff-README.md                0단계 핸드오프 배경 문서 원본
 - **환경변수**(Vercel 프로젝트 설정에 등록 필요):
   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Supabase-Vercel 연동이 자동 동기화
   - `SUPABASE_SECRET_KEY` — 서버 전용(RLS 우회), 마찬가지로 자동 동기화됨. **절대 `NEXT_PUBLIC_` 접두사 붙이면 안 됨**(브라우저에 노출되어 RLS 우회 키가 유출됨)
+  - `ANTHROPIC_API_KEY` — 콘텐츠 생성용 Claude API 키. 수동으로 등록해야 함(Supabase처럼 자동 동기화 안 됨)
+  - 지오코딩(`geocode.ts`)은 OpenStreetMap Nominatim을 쓰므로 별도 키 불필요
+- **`maxDuration`**: `/api/sites`는 `export const maxDuration = 120`으로 늘려뒀다 — Claude 콘텐츠 생성이 재시도 없이도 70초 넘게 걸리는 경우가 실측됨. Vercel Hobby 플랜은 이 값과 무관하게 60초로 강제 제한되니, 운영 중 타임아웃이 잦으면 플랜 업그레이드 필요
 
 ## 10. 로컬 개발
 
@@ -169,14 +193,17 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SECRET_KEY=...
+ANTHROPIC_API_KEY=...
 ```
 
 ```bash
 npm run dev
 ```
 
-- `http://localhost:3000` — 루트(입력 폼 자리)
-- `http://localhost:3000/create` — 파이프라인 검증용 임시 폼
+`predev` 훅이 `scripts/build-skill-prompt.ts`를 먼저 돌려 `skill/` 문서를 `src/lib/skill-prompt.generated.ts`로 결합한다(4절 참고) — `skill/` 아래 파일을 수정했으면 dev 서버를 재시작해야 반영된다.
+
+- `http://localhost:3000` — 루트 랜딩 페이지
+- `http://localhost:3000/create` — 6단계 질문형 입력 폼
 - `http://localhost:3000/preview` — DB에 있는 전체 사이트 목록(개발용)
 - `http://{slug}.localhost:3000` — 서브도메인 라우팅 테스트 (예: `cafe-millmuldabang.localhost:3000`)
 
@@ -190,8 +217,8 @@ npm run dev
 
 ## 12. 다음 단계
 
-1. **실제 LLM 생성 연동**: `src/lib/mock-generate-content.ts`를 `mini-homepage-builder` 스킬의 실제 Claude API 호출로 교체. 이미지 URL은 지금처럼 API가 직접 대입(LLM이 URL을 타이핑하게 하지 않음)
-2. **콘텐츠 JSON 스키마 검증**: API 레이어에 ajv 등으로 런타임 검증 추가(LLM 출력은 우리가 만든 목업과 달리 타입 보장이 안 됨)
-3. **진짜 입력 폼 UX**: `/create`를 질문형 멀티스텝 UI로 교체
-4. **유저 인증/소유권**: 지금은 `sites`에 owner 개념이 없음. 슬러그 변경 같은 기능을 유저 본인만 하게 하려면 필요
+1. **유저 인증/소유권**: 지금은 `sites`에 owner 개념이 없음. 슬러그 변경 같은 기능을 유저 본인만 하게 하려면 필요
+2. **슬러그 커스터마이징 UI**: 예약어(`www`/`api`/`admin` 등) 차단 로직 포함
+3. **생성 결과 재시도/피드백 UX**: 현재는 1회 자동 재시도 후 실패하면 502를 그대로 반환 — 유저에게 재시도 버튼이나 부분 실패 안내가 없음
+4. **레이트리밋/어뷰즈 방지**: `/api/sites`가 Claude API를 직접 호출하므로, 무제한 반복 제출에 대한 방어가 아직 없음
 5. **슬러그 커스터마이징 UI**: 예약어(`www`/`api`/`admin` 등) 차단 로직 포함

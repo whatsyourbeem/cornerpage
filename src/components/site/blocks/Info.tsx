@@ -46,7 +46,7 @@ export function Info({ info }: { info: InfoType }) {
           <span className={styles.rowValue}>
             {info.hours.type === "24h" ? (
               "24시간 운영"
-            ) : (
+            ) : Array.isArray(info.hours.structured) && info.hours.structured.length > 0 ? (
               <span className={styles.hoursList}>
                 {sortStructuredHours(info.hours.structured).map((entry) => (
                   <span className={styles.hoursLine} key={entry.day}>
@@ -55,6 +55,8 @@ export function Info({ info }: { info: InfoType }) {
                   </span>
                 ))}
               </span>
+            ) : (
+              "영업시간 문의"
             )}
           </span>
         </div>

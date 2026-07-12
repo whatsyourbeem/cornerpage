@@ -80,7 +80,7 @@ export function TrustStrip({
 }) {
   const animate = toneSlug === "driven";
   return (
-    <div className="mhp-band mhp-band-dark mhp-section">
+    <div className={`mhp-band mhp-band-light mhp-section ${styles.wrapper}`}>
       <div className={`mhp-container ${styles.strip}`}>
         {trustStrip.items.map((item, i) => (
           <div className={styles.item} key={i}>

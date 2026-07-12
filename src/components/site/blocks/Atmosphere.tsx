@@ -10,7 +10,7 @@ export function Atmosphere({ atmosphere }: { atmosphere: AtmosphereType }) {
   return (
     <div className="mhp-band mhp-band-light mhp-section">
       <div className="mhp-container">
-        <p className="mhp-eyebrow">공간의 분위기</p>
+        <p className="mhp-eyebrow">ATMOSPHERE</p>
         <p className={styles.text}>{atmosphere.text}</p>
       </div>
     </div>

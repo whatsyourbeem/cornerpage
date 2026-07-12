@@ -13,7 +13,6 @@ export function Menu({ menu, info }: { menu: MenuType; info: Info }) {
   return (
     <div className="mhp-band mhp-band-light mhp-section">
       <div className="mhp-container">
-        <p className="mhp-eyebrow">메뉴</p>
         <h2 className="mhp-section-title">{menu.label}</h2>
 
         {!isTable && <ItemList menu={menu} />}
@@ -49,7 +48,7 @@ export function Menu({ menu, info }: { menu: MenuType; info: Info }) {
 
         {menu.full_list_link_enabled && (
           <a href={fullListHref(info)} className={styles.fullListHint}>
-            전체 메뉴 보기 →
+            더 보기 →
           </a>
         )}
       </div>

@@ -59,7 +59,7 @@ export function MiniHomepageSite({ content }: { content: MiniHomepageContent }) 
     >
       <Topbar topbar={blocks.topbar} logoUrl={meta.logo_url} info={blocks.info} />
       <main>{order.map(renderBlock)}</main>
-      <StickyCta stickyCta={blocks.sticky_cta} />
+      <StickyCta stickyCta={blocks.sticky_cta} info={blocks.info} />
     </div>
   );
 }

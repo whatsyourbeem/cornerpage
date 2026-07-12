@@ -60,7 +60,13 @@ export function resolveBrandCssVars(
   };
 }
 
-/** topbar/sticky_cta는 항상 고정 위치이므로 제외, 스크롤 본문 블록 순서만 정의 */
+/**
+ * topbar/sticky_cta는 항상 고정 위치이므로 제외, 스크롤 본문 블록 순서만 정의.
+ *
+ * philosophy·atmosphere는 about과 독립된 top-level 블록이지만, 축별 세부 배치
+ * (예: 철학은 히어로 바로 뒤, 분위기는 갤러리 옆)는 이번 스코프 밖이라 일단
+ * 기존 about 위치 바로 옆에 묶어 둔다 — blocks.md 3-1/3-2 참고.
+ */
 export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
   갤러리우선: [
     "hero",
@@ -68,6 +74,8 @@ export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
     "gallery",
     "menu",
     "about",
+    "philosophy",
+    "atmosphere",
     "reviews",
     "how_it_works",
     "faq",
@@ -77,6 +85,8 @@ export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
     "hero",
     "trust_strip",
     "about",
+    "philosophy",
+    "atmosphere",
     "menu",
     "gallery",
     "reviews",
@@ -88,6 +98,8 @@ export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
     "hero",
     "trust_strip",
     "about",
+    "philosophy",
+    "atmosphere",
     "menu",
     "reviews",
     "how_it_works",

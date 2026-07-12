@@ -64,9 +64,9 @@ export interface DraftAnswers {
 
   // STEP 3 — 강점·소개 (선택)
   intro: string | null;
-  /** 계기·철학 답변(선택, body와 독립) → about.philosophy */
+  /** 계기·철학 답변(선택, about과 독립) → blocks.philosophy (top-level 블록) */
   philosophy: string | null;
-  /** 공간·분위기 답변(선택, body와 독립) → about.atmosphere */
+  /** 공간·분위기 답변(선택, about과 독립) → blocks.atmosphere (top-level 블록) */
   atmosphere: string | null;
   strengths: string[];
 
@@ -134,7 +134,8 @@ async function attemptGenerate(
         map_coordinates?: unknown;
         hours?: { type: string; structured?: Record<string, unknown>[] | null };
       };
-      about?: Record<string, unknown> | null;
+      philosophy?: unknown;
+      atmosphere?: unknown;
     };
   };
 
@@ -158,13 +159,16 @@ async function attemptGenerate(
     }
   }
 
-  // about.philosophy/atmosphere도 같은 이유로 보정한다 — 둘 다 필수 키·nullable
-  // 값인데(content.schema.json), 답변이 없을 때 Claude가 null을 명시하는 대신
-  // 키 자체를 빠뜨리는 경우가 흔하다(위 hours와 동일 패턴).
-  if (content.blocks?.about) {
-    const about = content.blocks.about;
-    if (!("philosophy" in about)) about.philosophy = null;
-    if (!("atmosphere" in about)) about.atmosphere = null;
+  // philosophy/atmosphere는 about과 독립된 top-level 블록으로 분리됐고, Blocks.required
+  // 목록에도 없다 — 즉 "값 없음"을 표현하는 방법이 명시적 null과 키 자체 생략 두
+  // 가지가 다 스키마상 허용된다. Claude가 후자(키 생략)를 택하면 우리 TS 타입
+  // (Blocks.philosophy: Philosophy | null, 항상 존재)과 어긋나므로, hours.break와
+  // 같은 원칙으로 생략된 키를 null로 채워 넣어 형태를 통일한다.
+  if (content.blocks && !("philosophy" in content.blocks)) {
+    content.blocks.philosophy = null;
+  }
+  if (content.blocks && !("atmosphere" in content.blocks)) {
+    content.blocks.atmosphere = null;
   }
 
   if (!validateContent(content)) {

@@ -70,7 +70,12 @@ export interface TrustStrip {
 // ---------- 블록 3: about (선택) ----------
 
 export interface About {
+  /** 기본 소개, 2~3문장. STEP3 "한 줄 소개·가게 소개" 답변 기반 */
   body: string | null;
+  /** 계기·철학 답변 기반(선택). Manifesto 변형(큰 타이포 강조) 렌더링 후보 */
+  philosophy: string | null;
+  /** 공간·분위기 답변 기반(선택) */
+  atmosphere: string | null;
   signature_quote: string | null;
   supporting_image_url: string | null;
 }

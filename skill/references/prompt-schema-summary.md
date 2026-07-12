@@ -76,12 +76,14 @@
 ### 3. about (선택)
 ```json
 "about": {
-  "body": "string | null (2~3문장)",
+  "body": "string | null (2~3문장, 기본 소개)",
+  "philosophy": "string | null (계기·철학 답변 기반, 있으면 Manifesto 변형 렌더링 후보)",
+  "atmosphere": "string | null (공간·분위기 답변 기반)",
   "signature_quote": "string | null",
   "supporting_image_url": "url | null"
 }
 ```
-body가 null이면 블록 전체 생략(about: null로).
+세 텍스트 필드(body/philosophy/atmosphere)는 서로 독립적으로 null 가능 — 답변받은 것만 채운다(서로 다른 질문의 답을 하나의 문단으로 합치지 않음, 렌더러가 다르게 취급할 수 있도록). 세 필드 모두 null이면 블록 전체 생략(about: null로).
 
 ### 4. menu (필수, mode에 따라 구조 분기)
 ```json

@@ -110,10 +110,12 @@
 
     "About": {
       "type": "object",
-      "required": ["body", "signature_quote", "supporting_image_url"],
+      "required": ["body", "philosophy", "atmosphere", "signature_quote", "supporting_image_url"],
       "additionalProperties": false,
       "properties": {
         "body": { "type": ["string", "null"] },
+        "philosophy": { "type": ["string", "null"] },
+        "atmosphere": { "type": ["string", "null"] },
         "signature_quote": { "type": ["string", "null"] },
         "supporting_image_url": { "type": ["string", "null"], "format": "uri" }
       }

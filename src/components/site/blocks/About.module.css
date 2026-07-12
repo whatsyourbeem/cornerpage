@@ -14,6 +14,33 @@
   white-space: pre-line;
 }
 
+/* Manifesto 변형: 계기·철학 답변용 — 톤별 헤드라인 서체로 크게 강조해
+   body(사실 소개)와 시각적으로 확실히 구분한다. */
+.philosophy {
+  margin: 22px 0 0;
+  font-family: var(--font-headline);
+  font-weight: var(--headline-weight);
+  letter-spacing: var(--headline-tracking);
+  font-size: clamp(19px, 4.5vw, 24px);
+  line-height: 1.45;
+  color: var(--brand-deep);
+  white-space: pre-line;
+}
+
+/* 공간·분위기 답변용 — body의 사실 진술과 겹치지 않도록 톤을 낮춘 별도
+   문단(옅은 배경 박스 + 이탤릭)으로 구분한다. */
+.atmosphere {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--ink) 78%, transparent);
+  white-space: pre-line;
+}
+
 .quote {
   margin: 20px 0 0;
   padding: 16px 18px;

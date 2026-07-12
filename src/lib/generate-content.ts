@@ -64,10 +64,20 @@ export interface DraftAnswers {
 
   // STEP 3 — 강점·소개 (선택)
   intro: string | null;
+  /** 계기·철학 답변(선택, body와 독립) → about.philosophy */
+  philosophy: string | null;
+  /** 공간·분위기 답변(선택, body와 독립) → about.atmosphere */
+  atmosphere: string | null;
   strengths: string[];
 
   // STEP 4 — 메뉴/서비스·사진 (필수)
-  menu_items: { name: string; price: string | null; image_url: string | null }[];
+  menu_items: {
+    name: string;
+    price: string | null;
+    /** "이 메뉴가 특별한 이유" 답변(선택) → menu.items[].description */
+    description: string | null;
+    image_url: string | null;
+  }[];
   gallery_image_urls: string[];
 
   // STEP 5 — 신뢰·링크 (선택)
@@ -124,6 +134,7 @@ async function attemptGenerate(
         map_coordinates?: unknown;
         hours?: { type: string; structured?: Record<string, unknown>[] | null };
       };
+      about?: Record<string, unknown> | null;
     };
   };
 
@@ -145,6 +156,15 @@ async function attemptGenerate(
       if (!("break" in entry)) entry.break = null;
       if (!("last_order" in entry)) entry.last_order = null;
     }
+  }
+
+  // about.philosophy/atmosphere도 같은 이유로 보정한다 — 둘 다 필수 키·nullable
+  // 값인데(content.schema.json), 답변이 없을 때 Claude가 null을 명시하는 대신
+  // 키 자체를 빠뜨리는 경우가 흔하다(위 hours와 동일 패턴).
+  if (content.blocks?.about) {
+    const about = content.blocks.about;
+    if (!("philosophy" in about)) about.philosophy = null;
+    if (!("atmosphere" in about)) about.atmosphere = null;
   }
 
   if (!validateContent(content)) {

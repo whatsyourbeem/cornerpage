@@ -41,6 +41,7 @@ interface MenuItemDraft {
   name: string;
   price: string;
   consult: boolean;
+  description: string;
   image: File | null;
 }
 
@@ -91,10 +92,14 @@ export default function CreatePage() {
 
   // STEP 3
   const [intro, setIntro] = useState("");
+  const [philosophyText, setPhilosophyText] = useState("");
+  const [atmosphereText, setAtmosphereText] = useState("");
   const [strengthsText, setStrengthsText] = useState("");
 
   // STEP 4
-  const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([{ name: "", price: "", consult: false, image: null }]);
+  const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([
+    { name: "", price: "", consult: false, description: "", image: null },
+  ]);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
   // STEP 5
@@ -180,10 +185,13 @@ export default function CreatePage() {
         logo_url: logoUrl,
         cta_primary_action: ctaPrimaryAction,
         intro: intro.trim() || null,
+        philosophy: philosophyText.trim() || null,
+        atmosphere: atmosphereText.trim() || null,
         strengths: finalStrengths,
         menu_items: namedMenuItems.map((item, i) => ({
           name: item.name.trim(),
           price: item.consult ? null : item.price.trim() || null,
+          description: item.description.trim() || null,
           image_url: menuItemImageUrls[i],
         })),
         gallery_image_urls: galleryUrls,
@@ -355,6 +363,9 @@ export default function CreatePage() {
 
       {step === 2 && (
         <Section title="강점·소개 (선택)">
+          <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
+            답해주신 만큼 홈페이지가 풍부해져요. 정성껏 만들어 드릴게요.
+          </p>
           <Field label="한 줄 소개나 가게 소개 문구">
             <textarea
               value={intro}
@@ -369,6 +380,28 @@ export default function CreatePage() {
               onChange={(e) => setStrengthsText(e.target.value)}
               rows={3}
               placeholder="쉼표나 줄바꿈으로 구분해서 적어주세요. 예: 오래된 운영 연차, 주차 가능, 반려동물 동반"
+            />
+          </Field>
+          <Field
+            label="이 일을 시작하게 된 계기나 철학이 있나요?"
+            hint="짧아도 좋아요. 이 답변은 소개 문단에 섞이지 않고 눈에 띄는 문구로 따로 강조돼요."
+          >
+            <textarea
+              value={philosophyText}
+              onChange={(e) => setPhilosophyText(e.target.value)}
+              rows={2}
+              placeholder="예: 손님이 아니라 단골이 되어주셨으면 합니다"
+            />
+          </Field>
+          <Field
+            label="공간·분위기에서 손님들이 특히 좋아하는 부분이 있나요?"
+            hint="이 답변이 있으면 '정성으로 준비했습니다' 같은 뻔한 문장 대신, 진짜 이 가게만의 분위기가 전달돼요."
+          >
+            <textarea
+              value={atmosphereText}
+              onChange={(e) => setAtmosphereText(e.target.value)}
+              rows={2}
+              placeholder="예: 낡은 나무 창틀과 오래된 라디오 소리가 늘 배어있어요"
             />
           </Field>
         </Section>
@@ -403,6 +436,11 @@ export default function CreatePage() {
                   </label>
                 </div>
                 <input
+                  placeholder="이 메뉴가 특별한 이유가 있다면 적어주세요 (선택, 예: 국내산 원두만 사용)"
+                  value={item.description}
+                  onChange={(e) => updateMenuItem(i, { description: e.target.value })}
+                />
+                <input
                   type="file"
                   accept="image/*"
                   style={fileInputStyle}
@@ -413,7 +451,12 @@ export default function CreatePage() {
             ))}
             <button
               type="button"
-              onClick={() => setMenuItems((prev) => [...prev, { name: "", price: "", consult: false, image: null }])}
+              onClick={() =>
+                setMenuItems((prev) => [
+                  ...prev,
+                  { name: "", price: "", consult: false, description: "", image: null },
+                ])
+              }
               style={{ fontSize: 13 }}
             >
               + 항목 추가
@@ -600,10 +643,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * hint: 선택 문항 옆에 붙이는 짧은 동기 문구(input-questions.md 진행 원칙 6번 —
+ * "강요·과장 없이 사실만 담백하게"). 채우면 왜 좋은지를 솔직하게 알려주되,
+ * 채우지 않아도 되는 선택 사항이라는 톤은 유지한다.
+ */
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
       <span style={{ fontWeight: 600 }}>{label}</span>
+      {hint && <span style={{ fontSize: 12, color: "#888" }}>{hint}</span>}
       {children}
     </label>
   );

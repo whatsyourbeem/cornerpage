@@ -138,9 +138,16 @@ Pretendard(본문 공통, 신뢰형 헤드라인)는 이 문제가 없어 기존
 
 블록 순서는 콘텐츠 스키마의 `axis_b_layout` 값을 그대로 렌더링 순서로 변환합니다.
 
-- **갤러리우선**: `topbar → hero → trust_strip → gallery → menu → about → reviews → how_it_works → faq → info → sticky_cta`
-- **메뉴우선**: `topbar → hero → trust_strip → about → menu → gallery → reviews → how_it_works → faq → info → sticky_cta`
-- **해당없음**: gallery 블록 자체를 렌더링 트리에서 제외(공간을 차지하지 않음, 다른 블록이 그 자리로 당겨짐)
+**세 가지 배치 원칙**(2026-07 개정 — philosophy/atmosphere가 about에서 분리되며 재정립):
+1. **`philosophy`는 항상 맨 앞쪽 고정** — `hero`·`trust_strip` 바로 다음. Manifesto 변형(큰 타이포 강조)의 임팩트를 살리려면 축과 무관하게 앞쪽에 있어야 한다. 페이지 끝에 묻히면 강조 의도 자체가 무의미해진다.
+2. **`atmosphere`는 갤러리와 인접 배치** — 갤러리가 있으면 바로 옆에 둔다(감각적 공간 묘사가 사진과 나란히 있는 게 자연스러움). 갤러리가 없으면(`해당없음`) `about` 옆에 둔다.
+3. **`about`은 축을 따라 이동** — 사실 기반 소개라, 갤러리우선이면 시각 증거(gallery) 뒤로, 메뉴우선이면 앞으로 배치해 서사로 먼저 신뢰를 쌓는다.
+
+- **갤러리우선**: `topbar → hero → trust_strip → philosophy → gallery → atmosphere → menu → about → reviews → how_it_works → faq → info → sticky_cta`
+- **메뉴우선**: `topbar → hero → trust_strip → philosophy → about → menu → gallery → atmosphere → reviews → how_it_works → faq → info → sticky_cta`
+- **해당없음**: `topbar → hero → trust_strip → philosophy → about → menu → atmosphere → reviews → how_it_works → faq → info → sticky_cta` (gallery 블록 자체를 렌더링 트리에서 제외)
+
+세 블록(`about`/`philosophy`/`atmosphere`) 모두 각자 독립적으로 null이면 렌더링 트리에서 제외되고, 순서상 그 자리는 비지 않고 다음 블록이 당겨진다(5장 Null 폴백 규칙 참고).
 
 ---
 

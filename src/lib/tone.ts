@@ -63,19 +63,24 @@ export function resolveBrandCssVars(
 /**
  * topbar/sticky_cta는 항상 고정 위치이므로 제외, 스크롤 본문 블록 순서만 정의.
  *
- * philosophy·atmosphere는 about과 독립된 top-level 블록이지만, 축별 세부 배치
- * (예: 철학은 히어로 바로 뒤, 분위기는 갤러리 옆)는 이번 스코프 밖이라 일단
- * 기존 about 위치 바로 옆에 묶어 둔다 — blocks.md 3-1/3-2 참고.
+ * 세 가지 배치 원칙(design-guide.md 4장, 2026-07 개정 — philosophy/atmosphere가
+ * about에서 분리되며 재정립):
+ * 1. philosophy는 항상 hero·trust_strip 바로 다음에 고정 — Manifesto 강조 효과는
+ *    앞쪽에 있어야 의미가 있고, 축과 무관하다.
+ * 2. atmosphere는 갤러리와 인접 배치 — 갤러리가 있으면 바로 옆, 없으면(해당없음)
+ *    about 옆.
+ * 3. about은 축을 따라 이동 — 갤러리우선이면 시각 증거(gallery) 뒤로, 메뉴우선이면
+ *    앞으로 배치해 서사로 먼저 신뢰를 쌓는다.
  */
 export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
   갤러리우선: [
     "hero",
     "trust_strip",
+    "philosophy",
     "gallery",
+    "atmosphere",
     "menu",
     "about",
-    "philosophy",
-    "atmosphere",
     "reviews",
     "how_it_works",
     "faq",
@@ -84,11 +89,11 @@ export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
   메뉴우선: [
     "hero",
     "trust_strip",
-    "about",
     "philosophy",
-    "atmosphere",
+    "about",
     "menu",
     "gallery",
+    "atmosphere",
     "reviews",
     "how_it_works",
     "faq",
@@ -97,10 +102,10 @@ export const LAYOUT_ORDER: Record<AxisBLayout, string[]> = {
   해당없음: [
     "hero",
     "trust_strip",
-    "about",
     "philosophy",
-    "atmosphere",
+    "about",
     "menu",
+    "atmosphere",
     "reviews",
     "how_it_works",
     "faq",

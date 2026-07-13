@@ -1,6 +1,12 @@
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <main
       style={{
@@ -38,6 +44,15 @@ export default function Home() {
       >
         내 홈페이지 만들기 →
       </Link>
+      {user ? (
+        <Link href="/dashboard" style={{ fontSize: 13, color: "#666" }}>
+          마이페이지
+        </Link>
+      ) : (
+        <Link href="/login" style={{ fontSize: 13, color: "#666" }}>
+          로그인
+        </Link>
+      )}
     </main>
   );
 }

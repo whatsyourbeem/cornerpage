@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/create";
 
@@ -54,5 +55,13 @@ export default function LoginPage() {
         Google로 계속하기
       </button>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

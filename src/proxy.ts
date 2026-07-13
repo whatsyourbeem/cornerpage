@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 /**
  * {slug}.cornerpage.co 서브도메인 라우팅.
@@ -30,21 +31,47 @@ function extractSubdomain(hostHeader: string): string | null {
   return null;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const subdomain = extractSubdomain(host);
 
+  let response: NextResponse;
   if (!subdomain) {
     // 루트 도메인(cornerpage.co, localhost:3000) — 입력 폼/개발용 라우트 그대로 통과
-    return NextResponse.next();
+    response = NextResponse.next({ request });
+  } else {
+    const url = request.nextUrl.clone();
+    url.pathname =
+      url.pathname === "/"
+        ? `/site/${subdomain}`
+        : `/site/${subdomain}${url.pathname}`;
+    response = NextResponse.rewrite(url);
   }
 
-  const url = request.nextUrl.clone();
-  url.pathname =
-    url.pathname === "/"
-      ? `/site/${subdomain}`
-      : `/site/${subdomain}${url.pathname}`;
-  return NextResponse.rewrite(url);
+  // Supabase 세션 쿠키 갱신 — access token 만료로 로그인이 끊기는 것을 막는다.
+  // (Supabase SSR 공식 패턴: 매 요청마다 auth.getUser()를 호출해 토큰을 refresh)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+  await supabase.auth.getUser();
+
+  return response;
 }
 
 export const config = {

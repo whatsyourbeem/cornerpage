@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { generateContent, type DraftAnswers } from "@/lib/generate-content";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 계정당 생성 가능한 최대 사이트 수. plan이 생기면(profiles.plan) 이 상수 대신
+// 플랜별 한도로 바꾼다.
+const MAX_SITES_PER_ACCOUNT = 3;
 
 // Claude 콘텐츠 생성은 재시도 없이도 70초 넘게 걸리는 경우가 실측됐다(1회
 // 재시도까지 겹치면 더 길어질 수 있음) — Vercel 기본 10초 제한을 넉넉히 늘려둔다.
@@ -15,6 +20,31 @@ export const maxDuration = 120;
  * (slug는 비워두면 트리거가 id로 채운다 — 나중에 유저가 원하는 값으로 바꿀 수 있음).
  */
 export async function POST(request: Request) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  }
+
+  const { count, error: countError } = await supabaseAdmin
+    .from("sites")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", user.id);
+
+  if (countError) {
+    console.error("site count check failed:", countError.message);
+    return NextResponse.json({ error: "failed to check site count" }, { status: 500 });
+  }
+  if ((count ?? 0) >= MAX_SITES_PER_ACCOUNT) {
+    return NextResponse.json(
+      { error: `계정당 최대 ${MAX_SITES_PER_ACCOUNT}개까지 만들 수 있어요.` },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
   const { id, answers } = body as { id: string; answers: DraftAnswers };
 
@@ -38,6 +68,7 @@ export async function POST(request: Request) {
 
   const { error } = await supabaseAdmin.from("sites").insert({
     id,
+    owner_id: user.id,
     business_name: content.meta.business_name,
     content_json: content,
   });

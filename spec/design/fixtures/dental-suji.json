@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "business_name": "수지좋은치과의원",
+    "industry_category": "치과",
+    "axis_a_tone": "신뢰형",
+    "axis_b_layout": "메뉴우선",
+    "cta_primary_action": "reservation",
+    "cta_interaction_mode": "functional",
+    "logo_url": "https://images.example.com/sujidental-logo.png",
+    "brand_color": null
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "수지좋은치과의원",
+      "action_button": {
+        "type": "reservation",
+        "label": "예약"
+      }
+    },
+    "hero": {
+      "badge": "수지구 · 치과의원",
+      "headline": "24년 경력, 구강악안면외과 전문의가 진료합니다",
+      "tagline": "세밀하고 정확한 진단으로, 올바른 진료를 위해 노력합니다.",
+      "background_image_url": "https://images.example.com/sujidental-hero.jpg",
+      "cta": {
+        "type": "reservation",
+        "label": "네이버 예약"
+      }
+    },
+    "trust_strip": {
+      "items": [
+        {
+          "value": "전문의",
+          "label": "구강악안면외과"
+        },
+        {
+          "value": "24년",
+          "label": "임상경력"
+        },
+        {
+          "value": "외래교수",
+          "label": "연세대학교"
+        }
+      ]
+    },
+    "about": {
+      "body": "안재민 대표원장은 연세대학교 치과대학병원 구강악안면외과 외래교수이자 보건복지부 인증 구강악안면외과 전문의입니다. 2인 전문의 원장의 협진으로 원스톱 진료가 가능합니다.",
+      "signature_quote": null,
+      "supporting_image_url": "https://images.example.com/sujidental-doctor.jpg"
+    },
+    "menu": {
+      "label": "진료 항목",
+      "mode": "item_consult",
+      "items": [
+        {
+          "name": "임플란트",
+          "price": null,
+          "description": null,
+          "image_url": null,
+          "badge": null
+        },
+        {
+          "name": "교정",
+          "price": null,
+          "description": null,
+          "image_url": null,
+          "badge": null
+        },
+        {
+          "name": "신경치료",
+          "price": null,
+          "description": null,
+          "image_url": null,
+          "badge": null
+        }
+      ],
+      "full_list_link_enabled": true
+    },
+    "gallery": {
+      "images": [
+        "https://images.example.com/sujidental-1.jpg",
+        "https://images.example.com/sujidental-2.jpg"
+      ],
+      "more_link_url": null
+    },
+    "reviews": null,
+    "info": {
+      "address": "경기 용인시 수지구 수지로296번길 51-2 미래빌딩 6층",
+      "map_coordinates": {
+        "lat": 37.32,
+        "lng": 127.09
+      },
+      "hours": {
+        "type": "structured",
+        "structured": [
+          {
+            "day": "tue",
+            "open": "09:30",
+            "close": "20:30",
+            "break": [
+              "13:00",
+              "14:30"
+            ],
+            "last_order": "19:00",
+            "closed": false
+          },
+          {
+            "day": "sat",
+            "open": "09:00",
+            "close": "14:00",
+            "break": null,
+            "last_order": "12:30",
+            "closed": false
+          },
+          {
+            "day": "sun",
+            "open": null,
+            "close": null,
+            "break": null,
+            "last_order": null,
+            "closed": true
+          }
+        ]
+      },
+      "phone": "0507-1481-5082",
+      "external_links": [
+        {
+          "platform": "naver_reservation",
+          "url": "https://naver.me/GlJozOt4"
+        }
+      ],
+      "business_info": null
+    },
+    "sticky_cta": {
+      "buttons": [
+        {
+          "type": "reservation",
+          "label": "네이버 예약",
+          "action_value": "https://naver.me/GlJozOt4"
+        },
+        {
+          "type": "call",
+          "label": "전화 예약",
+          "action_value": "05071481082"
+        }
+      ]
+    },
+    "how_it_works": {
+      "steps": [
+        {
+          "order": 1,
+          "title": "예약",
+          "description": "네이버예약 또는 전화로 예약"
+        },
+        {
+          "order": 2,
+          "title": "방문 진료",
+          "description": "접수 후 진료"
+        }
+      ]
+    },
+    "faq": {
+      "items": [
+        {
+          "question": "주차 되나요?",
+          "answer": "용인시평생학습관 주차장을 이용해주세요."
+        }
+      ]
+    },
+    "philosophy": {
+      "text": "정확한 진단 없이는 올바른 치료도 없다고 믿습니다. 그래서 첫 상담과 검사에 가장 많은 시간을 씁니다."
+    },
+    "atmosphere": {
+      "text": "치료 과정을 미리 충분히 설명드리고, 편안하게 대기하실 수 있는 개별 공간을 마련했습니다."
+    }
+  }
+}

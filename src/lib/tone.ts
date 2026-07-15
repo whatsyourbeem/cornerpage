@@ -43,7 +43,7 @@ const TONE_PAPER: Record<ToneSlug, string> = {
 /**
  * meta.brand_color가 있으면 --brand/--brand-deep/--accent/--button-text를
  * 오버라이드할 인라인 스타일을 만든다. 타이포·모션·시그니처 요소 같은 구조적 토큰은
- * 건드리지 않는다(design-guide.md 3-4). null이면 톤 기본 팔레트를 그대로 쓰도록 undefined.
+ * 건드리지 않는다(spec/design/design-guide.md 3-4). null이면 톤 기본 팔레트를 그대로 쓰도록 undefined.
  */
 export function resolveBrandCssVars(
   meta: Pick<Meta, "axis_a_tone" | "brand_color">
@@ -63,7 +63,7 @@ export function resolveBrandCssVars(
 /**
  * topbar/sticky_cta는 항상 고정 위치이므로 제외, 스크롤 본문 블록 순서만 정의.
  *
- * 세 가지 배치 원칙(design-guide.md 4장, 2026-07 개정 — philosophy/atmosphere가
+ * 세 가지 배치 원칙(spec/design/design-guide.md 4장, 2026-07 개정 — philosophy/atmosphere가
  * about에서 분리되며 재정립):
  * 1. philosophy는 항상 hero·trust_strip 바로 다음에 고정 — Manifesto 강조 효과는
  *    앞쪽에 있어야 의미가 있고, 축과 무관하다.

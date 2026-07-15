@@ -1,0 +1,137 @@
+{
+  "skill_name": "mini-homepage-builder",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "가게 이름: 산책로베이커리. 서울 성북구 성북동. 전화 02-333-4455. 화~일 08:00-19:00(월 휴무). 대표사진 있음(업로드됨). 로고 없음. 주 행동: 방문. 강점: 매일 새벽 직접 굽는 빵, 4년 운영, 동네 단골 많음. 대표 메뉴: 바게트 4,500원, 크루아상 4,200원, 식빵 6,000원. 사진 5장 업로드됨. 리뷰 없음. 이 정보로 미니홈페이지 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "감성형×메뉴우선 축으로 분류된 카페/베이커리 콘텐츠 JSON. 필수 블록 전부 채워지고, 사진 없는 로고는 null, 리뷰 없어 reviews는 null.",
+      "files": [],
+      "expectations": [
+        "meta.axis_a_tone이 '감성형'이다",
+        "meta.axis_b_layout이 '메뉴우선'이다 (카페류는 메뉴가 갤러리보다 우선)",
+        "meta.logo_url이 null이다 (로고 미제공)",
+        "blocks.menu.items 개수가 1개 이상 3개 이하다 (하한 강제 없이 최대 3개 원칙)",
+        "blocks.hero.headline에 '최고', '1위', '가장' 같은 근거 없는 최상급 표현이 없다",
+        "blocks.reviews가 null이다 (유저가 리뷰 원문을 준 적 없음)",
+        "필수 블록(topbar, hero, trust_strip, menu, info, sticky_cta)이 모두 null이 아니다"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "가게 이름: 늘푸른철물. 대전 유성구. 전화 042-777-8899. 24시간 연중무휴. 대표사진 없음. 로고 없음. 주 행동: 전화. 강점: 15년 운영, 긴급출동 가능, 열쇠·잠금장치 전문. 서비스: 열쇠 개폐(상담문의), 잠금장치 교체(상담문의). 사진 없음. 리뷰 없음. 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "신뢰형×해당없음 축, 사진 없어 히어로가 폴백 스타일(background_image_url null)로 처리되고, 메뉴는 item_consult 모드로 가격 없이 상담문의.",
+      "files": [],
+      "expectations": [
+        "meta.axis_a_tone이 '신뢰형'이다",
+        "meta.cta_primary_action이 'call'이다",
+        "blocks.hero.background_image_url이 null이다 (사진 미제공 폴백)",
+        "blocks.menu.mode가 'item_consult'다",
+        "blocks.menu.items의 모든 price가 null이다",
+        "blocks.gallery가 null이다 (사진 없음)",
+        "blocks.hero.headline에 감정 형용사(예: '든든한', '믿음직한' 단독 수식)로만 승부하는 문구가 아니라 사실(15년·긴급출동) 기반 문구가 있다"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "가게 이름: 라라네일. 인천 부평구. 전화 010-4567-8901. 매일 10:00-20:00. 대표사진 있음. 로고 없음. 주 행동: 예약(인스타 DM). 한 줄 소개 없음. 강점 체크리스트: 부평역 5분(이거 하나뿐). 대표 시술: 젤네일 35,000원, 케어 15,000원. 사진 12장 있음. 리뷰 없음. 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "강점이 1개뿐인 빈약한 입력. 히어로 카피가 사실 나열에 가까워질 수 있으나 지어낸 감정은 없어야 함. 갤러리우선 배치.",
+      "files": [],
+      "expectations": [
+        "meta.axis_b_layout이 '갤러리우선'이다 (네일은 결과물 사진이 핵심)",
+        "meta.cta_interaction_mode가 'guided'다 (인스타 DM은 사람이 응대하는 창구)",
+        "blocks.hero.headline이나 tagline에 '부평역'이라는 사실이 반영된다",
+        "blocks.hero.headline에 사장님이 주지 않은 강점(예: '친절한', '편안한' 등 근거 없는 형용사)이 지어내지지 않는다",
+        "blocks.menu.items 개수가 2개다 (준 만큼만, 하한 강제 없음)",
+        "blocks.about이 null이거나, null이 아니라면 내용이 강점 체크리스트(부평역 5분)에서 벗어나지 않는다"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "가게 이름: 강한헬스PT. 대구 수성구. 전화 053-222-3344. 월~토 06:00-24:00, 일요일 휴무. 대표사진 있음. 로고 없음. 주 행동: PT 상담예약. 강점: 전 트레이너 국가자격증 보유, 무제한 샤워시설, 50평 규모. 프로그램: 1:1 PT(상담문의) 딱 하나뿐. 사진 8장. 리뷰 없음. 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "메뉴 항목이 1개뿐인 케이스. 하한을 채우려고 없는 프로그램을 지어내면 안 됨. full_list_link_enabled는 false여야 자연스러움.",
+      "files": [],
+      "expectations": [
+        "blocks.menu.items 개수가 정확히 1개다 (지어낸 추가 항목 없음)",
+        "blocks.menu.full_list_link_enabled가 false다 (항목 1개뿐이라 전체보기 무의미)",
+        "meta.axis_a_tone이 '혼합형'이다 (헬스장은 전문성+동기부여 혼합)",
+        "blocks.trust_strip.items 개수가 정확히 3개다"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "가게 이름: 미래한의원. 광주 서구. 전화 062-555-6677. 화~금 09:00-19:00, 토 09:00-13:00, 월·일 휴무. 로고 있음. 대표사진 있음. 주 행동: 전화 예약. 사장님이 직접 쓴 한 줄 소개: '광주에서 가장 용한 한의원, 미래한의원입니다.' 강점: 원장 20년 경력, 한방보험 적용. 진료: 침, 뜸, 한약처방(전부 상담문의). 사진 3장. 리뷰 3개 원문 제공됨(\"허리 아파서 갔는데 정말 시원해졌어요\" 등). 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "사용자가 직접 쓴 최상급 표현('가장 용한')이 검증 가능한 사실(20년 경력 등) 기반으로 다듬어져 제안되고, 유저가 준 리뷰 3개는 규제 여부와 무관하게 원문 그대로 보존됨.",
+      "files": [],
+      "expectations": [
+        "blocks.hero.headline에 '가장', '최고', '1위' 같은 근거 없는 최상급 표현이 그대로 남아있지 않다",
+        "blocks.hero.headline 또는 tagline에 '20년' 같은 검증 가능한 사실이 포함된다",
+        "blocks.reviews가 null이 아니다 (유저가 리뷰 원문을 실제로 줬으므로 업종과 무관하게 보존)",
+        "blocks.reviews.items 개수가 3개다",
+        "blocks.reviews.items의 body가 유저가 준 원문과 의미가 같다(가공되지 않음)"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "가게 이름: 클린스터디. 부산 해운대구. 전화 010-8888-9999. 24시간 무인. 로고 있음. 대표사진 있음. 주 행동: 방문(오시는 길). 강점: 24시간 무인, 좌석 50석, 조용한 분위기. 이용권: 시간권(10시간 3만원, 30시간 8만원), 기간권(1개월 12만원, 3개월 30만원). 사진 15장. 리뷰 없음. 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "계층 요금제이므로 menu.mode가 package_table. CTA는 direction 중심으로 히어로·하단바 일관.",
+      "files": [],
+      "expectations": [
+        "blocks.menu.mode가 'package_table'이다",
+        "blocks.menu.items가 null이다 (package_table 모드에서는 items 미사용)",
+        "blocks.menu.categories 개수가 2개다 (시간권, 기간권)",
+        "meta.cta_primary_action이 'direction'이다",
+        "blocks.hero.cta.type이 'direction'이다",
+        "blocks.sticky_cta.buttons 중 하나 이상의 type이 'direction'이다"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "가게 이름: 정성수선집. 위치와 전화번호만 있음 - 서울 동대문구, 010-1111-2222. 나머지 정보는 없음. 이 정보만으로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "정보가 극히 부족한 케이스. 스킬은 빈약한 JSON을 바로 출력하지 말고, 필수 블록을 채우기에 필요한 핵심 정보(강점·메뉴·영업시간 등)를 먼저 사용자에게 요청해야 한다.",
+      "files": [],
+      "expectations": [
+        "콘텐츠 JSON을 즉시 출력하지 않고 추가 정보를 요청한다 (강점·메뉴·영업시간 등 STEP 2~3 핵심 문항)",
+        "만약 JSON을 출력한다면, 지어낸 가짜 메뉴·강점이 없어야 한다",
+        "만약 JSON을 출력한다면, gallery/reviews/about/how_it_works/faq가 모두 null이어야 한다"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "가게 이름: 하늘부동산공인중개사사무소. 경기 성남시 분당구. 전화 031-999-0000. 평일 09:00-18:00, 주말 휴무. 로고 있음. 대표사진 없음. 주 행동: 전화 상담. 사장님 원문: '분당 부동산 1위, 하늘부동산입니다. 매매/전세/월세 최다 보유.' 강점: 15년 경력, 분당 전 지역 매물 보유. 서비스: 매매, 전세, 월세(전부 상담문의). 사진 없음. 리뷰 없음. 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "부동산업은 신뢰형. 사용자 원문의 '1위', '최다' 같은 비교표현이 검증 가능한 사실(15년 경력, 분당 전 지역)로 조정되어야 함.",
+      "files": [],
+      "expectations": [
+        "blocks.hero.headline과 tagline에 '1위', '최다' 같은 근거 없는 비교 표현이 그대로 남아있지 않다",
+        "blocks.hero.headline 또는 tagline에 '15년' 같은 검증 가능한 사실이 담긴다",
+        "meta.axis_a_tone이 '신뢰형'이다",
+        "blocks.hero.background_image_url이 null이다 (사진 없음)"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "가게 이름: 모던인테리어스튜디오. 서울 강남구. 전화 02-321-6543. 평일 10:00-19:00. 로고 있음. 대표사진 있음. 주 행동: 상담 문의. 강점: 10년 경력, 준공 300건 이상. 시공 사례 사진 20장. 서비스: 주거인테리어, 상업인테리어(둘 다 상담문의). 리뷰 없음. FAQ 답변: '상담은 무료인가요? - 네, 방문 상담은 무료입니다', '시공 기간은 얼마나 걸리나요? - 평수와 범위에 따라 2주~2개월 소요됩니다', 세 번째 질문(비용 관련)은 미응답. 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "FAQ는 답변된 2개만 포함되고 미응답 질문은 제외되어야 함.",
+      "files": [],
+      "expectations": [
+        "blocks.faq가 null이 아니다",
+        "blocks.faq.items 개수가 정확히 2개다 (미응답 질문 제외)",
+        "blocks.faq.items의 answer가 유저가 준 답변 내용과 일치한다",
+        "meta.axis_b_layout이 '갤러리우선'이다 (시공 사례 사진 20장이 핵심 설득력)"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "가게 이름: 우리아이영어교습소. 서울 노원구. 전화 02-888-1234. 월~금 14:00-21:00. 로고 없음. 대표사진 있음. 주 행동: 상담 신청. 강점: 원장 10년 경력, 소수정예(최대 6인), 레벨테스트 무료. 과정: 초등영어(월 15만원), 중등영어(월 18만원), 원어민회화(월 22만원). 사진 4장. 리뷰 없음. 이용방법: '전화나 방문으로 상담 신청 후 레벨테스트, 그 다음 반 배정' 이 정보로 콘텐츠 JSON을 만들어줘.",
+      "expected_output": "학원은 신뢰형×메뉴우선. how_it_works가 3단계로 사용자가 설명한 흐름을 반영해야 함.",
+      "files": [],
+      "expectations": [
+        "meta.axis_a_tone이 '신뢰형'이다",
+        "meta.axis_b_layout이 '메뉴우선'이다",
+        "blocks.how_it_works가 null이 아니다",
+        "blocks.how_it_works.steps 개수가 3개다 (상담신청→레벨테스트→반배정)",
+        "blocks.menu.mode가 'item_price'다 (고정 가격 존재)",
+        "blocks.menu.items 개수가 3개다"
+      ]
+    }
+  ]
+}

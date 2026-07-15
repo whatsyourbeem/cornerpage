@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "business_name": "토르짐",
+    "industry_category": "헬스장",
+    "axis_a_tone": "혼합형",
+    "axis_b_layout": "갤러리우선",
+    "cta_primary_action": "reservation",
+    "cta_interaction_mode": "functional",
+    "logo_url": null,
+    "brand_color": null
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "토르짐",
+      "action_button": {
+        "type": "reservation",
+        "label": "PT 상담"
+      }
+    },
+    "hero": {
+      "badge": "수지구청 · PT 전문 헬스장",
+      "headline": "독보적이고 전문적인 수업. 확실한 결과를 약속드립니다.",
+      "tagline": "경력 20년 이상의 대표 코치가 100평 규모 프라이빗 짐에서 1:1로 지도합니다.",
+      "background_image_url": "https://images.example.com/thorgym-hero.jpg",
+      "cta": {
+        "type": "reservation",
+        "label": "PT 상담 예약"
+      }
+    },
+    "trust_strip": {
+      "items": [
+        {
+          "value": "100평",
+          "label": "규모"
+        },
+        {
+          "value": "20년+",
+          "label": "대표코치 경력"
+        },
+        {
+          "value": "도보 1분",
+          "label": "수지구청 4번출구"
+        }
+      ]
+    },
+    "about": {
+      "body": "개인 PT 전문 짐으로, 개인 샤워실과 6층 테라스 스카이뷰를 갖췄습니다.",
+      "signature_quote": null,
+      "supporting_image_url": null
+    },
+    "menu": {
+      "label": "PT 프로그램",
+      "mode": "item_consult",
+      "items": [
+        {
+          "name": "1:1 PT",
+          "price": null,
+          "description": "경력 20년 이상 대표 코치의 맞춤 지도",
+          "image_url": null,
+          "badge": null
+        }
+      ],
+      "full_list_link_enabled": false
+    },
+    "gallery": {
+      "images": [
+        "https://images.example.com/thorgym-1.jpg",
+        "https://images.example.com/thorgym-2.jpg",
+        "https://images.example.com/thorgym-3.jpg"
+      ],
+      "more_link_url": "https://instagram.com/thor_gym_"
+    },
+    "reviews": null,
+    "info": {
+      "address": "경기 용인시 수지구 풍덕천로129번길 7 6층",
+      "map_coordinates": {
+        "lat": 37.32,
+        "lng": 127.1
+      },
+      "hours": {
+        "type": "structured",
+        "structured": [
+          {
+            "day": "mon",
+            "open": "07:00",
+            "close": "23:00",
+            "break": null,
+            "last_order": null,
+            "closed": false
+          },
+          {
+            "day": "sat",
+            "open": "10:00",
+            "close": "17:00",
+            "break": null,
+            "last_order": null,
+            "closed": false
+          },
+          {
+            "day": "sun",
+            "open": null,
+            "close": null,
+            "break": null,
+            "last_order": null,
+            "closed": true
+          }
+        ]
+      },
+      "phone": "0507-1360-7111",
+      "external_links": [
+        {
+          "platform": "instagram",
+          "url": "https://instagram.com/thor_gym_"
+        },
+        {
+          "platform": "naver_reservation",
+          "url": "https://naver.me/FK5eF30E"
+        }
+      ],
+      "business_info": null
+    },
+    "sticky_cta": {
+      "buttons": [
+        {
+          "type": "reservation",
+          "label": "PT 상담 예약",
+          "action_value": "https://naver.me/FK5eF30E"
+        },
+        {
+          "type": "call",
+          "label": "전화 문의",
+          "action_value": "05071360111"
+        }
+      ]
+    },
+    "how_it_works": {
+      "steps": [
+        {
+          "order": 1,
+          "title": "상담 예약",
+          "description": "전화 또는 네이버예약으로 상담·체험 신청"
+        },
+        {
+          "order": 2,
+          "title": "방문 상담",
+          "description": "시설을 둘러보고 상담"
+        },
+        {
+          "order": 3,
+          "title": "PT 시작",
+          "description": "체험 먼저 원하시면 체험으로 시작"
+        }
+      ]
+    },
+    "faq": null,
+    "philosophy": {
+      "text": "숫자보다 자세가 먼저라고 믿습니다. 부상 없이 오래 운동하실 수 있도록, 기본기부터 차근차근 잡아드립니다."
+    },
+    "atmosphere": {
+      "text": "테라스에서 내려다보는 스카이뷰와 프라이빗한 개인 샤워실 — 운동을 마친 후에도 여유를 느끼실 수 있는 공간입니다."
+    }
+  }
+}

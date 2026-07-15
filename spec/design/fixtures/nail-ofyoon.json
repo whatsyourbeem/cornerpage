@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "business_name": "네일오브윤",
+    "industry_category": "네일샵",
+    "axis_a_tone": "감성형",
+    "axis_b_layout": "갤러리우선",
+    "cta_primary_action": "reservation",
+    "cta_interaction_mode": "guided",
+    "logo_url": null,
+    "brand_color": null
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "네일오브윤",
+      "action_button": {
+        "type": "reservation",
+        "label": "예약"
+      }
+    },
+    "hero": {
+      "badge": "수지구청역 1분 · 네일샵",
+      "headline": "수지구청역 1분, 5인이 동시에 받는 네일샵",
+      "tagline": "글리터부터 손젤·발젤까지, 기다림 없이 여럿이 함께 받을 수 있어요.",
+      "background_image_url": "https://images.unsplash.com/photo-1604654894610",
+      "cta": {
+        "type": "reservation",
+        "label": "인스타 DM 예약"
+      }
+    },
+    "trust_strip": {
+      "items": [
+        {
+          "value": "10K",
+          "label": "인스타 팔로워"
+        },
+        {
+          "value": "100+",
+          "label": "시술 사진"
+        },
+        {
+          "value": "5인",
+          "label": "동시 시술"
+        }
+      ]
+    },
+    "about": null,
+    "menu": {
+      "label": "시술 메뉴",
+      "mode": "item_price",
+      "items": [
+        {
+          "name": "글리터",
+          "price": "39,000원",
+          "description": null,
+          "image_url": null,
+          "badge": null
+        },
+        {
+          "name": "손젤",
+          "price": "30,000원",
+          "description": null,
+          "image_url": null,
+          "badge": null
+        },
+        {
+          "name": "발젤",
+          "price": "40,000원",
+          "description": null,
+          "image_url": null,
+          "badge": null
+        }
+      ],
+      "full_list_link_enabled": true
+    },
+    "gallery": {
+      "images": [
+        "https://images.unsplash.com/photo-1610992015732",
+        "https://images.unsplash.com/photo-1607779097040",
+        "https://images.unsplash.com/photo-1519014816548",
+        "https://images.unsplash.com/photo-1632344004429"
+      ],
+      "more_link_url": "https://instagram.com/nail_ofyoon"
+    },
+    "reviews": null,
+    "info": {
+      "address": "경기 용인시 수지구 풍덕천로 116 1층",
+      "map_coordinates": {
+        "lat": 37.33,
+        "lng": 127.1
+      },
+      "hours": {
+        "type": "structured",
+        "structured": [
+          {
+            "day": "mon",
+            "open": "10:30",
+            "close": "19:30",
+            "break": null,
+            "last_order": null,
+            "closed": false
+          }
+        ]
+      },
+      "phone": "0507-1369-7390",
+      "external_links": [
+        {
+          "platform": "instagram",
+          "url": "https://instagram.com/nail_ofyoon"
+        }
+      ],
+      "business_info": null
+    },
+    "sticky_cta": {
+      "buttons": [
+        {
+          "type": "dm",
+          "label": "인스타 DM 예약",
+          "action_value": "https://instagram.com/nail_ofyoon"
+        },
+        {
+          "type": "call",
+          "label": "전화",
+          "action_value": "05071369790"
+        }
+      ]
+    },
+    "how_it_works": {
+      "steps": [
+        {
+          "order": 1,
+          "title": "디자인 전송",
+          "description": "인스타 DM으로 원하는 디자인 사진 전송"
+        },
+        {
+          "order": 2,
+          "title": "날짜 확정",
+          "description": "희망 날짜 조율 후 확정"
+        },
+        {
+          "order": 3,
+          "title": "방문 시술",
+          "description": "예약 시간에 방문해 시술"
+        }
+      ]
+    },
+    "faq": null,
+    "philosophy": {
+      "text": "혼자보다 같이 오는 게 더 즐겁잖아요. 그래서 여럿이 와도 기다리지 않고 나란히 앉아 받을 수 있게 만들었어요."
+    },
+    "atmosphere": {
+      "text": "은은한 조명 아래 좋아하는 노래를 틀어두고, 손님들과 편하게 수다 떨면서 작업하는 걸 좋아해요."
+    }
+  }
+}

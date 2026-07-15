@@ -48,7 +48,7 @@
 
 ## 4. 콘텐츠 스키마 & 생성 파이프라인
 
-렌더러의 입력 계약은 `src/lib/content-types.ts`의 `MiniHomepageContent`. 원본 스키마 문서는 `skill/references/content.schema.json`(JSON Schema, ajv 검증에 실제로 쓰이는 파일)과 `design-guide.md`(디자인 규칙)에 있다.
+렌더러의 입력 계약은 `src/lib/content-types.ts`의 `MiniHomepageContent`(실제로는 `spec/schema/content.types.ts`를 재export). 원본 스키마 문서는 `spec/schema/content.schema.json`(JSON Schema, ajv 검증에 실제로 쓰이는 파일)과 `spec/design/design-guide.md`(디자인 규칙)에 있다.
 
 ```ts
 interface MiniHomepageContent {
@@ -76,7 +76,7 @@ interface MiniHomepageContent {
 **생성 파이프라인** (`src/lib/generate-content.ts`):
 
 1. `/create` 6단계 폼이 가공되지 않은 원본 사업 정보(`DraftAnswers` — 업종·기본정보·강점/소개·메뉴/서비스·신뢰/링크·이용방법/FAQ)를 모아 `/api/sites`에 제출한다. 톤·레이아웃·카피 판단은 프론트가 미리 정하지 않고 전부 스킬이 한다.
-2. 빌드/개발 시작 시(`predev`/`prebuild` npm 스크립트) `scripts/build-skill-prompt.ts`가 `skill/SKILL.md` + `skill/references/*.md`를 하나의 시스템 프롬프트로 결합해 `src/lib/skill-prompt.generated.ts`를 생성한다(자동 생성 파일, 직접 수정 금지).
+2. 빌드/개발 시작 시(`predev`/`prebuild` npm 스크립트) `scripts/build-skill-prompt.ts`가 `spec/skill/SKILL.md` + `spec/skill/references/*.md`를 하나의 시스템 프롬프트로 결합해 `src/lib/skill-prompt.generated.ts`를 생성한다(자동 생성 파일, 직접 수정 금지).
 3. `generateContent()`가 주소를 OpenStreetMap Nominatim으로 지오코딩(`src/lib/geocode.ts`, 무료·키 불필요)한 뒤, 결합된 스킬 프롬프트를 system으로 Claude(`claude-sonnet-5`)를 호출해 콘텐츠 JSON을 얻는다.
 4. Structured Outputs(`output_config.format`)는 쓰지 않는다 — 이 스키마(11개 블록, 다수 `$defs`, `if/then` 조건부, 배열 제약)가 Claude Structured Outputs가 지원하는 JSON Schema 범위를 넘어 여러 종류의 400 에러를 냈다(실측: minItems/maxItems 제약, if/then 분기, 최종적으로 "compiled grammar is too large"). 대신 프롬프트로 구조를 지시하고 **ajv로 전체 스키마를 사후 검증**하는 이중 안전망 방식을 쓴다.
 5. `map_coordinates`, hours의 `break`/`last_order` 같은 nullable 필수 필드는 Claude가 종종 키 자체를 누락시켜서(값이 없으면 `null`을 명시해야 하는데 생략하는 경우) 백엔드가 결정적으로 보정한 뒤 검증한다. `philosophy`/`atmosphere`는 `about`과 독립된 top-level 블록(선택)이라 아예 키 자체가 없어도 스키마상 유효한데, TS 타입은 항상 `Philosophy | null`을 기대하므로 키가 없으면 `null`로 채워 형태를 통일한다.
@@ -102,7 +102,7 @@ src/
                                   Gallery/Reviews/Info/StickyCta/HowItWorks/Faq)
     shared/                      CtaButton, SmartImage(이미지 실패 폴백)
   lib/
-    content-types.ts             스키마 타입 (source of truth)
+    content-types.ts             spec/schema/content.types.ts를 재export하는 래퍼 (렌더러 import 경로 유지용)
     tone.ts                      톤/레이아웃 매핑 + brand_color 오버라이드 로직
     color.ts                     브랜드 컬러 → 팔레트 유도 (WCAG 대비 보정)
     cta.ts                       CTA 목적지 href 계산
@@ -115,17 +115,23 @@ src/
     skill-prompt.generated.ts    자동 생성됨 — scripts/build-skill-prompt.ts 산출물, 직접 수정 금지
   proxy.ts                       서브도메인 → /site/[slug] rewrite (구 middleware.ts)
 scripts/
-  build-skill-prompt.ts          skill/ 문서를 결합해 skill-prompt.generated.ts 생성 (predev/prebuild 훅)
-skill/
-  SKILL.md                       mini-homepage-builder 스킬 본문(톤/레이아웃/카피 판단 지침)
-  references/
-    content.schema.json          콘텐츠 JSON의 실제 원본 스키마 (ajv가 이 파일을 컴파일)
-    prompt-schema-summary.md     content.schema.json의 프롬프트용 축약본
-    blocks.md / copywriting.md / industry-data.md   블록별·업종별 판단 지침
+  build-skill-prompt.ts          spec/skill/ 문서를 결합해 skill-prompt.generated.ts 생성 (predev/prebuild 훅)
 supabase/
   migrations/                    스키마 변경 이력 (GitHub 연동이 main push 시 자동 적용)
-design-guide.md                  디자인 톤/레이아웃/반응형/null폴백 규칙 원본
-handoff-README.md                0단계 핸드오프 배경 문서 원본
+spec/                            개발 참고 자료 통합 패키지 — 문서가 아니라 빌드 의존성(spec/README.md 참고)
+  schema/
+    content.schema.json          콘텐츠 JSON의 실제 원본 스키마 (ajv가 이 파일을 컴파일)
+    content.types.ts             TypeScript 타입 원본 (content-types.ts가 재export)
+  skill/
+    SKILL.md                     mini-homepage-builder 스킬 본문(톤/레이아웃/카피 판단 지침)
+    references/
+      prompt-schema-summary.md   content.schema.json의 프롬프트용 축약본
+      blocks.md / copywriting.md                      블록별 판단 지침 (업종 무관, 공통)
+      general/ · verticals/{업종}/                     업종별 input-questions.md · industry-data.md
+    evals/                       스킬 평가 테스트 케이스
+  design/
+    design-guide.md              디자인 톤/레이아웃/반응형/null폴백 규칙 원본
+    fixtures/                    검증된 콘텐츠 JSON 샘플 (렌더링 테스트용)
 ```
 
 ## 6. 라우팅 구조
@@ -201,7 +207,7 @@ ANTHROPIC_API_KEY=...
 npm run dev
 ```
 
-`predev` 훅이 `scripts/build-skill-prompt.ts`를 먼저 돌려 `skill/` 문서를 `src/lib/skill-prompt.generated.ts`로 결합한다(4절 참고) — `skill/` 아래 파일을 수정했으면 dev 서버를 재시작해야 반영된다.
+`predev` 훅이 `scripts/build-skill-prompt.ts`를 먼저 돌려 `spec/skill/` 문서를 `src/lib/skill-prompt.generated.ts`로 결합한다(4절 참고) — `spec/skill/` 아래 파일을 수정했으면 dev 서버를 재시작해야 반영된다.
 
 - `http://localhost:3000` — 루트 랜딩 페이지
 - `http://localhost:3000/create` — 6단계 질문형 입력 폼

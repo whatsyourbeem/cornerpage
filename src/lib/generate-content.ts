@@ -1,7 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import Ajv2020 from "ajv/dist/2020";
-import contentSchema from "../../skill/references/content.schema.json";
+import contentSchema from "../../spec/schema/content.schema.json";
 import { geocodeAddress } from "./geocode";
 import { SKILL_PROMPT } from "./skill-prompt.generated";
 import type {
@@ -17,7 +17,7 @@ import type {
  * Claude API를 호출하는 실제 콘텐츠 생성기. mock-generate-content.ts를 대체한다.
  * 방법B(스킬 문서 텍스트 결합) 전략과 근거는 Notion "백엔드 API 아키텍처" 문서 2장 참고.
  *
- * DraftAnswers는 skill/references/input-questions.md의 질문 흐름을 그대로 따르는
+ * DraftAnswers는 spec/skill/references/general/input-questions.md의 질문 흐름을 그대로 따르는
  * "가공 전 사업 정보"다. axis_a_tone/axis_b_layout/cta 유형·카피(headline 등)를
  * 프론트가 미리 정해서 넘기던 이전 목업 파이프라인 방식(placeholder /create 폼)과
  * 달리, 이제는 업종·강점·메뉴 같은 원재료만 넘기고 톤/레이아웃 판단과 카피 작성은

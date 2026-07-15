@@ -8,11 +8,11 @@ import { join } from "path";
 // 구조 정의만 남긴 축약본 prompt-schema-summary.md를 대신 쓴다. schema.md의
 // 1~4장(구조 정의)이 바뀌면 이 축약본도 반드시 함께 갱신해야 한다.
 const files = [
-  "skill/SKILL.md",
-  "skill/references/blocks.md",
-  "skill/references/copywriting.md",
-  "skill/references/industry-data.md",
-  "skill/references/prompt-schema-summary.md",
+  "spec/skill/SKILL.md",
+  "spec/skill/references/blocks.md",
+  "spec/skill/references/copywriting.md",
+  "spec/skill/references/general/industry-data.md",
+  "spec/skill/references/prompt-schema-summary.md",
 ];
 
 const combined = files

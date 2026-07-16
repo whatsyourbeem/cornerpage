@@ -1,0 +1,157 @@
+{
+  "meta": {
+    "business_name": "밀물다방",
+    "industry_category": "카페",
+    "axis_a_tone": "감성형",
+    "axis_b_layout": "메뉴우선",
+    "cta_primary_action": "call",
+    "cta_interaction_mode": "functional",
+    "logo_url": null,
+    "brand_color": null
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "밀물다방",
+      "action_button": {
+        "type": "call",
+        "label": "전화하기"
+      }
+    },
+    "hero": {
+      "badge": "망원동 · 핸드드립 카페",
+      "headline": "오래된 다방에서 내리는 한 잔",
+      "tagline": "매일 아침 직접 로스팅한 원두로, 자리에 앉으면 천천히 내려드립니다.",
+      "background_image_url": "https://images.unsplash.com/photo-1495474472287",
+      "cta": {
+        "type": "call",
+        "label": "전화하기"
+      }
+    },
+    "trust_strip": {
+      "items": [
+        {
+          "value": "4.8",
+          "label": "네이버 별점"
+        },
+        {
+          "value": "1,240+",
+          "label": "누적 리뷰"
+        },
+        {
+          "value": "8년",
+          "label": "한자리 운영"
+        }
+      ]
+    },
+    "about": {
+      "body": "1985년부터 이 골목을 지킨 '밀물다방'의 간판과 낡은 나무 문을 그대로 두고, 안쪽만 조용히 고쳤습니다. 원두는 매일 아침 직접 볶습니다.",
+      "signature_quote": "빠른 커피는 많으니까, 여기선 천천히 마시고 가세요.",
+      "supporting_image_url": null
+    },
+    "menu": {
+      "label": "대표 메뉴",
+      "mode": "item_price",
+      "items": [
+        {
+          "name": "밀물 핸드드립",
+          "price": "6,500원",
+          "description": "그날 볶은 싱글 오리진",
+          "image_url": null,
+          "badge": "인기"
+        },
+        {
+          "name": "흑임자 라떼",
+          "price": "6,000원",
+          "description": "국산 흑임자를 직접 갈아 넣은 라떼",
+          "image_url": null,
+          "badge": "시그니처"
+        },
+        {
+          "name": "쌍화 아메리카노",
+          "price": "5,500원",
+          "description": "겨울 한정 메뉴",
+          "image_url": null,
+          "badge": null
+        }
+      ],
+      "full_list_link_enabled": true
+    },
+    "gallery": {
+      "images": [
+        "https://images.unsplash.com/photo-1554118811",
+        "https://images.unsplash.com/photo-1442512595331",
+        "https://images.unsplash.com/photo-1521017432531",
+        "https://images.unsplash.com/photo-1497935586351"
+      ],
+      "more_link_url": null
+    },
+    "reviews": {
+      "items": [
+        {
+          "body": "진짜 다방 감성 그대로예요. 사장님이 직접 내려주시는데 기다리는 시간도 좋았어요.",
+          "rating": 5,
+          "author": "김○영",
+          "source": "네이버 리뷰"
+        }
+      ]
+    },
+    "info": {
+      "address": "서울 마포구 망원동 골목길 12",
+      "map_coordinates": {
+        "lat": 37.557,
+        "lng": 126.906
+      },
+      "hours": {
+        "type": "structured",
+        "structured": [
+          {
+            "day": "tue",
+            "open": null,
+            "close": null,
+            "break": null,
+            "last_order": null,
+            "closed": true
+          },
+          {
+            "day": "mon",
+            "open": "11:00",
+            "close": "22:00",
+            "break": null,
+            "last_order": null,
+            "closed": false
+          }
+        ]
+      },
+      "phone": "02-1234-5678",
+      "external_links": [
+        {
+          "platform": "instagram",
+          "url": "https://instagram.com/millmuldabang"
+        }
+      ],
+      "business_info": null
+    },
+    "sticky_cta": {
+      "buttons": [
+        {
+          "type": "call",
+          "label": "전화하기",
+          "action_value": "0212345678"
+        },
+        {
+          "type": "direction",
+          "label": "길찾기",
+          "action_value": "#info"
+        }
+      ]
+    },
+    "how_it_works": null,
+    "faq": null,
+    "philosophy": {
+      "text": "손님이 아니라 단골이 되어주셨으면 하는 마음으로, 매일 같은 시간에 문을 엽니다."
+    },
+    "atmosphere": {
+      "text": "낡은 나무 창틀과 오래된 라디오 소리, 은은하게 배어있는 원두 볶는 냄새 — 손님들이 유독 좋아해주시는 이 공간의 분위기입니다."
+    }
+  }
+}

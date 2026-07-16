@@ -1,9 +1,11 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import Ajv2020 from "ajv/dist/2020";
-import contentSchema from "../../spec/schema/content.schema.json";
+import contentSchemaGeneral from "../../spec/schema/general/content.schema.json";
+import contentSchemaBoutiqueFitness from "../../spec/schema/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
-import { SKILL_PROMPT } from "./skill-prompt.generated";
+import { SKILL_PROMPTS } from "./skill-prompt.generated";
+import { determineVertical, type Vertical } from "./verticals";
 import type {
   CtaPrimaryAction,
   CtaInteractionMode,
@@ -17,7 +19,7 @@ import type {
  * Claude API를 호출하는 실제 콘텐츠 생성기. mock-generate-content.ts를 대체한다.
  * 방법B(스킬 문서 텍스트 결합) 전략과 근거는 Notion "백엔드 API 아키텍처" 문서 2장 참고.
  *
- * DraftAnswers는 spec/skill/references/general/input-questions.md의 질문 흐름을 그대로 따르는
+ * DraftAnswers는 spec/skill/references/verticals/general/input-questions.md의 질문 흐름을 그대로 따르는
  * "가공 전 사업 정보"다. axis_a_tone/axis_b_layout/cta 유형·카피(headline 등)를
  * 프론트가 미리 정해서 넘기던 이전 목업 파이프라인 방식(placeholder /create 폼)과
  * 달리, 이제는 업종·강점·메뉴 같은 원재료만 넘기고 톤/레이아웃 판단과 카피 작성은
@@ -29,7 +31,7 @@ import type {
  * 냈다: (1) minItems/maxItems가 0·1 이외면 거부, (2) if/then/else가 있으면 거부.
  * 이 둘을 스키마에서 벗겨내고 나니 이번엔 "compiled grammar is too large"로
  * 거부됐다 — 스키마 자체가 strict grammar 컴파일 한도를 넘는 규모. 그래서
- * Structured Outputs를 아예 포기하고, 프롬프트(SKILL_PROMPT에 포함된
+ * Structured Outputs를 아예 포기하고, 프롬프트(SKILL_PROMPTS[vertical]에 포함된
  * prompt-schema-summary.md — schema.md의 축약본)로 구조를 지시한 뒤 ajv로 전체
  * 스키마(content.schema.json, if/then 포함)를 최종 검증하는 방식으로 바꿨다 —
  * 애초에 기술 문서 6장이 "이중 안전망"이라 부른 ajv 쪽이 사실상 유일한 강제
@@ -40,6 +42,14 @@ import type {
  * Ajv(draft-07 기본)로 컴파일하면 "no schema with key or ref
  * .../2020-12/schema" 에러가 난다(실측 확인). Notion 문서 6장의 예시 코드가
  * plain Ajv를 쓰고 있는데 이건 이 스키마에서는 실제로 동작하지 않는다.
+ *
+ * vertical(spec/skill/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
+ * 갈라져서(현재 general/boutique-fitness), LLM 호출 전에 업종 텍스트로 vertical을
+ * 먼저 정해(determineVertical) 그에 맞는 스키마·프롬프트·ajv 검증기를 골라 쓴다.
+ * 지금은 두 vertical의 스키마가 완전히 동일한 복사본이라 오분류의 실질적 영향은
+ * 없지만, boutique-fitness가 실제로 갈라지면 이 라우팅이 결과 품질에 직접 영향을
+ * 준다. 렌더러(MiniHomepageContent 타입)는 아직 general 고정이라 boutique-fitness
+ * 콘텐츠도 general 타입으로 취급된다 — 현재 두 스키마가 동일하니 문제 없다.
  */
 
 export interface DraftHoursEntry {
@@ -92,8 +102,19 @@ export interface DraftAnswers {
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const ajv = new Ajv2020({ strict: false });
-const validateContent = ajv.compile(contentSchema);
+// vertical마다 독립된 Ajv 인스턴스를 쓴다 — 두 스키마의 $id가 같아서(현재 동일
+// 복사본) 하나의 Ajv 인스턴스에 둘 다 compile하면 "schema with key already
+// exists" 충돌이 난다. errorsText도 컴파일에 쓴 인스턴스로 호출해야 하므로
+// validate와 ajv를 한 쌍으로 묶어 보관한다.
+function buildValidator(schema: object) {
+  const ajv = new Ajv2020({ strict: false });
+  return { ajv, validate: ajv.compile(schema) };
+}
+
+const validators: Record<Vertical, ReturnType<typeof buildValidator>> = {
+  general: buildValidator(contentSchemaGeneral),
+  "boutique-fitness": buildValidator(contentSchemaBoutiqueFitness),
+};
 
 function extractText(message: Anthropic.Message): string {
   for (const block of message.content) {
@@ -110,12 +131,13 @@ function stripCodeFence(text: string): string {
 
 async function attemptGenerate(
   answers: DraftAnswers,
-  coordinates: { lat: number; lng: number }
+  coordinates: { lat: number; lng: number },
+  vertical: Vertical
 ): Promise<MiniHomepageContent> {
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 8192,
-    system: SKILL_PROMPT,
+    system: SKILL_PROMPTS[vertical],
     messages: [
       {
         role: "user",
@@ -171,8 +193,9 @@ async function attemptGenerate(
     content.blocks.atmosphere = null;
   }
 
-  if (!validateContent(content)) {
-    throw new Error(`콘텐츠 스키마 검증 실패: ${ajv.errorsText(validateContent.errors)}`);
+  const { ajv, validate } = validators[vertical];
+  if (!validate(content)) {
+    throw new Error(`콘텐츠 스키마 검증 실패: ${ajv.errorsText(validate.errors)}`);
   }
 
   return content as unknown as MiniHomepageContent;
@@ -180,11 +203,12 @@ async function attemptGenerate(
 
 /** 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터 지어내기 금지). */
 export async function generateContent(answers: DraftAnswers): Promise<MiniHomepageContent> {
+  const vertical = determineVertical(answers.industry_category);
   const coordinates = await geocodeAddress(answers.address);
   try {
-    return await attemptGenerate(answers, coordinates);
+    return await attemptGenerate(answers, coordinates, vertical);
   } catch (err) {
     console.error("콘텐츠 생성 실패, 1회 재시도:", err);
-    return await attemptGenerate(answers, coordinates);
+    return await attemptGenerate(answers, coordinates, vertical);
   }
 }

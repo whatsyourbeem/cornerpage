@@ -48,7 +48,7 @@
 
 ## 4. 콘텐츠 스키마 & 생성 파이프라인
 
-렌더러의 입력 계약은 `src/lib/content-types.ts`의 `MiniHomepageContent`(실제로는 `spec/schema/content.types.ts`를 재export). 원본 스키마 문서는 `spec/schema/content.schema.json`(JSON Schema, ajv 검증에 실제로 쓰이는 파일)과 `spec/design/design-guide.md`(디자인 규칙)에 있다.
+렌더러의 입력 계약은 `src/lib/content-types.ts`의 `MiniHomepageContent`(실제로는 `spec/schema/general/content.types.ts`를 재export — 렌더러는 아직 general 고정, 12절 참고). 원본 스키마 문서는 `spec/schema/{vertical}/content.schema.json`(JSON Schema, vertical별로 ajv 검증에 실제로 쓰이는 파일, 현재 `general`·`boutique-fitness`)과 `spec/design/design-guide.md`(디자인 규칙)에 있다.
 
 ```ts
 interface MiniHomepageContent {
@@ -102,7 +102,8 @@ src/
                                   Gallery/Reviews/Info/StickyCta/HowItWorks/Faq)
     shared/                      CtaButton, SmartImage(이미지 실패 폴백)
   lib/
-    content-types.ts             spec/schema/content.types.ts를 재export하는 래퍼 (렌더러 import 경로 유지용)
+    content-types.ts             spec/schema/general/content.types.ts를 재export하는 래퍼 (렌더러 import 경로 유지용)
+    verticals.ts                  vertical 목록 + 업종 텍스트 → vertical 판별(determineVertical)
     tone.ts                      톤/레이아웃 매핑 + brand_color 오버라이드 로직
     color.ts                     브랜드 컬러 → 팔레트 유도 (WCAG 대비 보정)
     cta.ts                       CTA 목적지 href 계산
@@ -119,15 +120,16 @@ scripts/
 supabase/
   migrations/                    스키마 변경 이력 (GitHub 연동이 main push 시 자동 적용)
 spec/                            개발 참고 자료 통합 패키지 — 문서가 아니라 빌드 의존성(spec/README.md 참고)
-  schema/
-    content.schema.json          콘텐츠 JSON의 실제 원본 스키마 (ajv가 이 파일을 컴파일)
-    content.types.ts             TypeScript 타입 원본 (content-types.ts가 재export)
+  schema/                        vertical별로 분리 (현재 general·boutique-fitness, 지금은 동일 복사본)
+    general/content.schema.json          콘텐츠 JSON의 실제 원본 스키마 (ajv가 컴파일)
+    general/content.types.ts             TypeScript 타입 원본 (content-types.ts가 재export)
+    boutique-fitness/content.schema.json · content.types.ts   위와 동일 구조
   skill/
-    SKILL.md                     mini-homepage-builder 스킬 본문(톤/레이아웃/카피 판단 지침)
+    SKILL.md                     mini-homepage-builder 스킬 본문(vertical 라우팅·톤/레이아웃·카피 판단 지침)
     references/
-      prompt-schema-summary.md   content.schema.json의 프롬프트용 축약본
-      blocks.md / copywriting.md                      블록별 판단 지침 (업종 무관, 공통)
-      general/ · verticals/{업종}/                     업종별 input-questions.md · industry-data.md
+      copywriting.md              카피 작성 원칙 (vertical 무관, 유일한 공통 파일)
+      verticals/general/          blocks.md·schema.md·prompt-schema-summary.md·input-questions.md·industry-data.md
+      verticals/boutique-fitness/ 위와 동일 구성 (input-questions.md·industry-data.md는 TODO)
     evals/                       스킬 평가 테스트 케이스
   design/
     design-guide.md              디자인 톤/레이아웃/반응형/null폴백 규칙 원본

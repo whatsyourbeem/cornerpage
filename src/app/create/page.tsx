@@ -9,7 +9,7 @@ import type {
 } from "@/lib/content-types";
 
 /**
- * 실제 서비스의 질문형 입력 폼. spec/skill/references/general/input-questions.md의 STEP
+ * 실제 서비스의 질문형 입력 폼. spec/skill/references/verticals/general/input-questions.md의 STEP
  * 구성을 그대로 따른다. 업종은 자유 텍스트로만 받고(축A/B 판단은 이 값이 아니라
  * 스킬이 전체 답변을 보고 내림 — SKILL.md), 이후 문항 라벨은 업종별로 프론트가
  * 미리 분기하지 않고 전부 중립적으로 유지한다("메뉴" 대신 "대표 서비스·상품" 등).

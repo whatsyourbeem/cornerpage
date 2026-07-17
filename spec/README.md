@@ -25,9 +25,9 @@ cornerpage-dev-package/
 │   │   ├── schema-summary.md          (구조 정의의 유일한 원본 — schema.md는 폐기됨)
 │   │   └── industry-data.md
 │   └── boutique-fitness/               (PT·필라테스·요가 등 소수정예 지도형, 작성 중)
-│       ├── blocks.md                   (블록 0~2까지 작성됨, 계속 진행 중)
-│       ├── schema-summary.md          (아직 general 복사본, blocks.md 완성 후 분기 예정)
-│       └── industry-data.md           (TODO 상태)
+│       ├── blocks.md                   (전 블록 완성 — 신규 3종 transformations·professionals·facility 포함 11개 블록 전부 층1~2.5 기록됨)
+│       ├── schema-summary.md          (분기 완료 — general과 구조가 다름)
+│       └── industry-data.md           (작성 완료)
 │
 ├── for-frontend/          프론트엔드·렌더러 구현자용. Claude API에는 절대 안 실림.
 │   ├── general/
@@ -36,13 +36,13 @@ cornerpage-dev-package/
 │   │   ├── design-guide.md             (축A/B 기반 톤 시스템 — general 전용)
 │   │   └── input-questions.md          (입력 폼 설계 스펙)
 │   ├── boutique-fitness/
-│   │   ├── content.schema.json
-│   │   ├── content.types.ts
+│   │   ├── content.schema.json         (분기 완료 — 신규 블록 3종·professionals 필수화 반영, ajv 검증 통과)
+│   │   ├── content.types.ts            (분기 완료)
 │   │   ├── design-guide.md             (고정 톤 "차분한 확신" — 이 vertical은 축 없이 톤 고정)
-│   │   └── input-questions.md          (TODO 상태)
-│   └── fixtures/           검증된 콘텐츠 JSON 6종(렌더링 테스트용) — ⚠️ 아직 vertical별 분리 안 됨,
-│                             gym-thorgym.json은 구 스키마 기준이라 general에도 boutique-fitness에도
-│                             정확히 안 맞는 상태(7장 다음 단계 참고)
+│   │   └── input-questions.md          (작성 완료)
+│   └── fixtures/           검증된 콘텐츠 JSON, vertical별 분리 완료
+│       ├── general/          (5종: 밀물다방·삼보토탈·네일오브윤·수지좋은치과·아이비스터디카페)
+│       └── boutique-fitness/ (1종: 지음필라테스 — 신규 스키마 기준, ajv로 검증 완료)
 │
 ├── for-context/            사람(또는 다음 세션의 Claude)이 배경·설계 근거를 이해하기 위한 문서.
 │   └── boutique-fitness/     어떤 시스템도 프로그램적으로 읽지 않는다.
@@ -61,7 +61,7 @@ cornerpage-dev-package/
 
 `schema/`가 vertical별로 갈라지는 이유(업종별 콘텐츠 구조가 완전히 다름), `design-guide.md`가 vertical별로 갈라지는 이유(general은 축A/B로 업체마다 분류, boutique-fitness는 definition.md가 확정한 논리로 블록 구성·톤을 통째로 고정)는 이전 결정 그대로입니다 — 위치만 `for-frontend/{vertical}/` 아래로 옮겨졌습니다. `meta.brand_color` 오버라이드 로직(씨앗 색 기반 결정적 팔레트 생성)은 두 vertical이 동일하게 공유하며, boutique-fitness의 design-guide.md는 이 부분을 재정의하지 않고 general 문서를 참조합니다.
 
-> **참고**: 원래 구조 정의는 `schema.md`(완성 예시 포함, 사람이 읽는 문서)와 `schema-summary.md`(구조만, 프롬프트용) 두 파일로 나뉘어 있었으나, `schema.md`의 완성 예시가 `fixtures/*.json`과 완전히 중복 저장되고 있는 게 발견되어(byte-for-byte 동일) `schema.md`를 삭제하고 `schema-summary.md` 하나로 통합했습니다(2026-07-16). 구조를 사람이 확인할 땐 `schema-summary.md`를, 완성 예시가 필요하면 `for-frontend/fixtures/`를 직접 봅니다.
+> **참고**: 원래 구조 정의는 `schema.md`(완성 예시 포함, 사람이 읽는 문서)와 `schema-summary.md`(구조만, 프롬프트용) 두 파일로 나뉘어 있었으나, `schema.md`의 완성 예시가 `fixtures/*.json`과 완전히 중복 저장되고 있는 게 발견되어(byte-for-byte 동일) `schema.md`를 삭제하고 `schema-summary.md` 하나로 통합했습니다(2026-07-16). 구조를 사람이 확인할 땐 `schema-summary.md`를, 완성 예시가 필요하면 `for-frontend/fixtures/{vertical}/`를 직접 봅니다.
 
 **`copywriting.md`가 vertical별로 안 갈라지는 이유**: "사실 번역", "AI 티 방지", "최상급·비교 표현 회피" 같은 원칙은 업종과 무관하게 항상 적용되도록 의도적으로 설계되어 있습니다(문서 자체에 "업종·규제 여부와 무관하게 모든 카피에 적용하는 일반 원칙"이라고 명시 — 업종별 판단을 요구하면 오판 위험이 생기기 때문). 반면 "톤에 따라 문구가 어떻게 달라지는가"(예: 신뢰형은 CTA에 "24시간 상담" 라벨)는 이미 vertical별 `blocks.md`가 담당하고 있어, `copywriting.md`를 쪼갤 필요가 없습니다.
 
@@ -87,7 +87,7 @@ for-claude-api/{vertical}/industry-data.md
 
 실제 백엔드에서는 이 라우팅을 LLM이 실행 중에 고르는 게 아니라, **백엔드 코드가 요청 전에 미리 결정**해서 그에 맞는 시스템 프롬프트(vertical마다 하나씩)를 골라 보내야 합니다(방법B 특성상). vertical이 늘어날수록 백엔드가 관리할 시스템 프롬프트 종류도 그만큼 늘어난다는 뜻입니다.
 
-`for-claude-api/boutique-fitness/industry-data.md`와 `for-frontend/boutique-fitness/input-questions.md`는 현재 TODO 상태입니다 — 다음 단계에서 채웁니다.
+**boutique-fitness vertical의 모든 참고 파일이 완성되었습니다**(2026-07-16) — `definition.md`·`blocks.md`·`schema-summary.md`·`content.schema.json`·`content.types.ts`·`design-guide.md`·`input-questions.md`·`industry-data.md` 전부 작성 완료.
 
 ## 4. claude.ai에서 스킬만 테스트하고 싶을 때 (API 비용 없이)
 
@@ -129,12 +129,12 @@ cornerpage/                    (기존 저장소)
 - [x] `for-context/boutique-fitness/definition.md` 작성 완료
 - [x] `for-frontend/boutique-fitness/design-guide.md` 작성 완료(고정 톤 "차분한 확신")
 - [x] 최상위 폴더를 파일 종류(`schema`/`skill`/`design`) 기준에서 역할(`for-claude-api`/`for-frontend`/`for-context`/`evals`) 기준으로 재구조화(2026-07-16)
-- [ ] `for-claude-api/boutique-fitness/blocks.md` 완성 — 현재 블록 0~2(상단고정바·히어로·신뢰스트립)까지 콘텐츠(층1~2.5) 기록됨, Step3 진행하며 계속 추가.
-- [ ] `for-claude-api/boutique-fitness/schema-summary.md`·`for-frontend/boutique-fitness/content.schema.json`·`content.types.ts`를 `blocks.md` 결론에 맞춰 general 복사본에서 분기 (신규 블록 3종: transformations·professionals·facility 반영)
-- [ ] `for-frontend/boutique-fitness/input-questions.md` 실제 작성 (트레이너 자격증·PT 프로그램·회원 변화 사례·lead_emphasis 질문 등 촘촘하게)
-- [ ] `for-claude-api/boutique-fitness/industry-data.md` 실제 작성 (강점 후보 세분화, FAQ 세트 확장 — 특히 "초보자도 가능한가요" 필수 포함)
+- [x] `for-claude-api/boutique-fitness/blocks.md` 완성 — 11개 블록(신규 3종 transformations·professionals·facility 포함) 전부 층1(슬롯 구조)·층2(작성 원칙)·층2.5(좋은/나쁜 예) 기록 완료. 필수 블록 목록도 확정(topbar·hero·trust_strip·professionals·menu·info·sticky_cta).
+- [x] `for-claude-api/boutique-fitness/schema-summary.md`·`for-frontend/boutique-fitness/content.schema.json`·`content.types.ts` 분기 완료(2026-07-16) — `blocks.md` 결론 전부 반영(신규 블록 3종, `about` 제거, `lead_emphasis` 추가, `reviews.trainer_tag` 추가, `professionals` 필수화). ajv로 스키마 문법 검증 + 실제 fixture(`pilates-jieum.json`) 검증 통과 확인
+- [x] `for-frontend/boutique-fitness/input-questions.md` 작성 완료(2026-07-16) — 마찰 최소화 원칙(general 6개 계승) + 증거 자료(비포애프터·리뷰) 구간에 한정된 동기 문구, 회원 초상권 동의 안내, `lead_emphasis` 질문 포함
+- [x] `for-claude-api/boutique-fitness/industry-data.md` 작성 완료(2026-07-16) — 강점 후보를 general처럼 업종 전체가 아니라 블록별로 정리(어느 강점이 어느 블록을 보강하는지 명확화), 이용흐름 표준 골격, 예상 FAQ 세트 포함. general의 "업종 2축 분류표"는 해당 없어 생략(이유 명시)
 - [ ] `evals/boutique-fitness-evals.json` 신설 (부티크 피트니스 전용 테스트 케이스, general의 `evals.json`과 분리할지 같은 파일에 vertical 필드로 구분할지는 미정)
 - [ ] 백엔드의 `build-skill-prompt.ts`가 vertical별로 프롬프트(현재 general/boutique-fitness 2종, 향후 vertical 추가 시 확장)를 만들도록 재작성
 - [ ] DB: 공통 `sites` 테이블 + vertical별 콘텐츠 테이블(블록 단위 jsonb 컬럼) 마이그레이션 설계 및 적용
 - [ ] `generate-content.ts`가 vertical에 따라 다른 ajv 스키마 인스턴스를 골라 검증하도록 수정
-- [ ] **`for-frontend/fixtures/` vertical별 분리 필요** — 현재 6개 fixture가 공용 폴더에 있는데, `gym-thorgym.json`은 구 스키마 기준(신규 블록 3종 미반영)이라 general에도 boutique-fitness에도 정확히 안 맞음. boutique-fitness 스키마가 확정되면 `for-frontend/fixtures/general/`·`for-frontend/fixtures/boutique-fitness/`로 분리하고 gym-thorgym.json을 새 스키마 기준으로 재작성해야 함
+- [x] `for-frontend/fixtures/` vertical별 분리 완료(2026-07-16) — `general/`(5종)·`boutique-fitness/`(1종: 지음필라테스, ajv 검증 통과). `gym-thorgym.json`은 완전히 폐기(신규 스키마 미반영 + 라우팅상 boutique-fitness 업종인데 general 폴더에 있던 오류) — `pilates-jieum.json`이 대체

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { generateContent, type DraftAnswers } from "@/lib/generate-content";
+import { generateContent, VerticalNotReadyError, type DraftAnswers } from "@/lib/generate-content";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -59,6 +59,12 @@ export async function POST(request: Request) {
   try {
     content = await generateContent(answers);
   } catch (err) {
+    if (err instanceof VerticalNotReadyError) {
+      return NextResponse.json(
+        { error: "죄송해요, 이 업종은 아직 준비 중이에요. 곧 지원할 예정이에요." },
+        { status: 422 }
+      );
+    }
     console.error("content generation failed:", err);
     return NextResponse.json(
       { error: "콘텐츠 생성에 실패했어요. 잠시 후 다시 시도해주세요." },

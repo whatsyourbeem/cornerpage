@@ -123,7 +123,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - 사진: 둥근 사각형(radius 16px), 정사각 비율
 - 이름: `h-22`, 직함: `body-15`/`--ink-muted`
 - 자격증·전문분야: `tag-cert` 칩으로 나열(배경 `--brand-light`, 텍스트 `--brand`)
-- 한 줄 지도철학(`bio_quote`): `body-16`, 인용부호 없이 자연스러운 문장으로(과장된 인용구 스타일 지양 — 이 블록은 전문성 전달이 목적이지 감성적 강조가 목적이 아님)
+- 한 줄 지도철학(`bio_quote`): `body-16`, 인용부호 없이(콘텐츠 원칙은 `../../for-claude-api/boutique-fitness/blocks.md` 참고)
 
 **시설 스펙 (`facility`)**
 - 아이콘(24px, `--brand` 색) + 라벨(`body-15`) 행 반복, 2~3열 그리드
@@ -137,7 +137,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - **히어로**: 배경 이미지 위 오버레이 `--brand-deep` 반투명(가독성), CTA는 `button-primary`
 - **신뢰 스트립**: 숫자는 `number-40`/`--accent`, 라벨은 `caption-13`/`--ink-muted`
 - **메뉴/서비스**: 카드 스타일은 `card-evidence`와 동일 톤이나 강조색 없이 중립적으로(가격 정보는 차분하게 — 강매 인상 방지)
-- **리뷰**: `card-evidence` 재사용, 별점은 `--star`
+- **리뷰**: `card-evidence` 재사용, 별점은 `--star`. `trainer_tag`가 있으면 작성자명 옆에 `tag-cert` 스타일의 작은 칩으로 표시(자격증 칩과 같은 스타일 재사용 — 배경 `--brand-light`, 텍스트 `--brand`)
 - **하단 고정 CTA바**: 배경 `--brand-deep`, 버튼은 `accent-on-dark` 사용(어두운 배경 대비 확보)
 
 ## 5. Layout Principles

@@ -5,7 +5,7 @@ import { VERTICALS } from "../src/lib/verticals";
 // Structured Outputs가 content.schema.json의 규모/if-then을 처리하지 못해
 // 포기했기 때문에(generate-content.ts 주석 참고), 프롬프트 텍스트가 Claude에게
 // 출력 구조를 알려주는 유일한 수단이다. schema-summary.md(완성 예시를 뺀 구조
-// 정의만)가 이 역할을 한다 — 완성 예시가 필요하면 spec/for-frontend/fixtures/를
+// 정의만)가 이 역할을 한다 — 완성 예시가 필요하면 spec/for-frontend/fixtures/{vertical}/를
 // 직접 본다(2026-07-16 이전엔 schema.md가 예시를 따로 들고 있었는데 fixtures와
 // byte-for-byte 중복이라 폐기됨).
 //

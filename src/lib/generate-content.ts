@@ -5,7 +5,7 @@ import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema
 import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
 import { SKILL_PROMPTS } from "./skill-prompt.generated";
-import { determineVertical, type Vertical } from "./verticals";
+import { determineVertical, RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
 import type {
   CtaPrimaryAction,
   CtaInteractionMode,
@@ -46,10 +46,13 @@ import type {
  * vertical(spec/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
  * 갈라져서(현재 general/boutique-fitness), LLM 호출 전에 업종 텍스트로 vertical을
  * 먼저 정해(determineVertical) 그에 맞는 스키마·프롬프트·ajv 검증기를 골라 쓴다.
- * 지금은 두 vertical의 스키마가 완전히 동일한 복사본이라 오분류의 실질적 영향은
- * 없지만, boutique-fitness가 실제로 갈라지면 이 라우팅이 결과 품질에 직접 영향을
- * 준다. 렌더러(MiniHomepageContent 타입)는 아직 general 고정이라 boutique-fitness
- * 콘텐츠도 general 타입으로 취급된다 — 현재 두 스키마가 동일하니 문제 없다.
+ *
+ * boutique-fitness는 2026-07-18 기준 스키마/프롬프트가 실제로 완성됐지만(신규
+ * 블록 3종·meta 구조 변경 등 general과 크게 다름), 렌더러는 아직 general
+ * 전용이다(MiniHomepageSite.tsx가 axis_a_tone/axis_b_layout이 없으면
+ * LAYOUT_ORDER[undefined]에서 크래시하고, professionals/transformations/
+ * facility 블록 컴포넌트도 없음). 그래서 RENDERER_READY_VERTICALS로 실제 생성을
+ * 막아둔다 — 렌더러가 준비되면 verticals.ts의 그 배열에 추가하는 것만으로 풀린다.
  */
 
 export interface DraftHoursEntry {
@@ -100,6 +103,14 @@ export interface DraftAnswers {
   faq_answers: { question: string; answer: string }[];
 }
 
+/** vertical의 스키마/프롬프트는 있지만 렌더러가 아직 못 그리는 경우 API 라우트가 잡아서 안내용 응답으로 바꾼다. */
+export class VerticalNotReadyError extends Error {
+  constructor(public readonly vertical: Vertical) {
+    super(`vertical "${vertical}"은 스키마는 준비됐지만 렌더러가 아직 지원하지 않습니다.`);
+    this.name = "VerticalNotReadyError";
+  }
+}
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // vertical마다 독립된 Ajv 인스턴스를 쓴다 — 두 스키마의 $id가 같아서(현재 동일
@@ -142,8 +153,8 @@ async function attemptGenerate(
       {
         role: "user",
         content:
-          "다음은 사장님이 입력한 사업 정보(가공 전 원본)다. axis_a_tone·axis_b_layout " +
-          "같은 판단 필드부터 각 블록의 온오프·순서·카피까지 전부 스킬 지침에 따라 " +
+          "다음은 사장님이 입력한 사업 정보(가공 전 원본)다. meta의 판단 필드부터 " +
+          "각 블록의 온오프·순서·카피까지 전부 스킬 지침에 따라 " +
           "직접 판단해서 콘텐츠 JSON을 생성해줘. 출력은 콘텐츠 JSON 하나만 — 다른 " +
           `설명 문구나 마크다운 코드펜스 없이 순수 JSON만 응답해.\n\n${JSON.stringify(answers, null, 2)}`,
       },
@@ -204,6 +215,10 @@ async function attemptGenerate(
 /** 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터 지어내기 금지). */
 export async function generateContent(answers: DraftAnswers): Promise<MiniHomepageContent> {
   const vertical = determineVertical(answers.industry_category);
+  if (!RENDERER_READY_VERTICALS.includes(vertical)) {
+    // 지오코딩·Claude 호출 전에 막아서 비용 낭비도 함께 없앤다.
+    throw new VerticalNotReadyError(vertical);
+  }
   const coordinates = await geocodeAddress(answers.address);
   try {
     return await attemptGenerate(answers, coordinates, vertical);

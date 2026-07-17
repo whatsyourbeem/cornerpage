@@ -4,20 +4,21 @@ import { VERTICALS } from "../src/lib/verticals";
 
 // Structured Outputs가 content.schema.json의 규모/if-then을 처리하지 못해
 // 포기했기 때문에(generate-content.ts 주석 참고), 프롬프트 텍스트가 Claude에게
-// 출력 구조를 알려주는 유일한 수단이다. 사람이 읽는 원본 schema.md(완성 예시
-// 포함)를 그대로 넣으면 토큰 비용이 크게 늘어나므로, 구조 정의만 남긴 축약본
-// prompt-schema-summary.md를 대신 쓴다. schema.md의 구조 정의가 바뀌면 이
-// 축약본도 반드시 함께 갱신해야 한다.
+// 출력 구조를 알려주는 유일한 수단이다. schema-summary.md(완성 예시를 뺀 구조
+// 정의만)가 이 역할을 한다 — 완성 예시가 필요하면 spec/for-frontend/fixtures/를
+// 직접 본다(2026-07-16 이전엔 schema.md가 예시를 따로 들고 있었는데 fixtures와
+// byte-for-byte 중복이라 폐기됨).
 //
-// vertical별로 콘텐츠 스키마 자체가 다르므로(spec/skill/README.md 1장·2장),
-// SKILL.md + copywriting.md(공통) + 각 vertical의 blocks.md·
-// prompt-schema-summary.md·industry-data.md를 vertical마다 따로 조합해
+// spec/for-claude-api/ 밑은 "여기 있는 파일 = 통째로 API로 보내도 되는 파일"이
+// 되도록 설계되어 있다(spec/README.md 1장) — vertical별로 콘텐츠 스키마 자체가
+// 다르므로, SKILL.md + copywriting.md(공통) + 각 vertical의 blocks.md·
+// schema-summary.md·industry-data.md를 vertical마다 따로 조합해
 // SKILL_PROMPTS[vertical] 하나씩 만든다.
-const COMMON_FILES = ["spec/skill/SKILL.md", "spec/skill/references/copywriting.md"];
+const COMMON_FILES = ["spec/for-claude-api/SKILL.md", "spec/for-claude-api/copywriting.md"];
 
 function verticalFiles(vertical: string): string[] {
-  const base = `spec/skill/references/verticals/${vertical}`;
-  return [`${base}/blocks.md`, `${base}/prompt-schema-summary.md`, `${base}/industry-data.md`];
+  const base = `spec/for-claude-api/${vertical}`;
+  return [`${base}/blocks.md`, `${base}/schema-summary.md`, `${base}/industry-data.md`];
 }
 
 function readAll(files: string[]): string {

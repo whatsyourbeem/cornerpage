@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mini-homepage-builder.dev/schemas/content.json",
   "title": "MiniHomepageContentJSON",
-  "description": "미니홈페이지빌더 스킬의 출력 콘텐츠 JSON 스키마. references/schema.md의 정식 명세.",
+  "description": "미니홈페이지빌더 스킬의 출력 콘텐츠 JSON 스키마(정식 명세, ajv 검증용). 사람이 읽는 구조 설명은 for-claude-api/{vertical}/schema-summary.md, 완성 예시는 for-frontend/fixtures/ 참고.",
   "type": "object",
   "required": ["meta", "blocks"],
   "additionalProperties": false,

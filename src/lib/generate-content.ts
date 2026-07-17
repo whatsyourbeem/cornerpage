@@ -1,8 +1,8 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import Ajv2020 from "ajv/dist/2020";
-import contentSchemaGeneral from "../../spec/schema/general/content.schema.json";
-import contentSchemaBoutiqueFitness from "../../spec/schema/boutique-fitness/content.schema.json";
+import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema.json";
+import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
 import { SKILL_PROMPTS } from "./skill-prompt.generated";
 import { determineVertical, type Vertical } from "./verticals";
@@ -19,7 +19,7 @@ import type {
  * Claude API를 호출하는 실제 콘텐츠 생성기. mock-generate-content.ts를 대체한다.
  * 방법B(스킬 문서 텍스트 결합) 전략과 근거는 Notion "백엔드 API 아키텍처" 문서 2장 참고.
  *
- * DraftAnswers는 spec/skill/references/verticals/general/input-questions.md의 질문 흐름을 그대로 따르는
+ * DraftAnswers는 spec/for-frontend/general/input-questions.md의 질문 흐름을 그대로 따르는
  * "가공 전 사업 정보"다. axis_a_tone/axis_b_layout/cta 유형·카피(headline 등)를
  * 프론트가 미리 정해서 넘기던 이전 목업 파이프라인 방식(placeholder /create 폼)과
  * 달리, 이제는 업종·강점·메뉴 같은 원재료만 넘기고 톤/레이아웃 판단과 카피 작성은
@@ -32,7 +32,7 @@ import type {
  * 이 둘을 스키마에서 벗겨내고 나니 이번엔 "compiled grammar is too large"로
  * 거부됐다 — 스키마 자체가 strict grammar 컴파일 한도를 넘는 규모. 그래서
  * Structured Outputs를 아예 포기하고, 프롬프트(SKILL_PROMPTS[vertical]에 포함된
- * prompt-schema-summary.md — schema.md의 축약본)로 구조를 지시한 뒤 ajv로 전체
+ * schema-summary.md — 완성 예시를 뺀 구조 정의만 남긴 문서)로 구조를 지시한 뒤 ajv로 전체
  * 스키마(content.schema.json, if/then 포함)를 최종 검증하는 방식으로 바꿨다 —
  * 애초에 기술 문서 6장이 "이중 안전망"이라 부른 ajv 쪽이 사실상 유일한 강제
  * 수단이 된 것.
@@ -43,7 +43,7 @@ import type {
  * .../2020-12/schema" 에러가 난다(실측 확인). Notion 문서 6장의 예시 코드가
  * plain Ajv를 쓰고 있는데 이건 이 스키마에서는 실제로 동작하지 않는다.
  *
- * vertical(spec/skill/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
+ * vertical(spec/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
  * 갈라져서(현재 general/boutique-fitness), LLM 호출 전에 업종 텍스트로 vertical을
  * 먼저 정해(determineVertical) 그에 맞는 스키마·프롬프트·ajv 검증기를 골라 쓴다.
  * 지금은 두 vertical의 스키마가 완전히 동일한 복사본이라 오분류의 실질적 영향은

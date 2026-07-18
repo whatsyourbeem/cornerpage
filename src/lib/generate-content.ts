@@ -212,8 +212,17 @@ async function attemptGenerate(
   return content as unknown as MiniHomepageContent;
 }
 
-/** 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터 지어내기 금지). */
-export async function generateContent(answers: DraftAnswers): Promise<MiniHomepageContent> {
+/**
+ * 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터
+ * 지어내기 금지). vertical을 content와 함께 반환하는 이유: 호출부(POST
+ * /api/sites)가 sites.vertical 컬럼에 저장할 값이 필요한데, determineVertical()을
+ * 호출부에서 따로 한 번 더 부르면 이 함수 내부 판단과 어긋날 여지가 생긴다 — 이
+ * 함수가 실제로 쓴 값을 그대로 돌려줘서 content_json과 vertical이 항상 같은
+ * 판단 결과를 가리키도록 보장한다.
+ */
+export async function generateContent(
+  answers: DraftAnswers
+): Promise<{ content: MiniHomepageContent; vertical: Vertical }> {
   const vertical = determineVertical(answers.industry_category);
   if (!RENDERER_READY_VERTICALS.includes(vertical)) {
     // 지오코딩·Claude 호출 전에 막아서 비용 낭비도 함께 없앤다.
@@ -221,9 +230,11 @@ export async function generateContent(answers: DraftAnswers): Promise<MiniHomepa
   }
   const coordinates = await geocodeAddress(answers.address);
   try {
-    return await attemptGenerate(answers, coordinates, vertical);
+    const content = await attemptGenerate(answers, coordinates, vertical);
+    return { content, vertical };
   } catch (err) {
     console.error("콘텐츠 생성 실패, 1회 재시도:", err);
-    return await attemptGenerate(answers, coordinates, vertical);
+    const content = await attemptGenerate(answers, coordinates, vertical);
+    return { content, vertical };
   }
 }

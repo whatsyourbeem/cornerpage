@@ -55,9 +55,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "business_name is required" }, { status: 400 });
   }
 
-  let content;
+  let content, vertical;
   try {
-    content = await generateContent(answers);
+    ({ content, vertical } = await generateContent(answers));
   } catch (err) {
     if (err instanceof VerticalNotReadyError) {
       return NextResponse.json(
@@ -75,6 +75,7 @@ export async function POST(request: Request) {
   const { error } = await supabaseAdmin.from("sites").insert({
     id,
     owner_id: user.id,
+    vertical,
     business_name: content.meta.business_name,
     content_json: content,
   });

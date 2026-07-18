@@ -1,9 +1,11 @@
 import { supabase } from "./supabase";
 import type { MiniHomepageContent } from "./content-types";
+import type { Vertical } from "./verticals";
 
 export interface SiteRow {
   id: string;
   slug: string;
+  vertical: Vertical;
   business_name: string;
   content_json: MiniHomepageContent;
   created_at: string;

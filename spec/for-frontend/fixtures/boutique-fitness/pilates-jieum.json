@@ -3,28 +3,44 @@
     "business_name": "지음필라테스",
     "industry_category": "필라테스",
     "lead_emphasis": "transformations",
-    "cta_primary_action": "reservation",
-    "cta_interaction_mode": "guided",
+    "inquiry_channels": [
+      {
+        "type": "kakao",
+        "action_value": "https://pf.kakao.com/example",
+        "other_label": null
+      },
+      {
+        "type": "call",
+        "action_value": "010-1234-5678",
+        "other_label": null
+      }
+    ],
+    "browse_channels": [
+      {
+        "type": "instagram",
+        "action_value": "https://instagram.com/jieum_pilates",
+        "other_label": null
+      },
+      {
+        "type": "naver_map",
+        "action_value": "https://naver.me/example",
+        "other_label": null
+      }
+    ],
     "logo_url": null,
     "brand_color": null
   },
   "blocks": {
     "topbar": {
       "display_name": "지음필라테스",
-      "action_button": {
-        "type": "reservation",
-        "label": "무료상담 신청"
-      }
+      "cta_label": "무료상담 신청"
     },
     "hero": {
       "badge": "수내동 · 필라테스 스튜디오",
       "headline": "8년째 재활 전문으로, 한 사람만 보는 PT",
       "tagline": "운동 경험이 없는 회원님이 전체의 70%입니다",
       "background_image_url": null,
-      "cta": {
-        "type": "reservation",
-        "label": "무료상담 신청"
-      }
+      "cta_label": "무료상담 신청"
     },
     "trust_strip": {
       "items": [
@@ -99,13 +115,7 @@
       "business_info": null
     },
     "sticky_cta": {
-      "buttons": [
-        {
-          "type": "dm",
-          "label": "카톡으로 편하게 물어보기",
-          "action_value": "https://pf.kakao.com/example"
-        }
-      ]
+      "cta_label": "카톡으로 편하게 물어보기"
     },
     "how_it_works": {
       "steps": [

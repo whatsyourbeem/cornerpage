@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CtaInteractionMode, CtaPrimaryAction, DayOfWeek } from "@/lib/content-types";
+import type { DayOfWeek } from "@/lib/content-types";
 import {
   DAYS,
   Field,
@@ -24,6 +24,13 @@ import {
  * 달라서(신규 블록 3종·meta 구조 변경 등, generate-content.ts 참고) 질문 흐름도
  * 완전히 분리된 라우트다.
  *
+ * meta.cta_primary_action/cta_interaction_mode(general 개념)는 이 vertical에
+ * 없다 — 대신 meta.inquiry_channels(예약·문의 채널, 최소 1개 복수 선택)와
+ * meta.browse_channels(둘러보기 채널, 복수 선택·선택)로 대체됐다(2026-07-18
+ * 스키마 변경). 버튼 하나=행동 하나가 아니라, 버튼을 누르면 다이얼로그가 열려
+ * 고른 채널들을 나열하는 구조 — 채널별 표시 문구·아이콘은 렌더러가 type 값으로
+ * 고정 템플릿 렌더링하고 스킬은 만들지 않는다.
+ *
  * ⚠️ 지금은 실제 Claude API를 호출하지 않는다 — RENDERER_READY_VERTICALS로
  * boutique-fitness 생성 자체가 아직 막혀있기도 하다(verticals.ts 참고). 마지막
  * 단계에서 보낼 JSON을 화면에 표시만 한다. 이미지도 실제로 업로드하지 않고
@@ -32,6 +39,104 @@ import {
  */
 
 const STEPS = ["기본 정보", "전문가 프로필", "회원 변화·후기", "공간", "프로그램·이용방법"];
+
+type InquiryChannelType = "call" | "naver_reservation" | "kakao" | "instagram_dm" | "other";
+type BrowseChannelType = "kakao" | "naver_blog" | "instagram" | "youtube" | "naver_map" | "other";
+
+interface ChannelDraft {
+  checked: boolean;
+  actionValue: string;
+  otherLabel: string;
+}
+
+const INQUIRY_CHANNELS: { type: InquiryChannelType; label: string; placeholder: string }[] = [
+  { type: "call", label: "전화", placeholder: "010-1234-5678" },
+  { type: "naver_reservation", label: "네이버예약", placeholder: "https://booking.naver.com/..." },
+  { type: "kakao", label: "카카오톡", placeholder: "https://pf.kakao.com/..." },
+  { type: "instagram_dm", label: "인스타그램 DM", placeholder: "https://instagram.com/..." },
+  { type: "other", label: "기타", placeholder: "전화번호 또는 링크" },
+];
+
+const BROWSE_CHANNELS: { type: BrowseChannelType; label: string; placeholder: string }[] = [
+  { type: "kakao", label: "카카오톡 채널", placeholder: "https://pf.kakao.com/..." },
+  { type: "naver_blog", label: "네이버블로그", placeholder: "https://blog.naver.com/..." },
+  { type: "instagram", label: "인스타그램", placeholder: "https://instagram.com/..." },
+  { type: "youtube", label: "유튜브", placeholder: "https://youtube.com/..." },
+  { type: "naver_map", label: "네이버지도", placeholder: "https://naver.me/..." },
+  { type: "other", label: "기타", placeholder: "링크" },
+];
+
+function initChannelState<T extends string>(types: readonly { type: T }[]): Record<T, ChannelDraft> {
+  return Object.fromEntries(
+    types.map((t) => [t.type, { checked: false, actionValue: "", otherLabel: "" }])
+  ) as Record<T, ChannelDraft>;
+}
+
+function isChannelValid(channel: ChannelDraft, type: string): boolean {
+  if (!channel.checked || !channel.actionValue.trim()) return false;
+  if (type === "other" && !channel.otherLabel.trim()) return false;
+  return true;
+}
+
+function buildChannels<T extends string>(
+  types: readonly { type: T }[],
+  state: Record<T, ChannelDraft>
+) {
+  return types
+    .filter((t) => isChannelValid(state[t.type], t.type))
+    .map((t) => {
+      const c = state[t.type];
+      return t.type === "other"
+        ? { type: t.type, action_value: c.actionValue.trim(), other_label: c.otherLabel.trim() }
+        : { type: t.type, action_value: c.actionValue.trim(), other_label: null };
+    });
+}
+
+function ChannelChecklist<T extends string>({
+  options,
+  state,
+  onChange,
+}: {
+  options: { type: T; label: string; placeholder: string }[];
+  state: Record<T, ChannelDraft>;
+  onChange: (type: T, patch: Partial<ChannelDraft>) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {options.map((opt) => {
+        const c = state[opt.type];
+        return (
+          <div key={opt.type} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={c.checked}
+                onChange={(e) => onChange(opt.type, { checked: e.target.checked })}
+              />
+              {opt.label}
+            </label>
+            {c.checked && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 22 }}>
+                <input
+                  placeholder={opt.placeholder}
+                  value={c.actionValue}
+                  onChange={(e) => onChange(opt.type, { actionValue: e.target.value })}
+                />
+                {opt.type === "other" && (
+                  <input
+                    placeholder="채널 이름 (예: 밴드, 문자)"
+                    value={c.otherLabel}
+                    onChange={(e) => onChange(opt.type, { otherLabel: e.target.value })}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 interface ProfessionalDraft {
   name: string;
@@ -74,12 +179,10 @@ export default function BoutiqueFitnessCreatePage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
-  const [contactMethod, setContactMethod] = useState<"kakao" | "instagram" | "phone">("kakao");
-  const [contactLink, setContactLink] = useState("");
+  const [inquiryChannels, setInquiryChannels] = useState(() => initChannelState(INQUIRY_CHANNELS));
+  const [browseChannels, setBrowseChannels] = useState(() => initChannelState(BROWSE_CHANNELS));
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [ctaPrimaryAction, setCtaPrimaryAction] = useState<CtaPrimaryAction>("call");
-  const [ctaInteractionMode, setCtaInteractionMode] = useState<CtaInteractionMode>("guided");
   const [leadEmphasis, setLeadEmphasis] = useState<
     "" | "transformations" | "reviews" | "professionals" | "facility"
   >("");
@@ -112,9 +215,20 @@ export default function BoutiqueFitnessCreatePage() {
   const [previewJson, setPreviewJson] = useState<string | null>(null);
 
   function canProceed(): boolean {
-    if (step === 0) return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "";
+    if (step === 0) {
+      const hasInquiryChannel = INQUIRY_CHANNELS.some((t) => isChannelValid(inquiryChannels[t.type], t.type));
+      return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "" && hasInquiryChannel;
+    }
     if (step === 1) return professionals.some((p) => p.name.trim() !== "");
     return true;
+  }
+
+  function updateInquiryChannel(type: InquiryChannelType, patch: Partial<ChannelDraft>) {
+    setInquiryChannels((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
+  }
+
+  function updateBrowseChannel(type: BrowseChannelType, patch: Partial<ChannelDraft>) {
+    setBrowseChannels((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
   }
 
   function updateProfessional(i: number, patch: Partial<ProfessionalDraft>) {
@@ -203,12 +317,13 @@ export default function BoutiqueFitnessCreatePage() {
           closed: hours[d.key].closed,
         })),
       },
-      contact_method: contactMethod,
-      contact_link: contactLink.trim() || null,
+      inquiry_channels: buildChannels(INQUIRY_CHANNELS, inquiryChannels),
+      browse_channels:
+        buildChannels(BROWSE_CHANNELS, browseChannels).length > 0
+          ? buildChannels(BROWSE_CHANNELS, browseChannels)
+          : null,
       hero_image_url: fileLabel(heroFile),
       logo_url: fileLabel(logoFile),
-      cta_primary_action: ctaPrimaryAction,
-      cta_interaction_mode: ctaInteractionMode,
       lead_emphasis: leadEmphasis || null,
       professionals: finalProfessionals,
       transformations: finalTransformations,
@@ -270,16 +385,21 @@ export default function BoutiqueFitnessCreatePage() {
             <HoursEditor hours={hours} onChange={setHours} />
           </fieldset>
 
-          <Field label="상담 문의를 어떤 방식으로 받고 싶으세요?">
-            <select value={contactMethod} onChange={(e) => setContactMethod(e.target.value as typeof contactMethod)}>
-              <option value="kakao">카카오톡 채널</option>
-              <option value="instagram">인스타그램 DM</option>
-              <option value="phone">전화</option>
-            </select>
-          </Field>
-          <Field label="카톡·인스타 링크가 있으면 입력해주세요 (선택)">
-            <input value={contactLink} onChange={(e) => setContactLink(e.target.value)} placeholder="https://..." />
-          </Field>
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>예약·문의 채널 (복수 선택, 최소 1개)</legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              방문자가 누르면 여기서 고르신 채널들이 한 번에 나열돼요 — 원하는 방식으로 편하게 연락하실 수 있게요.
+            </p>
+            <ChannelChecklist options={INQUIRY_CHANNELS} state={inquiryChannels} onChange={updateInquiryChannel} />
+          </fieldset>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>둘러보기 채널 (복수 선택, 선택)</legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              가게를 둘러보고 싶어하는 분들을 위한 채널이에요. 상담·예약과는 별개로, 히어로 영역에 바로 노출됩니다.
+            </p>
+            <ChannelChecklist options={BROWSE_CHANNELS} state={browseChannels} onChange={updateBrowseChannel} />
+          </fieldset>
 
           <Field label="대표 사진">
             <input
@@ -298,20 +418,6 @@ export default function BoutiqueFitnessCreatePage() {
               onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
             />
             {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
-          </Field>
-
-          <Field label="손님이 가장 먼저 하길 바라는 행동">
-            <select value={ctaPrimaryAction} onChange={(e) => setCtaPrimaryAction(e.target.value as CtaPrimaryAction)}>
-              <option value="call">전화</option>
-              <option value="reservation">예약</option>
-              <option value="direction">방문·길찾기</option>
-            </select>
-          </Field>
-          <Field label="문의는 버튼으로 바로 연결할까요, 사람이 직접 응대할까요?">
-            <select value={ctaInteractionMode} onChange={(e) => setCtaInteractionMode(e.target.value as CtaInteractionMode)}>
-              <option value="guided">DM·카톡 등 사람이 직접 응대</option>
-              <option value="functional">버튼으로 바로 연결(전화 걸기, 예약 링크 등)</option>
-            </select>
           </Field>
 
           <Field

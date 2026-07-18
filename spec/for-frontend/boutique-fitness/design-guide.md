@@ -52,6 +52,8 @@ tokens:
     card-professional: { type: card, bg: "#FFFFFF", border: "1px solid #E3DED4", radius: 24, padding: "24px", use: "전문가 프로필 카드" }
     facility-item:     { type: list-item, icon_color: "#1F3A35", label_font: "15px/400", use: "시설 스펙 아이콘+라벨 행" }
     before-after-slider: { type: interactive, handle_color: "#E8663D", transition: "150ms ease-out", use: "비포/애프터 드래그 비교 — 이 vertical의 시그니처 인터랙션" }
+    inquiry-dialog:    { type: modal, bg: "#FFFFFF", radius: 24, padding: "24px", overlay: "rgba(18,33,29,0.5)", use: "topbar·hero·sticky_cta의 cta_label 버튼 클릭 시 열리는 채널 목록 다이얼로그(2026-07-17 신규)" }
+    channel-button:    { type: button, bg: "#FAF8F5", border: "1px solid #E3DED4", radius: 12, padding: "14px 16px", font: "16px/600", icon_color: "#1F3A35", use: "다이얼로그 안의 개별 채널 버튼(전화·카카오톡 등), 히어로의 browse_channels 버튼도 동일 스타일 재사용" }
   components_harvested: false
 ---
 
@@ -131,14 +133,26 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - 수치 항목(평수 등): 숫자만 크게, 라벨 작게(신뢰 스트립과 유사한 축소 버전)
 - 배경: `--paper-alt`로 갤러리·분위기와 살짝 구분되는 섹션임을 표시
 
-### 4-2. 기존 블록 재사용 시 팔레트 적용
+**문의 다이얼로그 (`inquiry-dialog`) — 2026-07-17 신규, 이 vertical의 두 번째 시그니처 컴포넌트**
+- 상단고정바·히어로·하단CTA바의 `cta_label` 버튼을 누르면 열림(별도 페이지 이동 없음, 모달)
+- `meta.inquiry_channels` 배열을 세로로 나열 — 각 채널은 `channel-button` 스타일(아이콘+텍스트, 배경 `--paper`, 테두리 1px `--border`)
+- 채널별 아이콘·기본 라벨은 `type`에 따라 고정 템플릿(전화="전화 문의", 카카오톡="카카오톡으로 문의", 네이버예약="네이버예약", 인스타DM="인스타그램 DM", 기타=`other_label` 그대로) — **LLM이 채널별 버튼 문구를 새로 쓰지 않는다**, 프론트엔드가 `type`만 보고 고정 템플릿으로 렌더링
+- 배경 오버레이: `--brand-deep` 50% 불투명도
+- 등장 애니메이션: 아래에서 위로 슬라이드업 200ms 또는 페이드인, 과하지 않게(이 vertical의 "차분한 확신" 톤 유지)
 
-- **상단 고정바**: 배경 `--brand`, 텍스트 `#FFFFFF`, action_button은 `button-primary` 스타일
-- **히어로**: 배경 이미지 위 오버레이 `--brand-deep` 반투명(가독성), CTA는 `button-primary`
+**히어로의 둘러보기 채널 버튼 행**
+- `meta.browse_channels`가 있으면 CTA 버튼 아래에 가로로 나열(모바일은 줄바꿈)
+- `channel-button` 스타일 재사용하되 더 작게(높이 축소), 아이콘 중심
+- 다이얼로그와 달리 클릭 시 바로 새 탭에서 열림(다이얼로그를 한 번 더 거치지 않음 — 둘러보기는 이미 저부담 행동이라 확인 단계 불필요)
+
+
+
+- **상단 고정바**: 배경 `--brand`, 텍스트 `#FFFFFF`, `cta_label` 버튼은 `button-primary` 스타일(클릭 시 `inquiry-dialog` 오픈)
+- **히어로**: 배경 이미지 위 오버레이 `--brand-deep` 반투명(가독성), CTA는 `button-primary`(클릭 시 `inquiry-dialog` 오픈), 그 아래 `browse_channels` 버튼 행(있는 경우)
 - **신뢰 스트립**: 숫자는 `number-40`/`--accent`, 라벨은 `caption-13`/`--ink-muted`
 - **메뉴/서비스**: 카드 스타일은 `card-evidence`와 동일 톤이나 강조색 없이 중립적으로(가격 정보는 차분하게 — 강매 인상 방지)
 - **리뷰**: `card-evidence` 재사용, 별점은 `--star`. `trainer_tag`가 있으면 작성자명 옆에 `tag-cert` 스타일의 작은 칩으로 표시(자격증 칩과 같은 스타일 재사용 — 배경 `--brand-light`, 텍스트 `--brand`)
-- **하단 고정 CTA바**: 배경 `--brand-deep`, 버튼은 `accent-on-dark` 사용(어두운 배경 대비 확보)
+- **하단 고정 CTA바**: 배경 `--brand-deep`, `cta_label` 버튼은 `accent-on-dark` 사용(어두운 배경 대비 확보, 클릭 시 `inquiry-dialog` 오픈 — 상단바·히어로와 동일한 다이얼로그)
 
 ## 5. Layout Principles
 
@@ -208,16 +222,21 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - 배경: `--brand`(`#1F3A35`), 텍스트: `#FFFFFF`
 - 높이: 64px, `position: sticky`(상단 고정)
 - 가게명/로고 텍스트: `h-18`(18px/600), 흰색. 로고 이미지가 있으면 세로 32px 이내로 제한(바 높이 대비 여유 확보)
-- `action_button`: `button-primary` 컴포넌트(배경 `--accent`, 텍스트 흰색, radius 12px, padding "16px 32px", `body-17`)
-- 좌: 가게명/로고, 우: action_button — 중앙 배치 요소 없음(내비게이션 없음 결정과 일치)
+- `cta_label` 버튼: `button-primary` 컴포넌트(배경 `--accent`, 텍스트 흰색, radius 12px, padding "16px 32px", `body-17`) — 클릭 시 `inquiry-dialog` 오픈(2026-07-17 변경, 예전 `action_button`은 단일 채널 직결이었음)
+- 좌: 가게명/로고, 우: `cta_label` 버튼 — 중앙 배치 요소 없음(내비게이션 없음 결정과 일치)
 
 ### 10-2. 히어로
 - 배경: 사진 있으면 전체 배경 + `--brand-deep`(`#12211D`) 반투명 오버레이(약 45% 불투명도)로 가독성 확보. 사진 없으면 `--brand-deep` 단색 폴백.
 - 배지: 반투명 흰색 배경의 작은 필(pill), 흰 텍스트, `caption-13/600`
 - 헤드라인: `h-32`(32px/700), 흰색
 - 태그라인: `body-16`, 흰색 80% 불투명도(헤드라인과의 위계 구분)
-- CTA: `button-primary`
+- `cta_label` 버튼: `button-primary` — 클릭 시 `inquiry-dialog` 오픈
+- `browse_channels` 버튼 행: CTA 버튼 바로 아래, `channel-button` 스타일 축소판(있는 경우만 렌더링)
 - 최소 높이: 데스크톱 480px / 모바일 400px. 상단고정바(64px) 아래로 자연스럽게 이어지도록 상단 padding 확보
+
+### 10-4. 하단 고정 CTA바
+- 배경: `--brand-deep`, `cta_label` 버튼: `accent-on-dark`(어두운 배경 대비 확보) — 클릭 시 `inquiry-dialog` 오픈(상단바·히어로와 동일한 다이얼로그, 별도 상태 없음)
+- 예전 "메인+보조 2버튼" 구조는 폐기(2026-07-17) — 둘러보기 채널은 히어로에서 이미 노출되므로 하단바는 문의 버튼 하나로 충분
 
 ### 10-3. 신뢰 스트립
 - 숫자: `number-40`(40px/700), `--accent` 색으로 강조 — 신뢰 스트립이 증거 클러스터로 들어가는 입구 역할이라, 뒤이어 나올 비포애프터의 강조색과 시각적으로 연결

@@ -24,8 +24,8 @@
         "business_name",
         "industry_category",
         "lead_emphasis",
-        "cta_primary_action",
-        "cta_interaction_mode",
+        "inquiry_channels",
+        "browse_channels",
         "logo_url",
         "brand_color"
       ],
@@ -38,19 +38,6 @@
         "industry_category": {
           "type": "string",
           "minLength": 1
-        },
-        "cta_primary_action": {
-          "enum": [
-            "reservation",
-            "call",
-            "direction"
-          ]
-        },
-        "cta_interaction_mode": {
-          "enum": [
-            "functional",
-            "guided"
-          ]
         },
         "logo_url": {
           "type": [
@@ -79,31 +66,29 @@
             null
           ],
           "description": "사장님이 가장 자신 있게 내세우고 싶다고 고른 항목. 무응답(null)이면 기본값 transformations로 처리(렌더러 또는 생성 로직에서)."
-        }
-      }
-    },
-    "CTAType": {
-      "enum": [
-        "call",
-        "reservation",
-        "direction",
-        "dm"
-      ]
-    },
-    "CTA": {
-      "type": "object",
-      "required": [
-        "type",
-        "label"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "$ref": "#/$defs/CTAType"
         },
-        "label": {
-          "type": "string",
-          "minLength": 1
+        "inquiry_channels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/InquiryChannel"
+          },
+          "description": "예약/문의 채널. 프론트엔드가 입력 폼에서 이미 확정해 전달 — 스킬은 판단하지 않고 그대로 통과시킨다."
+        },
+        "browse_channels": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/BrowseChannel"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "둘러보기 채널(선택). 없으면 null. 마찬가지로 스킬은 판단하지 않고 그대로 통과시킨다."
         }
       }
     },
@@ -227,7 +212,7 @@
       "type": "object",
       "required": [
         "display_name",
-        "action_button"
+        "cta_label"
       ],
       "additionalProperties": false,
       "properties": {
@@ -235,8 +220,9 @@
           "type": "string",
           "minLength": 1
         },
-        "action_button": {
-          "$ref": "#/$defs/CTA"
+        "cta_label": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -247,7 +233,7 @@
         "headline",
         "tagline",
         "background_image_url",
-        "cta"
+        "cta_label"
       ],
       "additionalProperties": false,
       "properties": {
@@ -270,8 +256,9 @@
           ],
           "format": "uri"
         },
-        "cta": {
-          "$ref": "#/$defs/CTA"
+        "cta_label": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -834,42 +821,16 @@
         }
       }
     },
-    "StickyCtaButton": {
-      "type": "object",
-      "required": [
-        "type",
-        "label",
-        "action_value"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "$ref": "#/$defs/CTAType"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "action_value": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
     "StickyCta": {
       "type": "object",
       "required": [
-        "buttons"
+        "cta_label"
       ],
       "additionalProperties": false,
       "properties": {
-        "buttons": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 2,
-          "items": {
-            "$ref": "#/$defs/StickyCtaButton"
-          }
+        "cta_label": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -1141,6 +1102,119 @@
           ]
         }
       }
+    },
+    "InquiryChannel": {
+      "type": "object",
+      "required": [
+        "type",
+        "action_value",
+        "other_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "call",
+            "naver_reservation",
+            "kakao",
+            "instagram_dm",
+            "other"
+          ]
+        },
+        "action_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "other_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "other"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "other_label": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "other_label": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "BrowseChannel": {
+      "type": "object",
+      "required": [
+        "type",
+        "action_value",
+        "other_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "kakao",
+            "naver_blog",
+            "instagram",
+            "youtube",
+            "naver_map",
+            "other"
+          ]
+        },
+        "action_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "other_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "other"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "other_label": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "other_label": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

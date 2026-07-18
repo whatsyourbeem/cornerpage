@@ -14,14 +14,18 @@
 // ---------- 공통 타입 ----------
 
 export type LeadEmphasis = "transformations" | "reviews" | "professionals" | "facility" | null;
-export type CtaPrimaryAction = "reservation" | "call" | "direction";
-export type CtaInteractionMode = "functional" | "guided";
-export type CtaType = "call" | "reservation" | "direction" | "dm";
 
-export interface CTA {
-  type: CtaType;
-  label: string;
-}
+export type InquiryChannelType = "call" | "naver_reservation" | "kakao" | "instagram_dm" | "other";
+export type BrowseChannelType = "kakao" | "naver_blog" | "instagram" | "youtube" | "naver_map" | "other";
+
+/** type이 "other"일 때만 other_label이 채워지고, 그 외엔 반드시 null (스키마 if/then과 1:1 대응) */
+export type InquiryChannel =
+  | { type: Exclude<InquiryChannelType, "other">; action_value: string; other_label: null }
+  | { type: "other"; action_value: string; other_label: string };
+
+export type BrowseChannel =
+  | { type: Exclude<BrowseChannelType, "other">; action_value: string; other_label: null }
+  | { type: "other"; action_value: string; other_label: string };
 
 // ---------- meta ----------
 
@@ -30,8 +34,18 @@ export interface Meta {
   industry_category: string;
   /** 사장님이 가장 자신 있게 내세우고 싶다고 고른 항목. 무응답이면 null → 기본값 transformations로 처리 */
   lead_emphasis: LeadEmphasis;
-  cta_primary_action: CtaPrimaryAction;
-  cta_interaction_mode: CtaInteractionMode;
+  /**
+   * 예약/문의 채널(전화·네이버예약·카카오톡·인스타DM·기타). 최소 1개.
+   * 프론트엔드가 입력 폼에서 이미 확정해 전달 — 스킬은 판단하지 않고 그대로 통과시킨다(brand_color와 동일 패턴).
+   * 렌더러는 이 배열을 토대로 상단바·히어로·하단CTA바의 "문의하기" 버튼을 그리고, 버튼 클릭 시 다이얼로그에
+   * 채널별 버튼을 나열한다(general처럼 버튼 하나=행동 하나가 아니라, 버튼 하나=다이얼로그 열기).
+   */
+  inquiry_channels: InquiryChannel[];
+  /**
+   * 둘러보기 채널(카카오톡·네이버블로그·인스타그램·유튜브·네이버지도·기타). 없으면 null.
+   * 마찬가지로 스킬은 판단하지 않고 통과만 시킨다. 히어로에 채널별 버튼으로 나열된다.
+   */
+  browse_channels: BrowseChannel[] | null;
   /** 없으면 null → 렌더러가 텍스트 로고타입 폴백 */
   logo_url: string | null;
   /**
@@ -47,7 +61,8 @@ export interface Meta {
 
 export interface Topbar {
   display_name: string;
-  action_button: CTA;
+  /** 저부담 문구만. 클릭 시 meta.inquiry_channels 다이얼로그가 열린다(버튼 자체엔 채널 정보 없음) */
+  cta_label: string;
 }
 
 // ---------- 블록 1: hero ----------
@@ -60,7 +75,9 @@ export interface Hero {
   tagline: string;
   /** 없으면 null → 렌더러가 단색+타이포 폴백 */
   background_image_url: string | null;
-  cta: CTA;
+  /** 저부담 문구만. 클릭 시 meta.inquiry_channels 다이얼로그가 열린다. meta.browse_channels는
+   *  히어로에 별도 버튼 목록으로 렌더러가 직접 그린다(이 필드와 무관, hero 스키마에 없음) */
+  cta_label: string;
 }
 
 // ---------- 블록 2: trust_strip ----------
@@ -253,15 +270,10 @@ export interface Info {
 
 // ---------- 블록 7: sticky_cta ----------
 
-export interface StickyCtaButton {
-  type: CtaType;
-  label: string;
-  action_value: string;
-}
-
 export interface StickyCta {
-  /** 최대 2개. 메인은 상담 창구(guided), 보조는 더 낮은 부담의 선택지 */
-  buttons: StickyCtaButton[];
+  /** 저부담 문구만. 클릭 시 meta.inquiry_channels 다이얼로그가 열린다.
+   *  general과 달리 버튼 1개로 단순화 — 둘러보기 채널은 이미 히어로에 노출되므로 여기서 반복하지 않는다. */
+  cta_label: string;
 }
 
 // ---------- 블록 8: how_it_works (선택이나 사실상 권장) ----------

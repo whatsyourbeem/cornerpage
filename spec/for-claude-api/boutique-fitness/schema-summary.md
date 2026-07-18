@@ -49,13 +49,19 @@
     "business_name": "string, required",
     "industry_category": "string, required (PT·필라테스·요가 등)",
     "lead_emphasis": "transformations | reviews | professionals | facility | null (사장님이 고른 최우선 어필 포인트, 무응답이면 null → transformations 기본값)",
-    "cta_primary_action": "reservation | call | direction",
-    "cta_interaction_mode": "functional | guided",
+    "inquiry_channels": [ { "type": "call | naver_reservation | kakao | instagram_dm | other", "action_value": "string(전화번호 또는 URL)", "other_label": "string | null" } ],
+    "browse_channels": [ { "type": "kakao | naver_blog | instagram | youtube | naver_map | other", "action_value": "string(URL)", "other_label": "string | null" } ] ,
     "logo_url": "url | null", "brand_color": null
   }
 }
 ```
-**`cta_interaction_mode`의 정의는 `copywriting.md` 7장 참고**(모든 vertical 공통 — 여기 다시 설명하지 않음). **이 vertical은 `guided`를 강하게 기본값으로 삼는다** — 실제 상담 창구가 카카오톡·인스타그램 DM인 경우가 대부분이고, `functional`(즉시 예약 확정)보다 사람이 응대하는 `guided` 쪽이 `definition.md`의 강매 불안 해소 원칙과 맞는다. `functional`은 정말 고정 시간대 온라인 예약 시스템이 있는 예외적인 경우만.
+**`inquiry_channels`·`browse_channels`는 스킬이 판단·생성하지 않는다 — 프론트엔드 입력 폼에서 사장님이 이미 고른 채널이 확정되어 그대로 전달된다(`brand_color`와 동일한 pass-through 패턴).** 스킬의 역할은 이 배열을 손대지 않고 출력 JSON에 그대로 옮겨 담는 것뿐이다.
+
+**조건부 규칙(중요, 놓치면 스키마 검증 실패)**: 각 채널 항목에서 `type`이 `other`일 때만 `other_label`이 문자열이어야 하고, 그 외 모든 type(`call`·`kakao`·`instagram_dm` 등)에서는 `other_label`이 반드시 `null`이어야 한다. 둘 다 채우거나 둘 다 비우면 안 된다.
+
+`inquiry_channels`는 최소 1개(필수). `browse_channels`는 없으면 `null`.
+
+**general과 구조가 다름**: general은 버튼 하나=행동 하나(`cta_primary_action`/`cta_interaction_mode`로 단일 CTA 성격을 지정)지만, 이 vertical은 여러 채널을 한 다이얼로그에 다 보여주는 방식이라 그 두 필드 자체가 없다. 문의 채널이 여러 개여도 방문자가 원하는 채널을 직접 고를 수 있어 "하나만 강제로 골라야 하는" 문제가 없다.
 
 ## 3. blocks (페이지 등장 순서)
 
@@ -63,10 +69,10 @@
 ```json
 "topbar": {
   "display_name": "string, required",
-  "action_button": { "type": "call | reservation | direction | dm", "label": "string (저부담 문구만: '무료상담 신청' 등. '지금 등록' 류 금지)" }
+  "cta_label": "string, required (저부담 문구만: '무료상담 신청' 등. '지금 등록' 류 금지)"
 }
 ```
-내비게이션 메뉴 없음. `type` 기본값 `reservation`.
+내비게이션 메뉴 없음. 클릭하면 `meta.inquiry_channels`를 나열한 다이얼로그가 열린다(프론트엔드가 렌더링 — 스킬은 라벨 문구만 쓰면 됨).
 
 ### 1. hero (필수)
 ```json
@@ -75,9 +81,10 @@
   "headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지 — 증거는 뒤 블록이 담당)",
   "tagline": "string, required ('나도 할 수 있을까' 불안을 사실 기반으로 완화하는 자리)",
   "background_image_url": "url | null",
-  "cta": { "type": "call | reservation | direction | dm", "label": "string (저부담)" }
+  "cta_label": "string, required (저부담)"
 }
 ```
+`meta.browse_channels`가 있으면 히어로에 채널별 버튼이 함께 나열된다(프론트엔드가 `meta`에서 직접 읽어 렌더링 — hero 스키마 자체엔 필드 없음, 스킬이 신경 쓸 부분 아님).
 
 ### 2. trust_strip (필수)
 ```json
@@ -218,10 +225,10 @@
 ### 7. sticky_cta (필수)
 ```json
 "sticky_cta": {
-  "buttons": [ { "type": "call | reservation | direction | dm", "label": "string (작고 되돌릴 수 있게)", "action_value": "string" } ]
+  "cta_label": "string, required (작고 되돌릴 수 있게)"
 }
 ```
-최대 2개. 메인은 상담 창구(`guided`), 보조는 더 낮은 부담의 선택지. 압박형 문구 금지 — 페이지 끝까지 신뢰를 지킨다.
+**general과 달리 버튼 1개로 단순화됨** — 클릭하면 `meta.inquiry_channels` 다이얼로그가 열린다. 둘러보기 채널은 이미 히어로에 노출되므로 여기서 반복하지 않는다. 압박형 문구 금지 — 페이지 끝까지 신뢰를 지킨다.
 
 ### 8. how_it_works (선택, 사실상 권장)
 ```json

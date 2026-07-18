@@ -79,3 +79,5 @@ JSON 출력만 하는 경우엔 근거를 담을 필드가 없지만, 대화형�
 이 구분이 카피에 영향을 준다: `guided`면 근처 정보 블록에 "빠르게 답변드릴게요" 같은 응답 기대 설정 문구를 곁들이는 게 자연스럽고, `functional`이면 그런 문구가 불필요하다(이미 그 자리에서 완결되므로).
 
 각 vertical의 `schema-summary.md`는 이 정의를 다시 설명하지 않고, **그 vertical에서 어느 값을 기본값으로 삼는지와 그 이유**만 적는다.
+
+**boutique-fitness는 이 개념 자체를 안 쓴다(2026-07-17 변경)** — 단일 CTA 버튼 하나가 특정 채널로 직결되는 구조 대신, 버튼을 누르면 여러 채널(전화·카카오톡·인스타DM 등)을 나열한 다이얼로그가 열리는 구조로 바뀌었다. 이러면 "버튼 하나가 functional이냐 guided냐"를 지정할 필요 자체가 없어진다(다이얼로그 안에 두 성격의 채널이 같이 있을 수 있으므로). 상세는 `boutique-fitness/schema-summary.md`의 `meta.inquiry_channels`/`browse_channels` 참고.

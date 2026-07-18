@@ -50,11 +50,12 @@
     "industry_category": "string, required (PT·필라테스·요가 등)",
     "lead_emphasis": "transformations | reviews | professionals | facility | null (사장님이 고른 최우선 어필 포인트, 무응답이면 null → transformations 기본값)",
     "cta_primary_action": "reservation | call | direction",
-    "cta_interaction_mode": "functional | guided (이 vertical은 guided가 기본값)",
+    "cta_interaction_mode": "functional | guided",
     "logo_url": "url | null", "brand_color": null
   }
 }
 ```
+**`cta_interaction_mode`의 정의는 `copywriting.md` 7장 참고**(모든 vertical 공통 — 여기 다시 설명하지 않음). **이 vertical은 `guided`를 강하게 기본값으로 삼는다** — 실제 상담 창구가 카카오톡·인스타그램 DM인 경우가 대부분이고, `functional`(즉시 예약 확정)보다 사람이 응대하는 `guided` 쪽이 `definition.md`의 강매 불안 해소 원칙과 맞는다. `functional`은 정말 고정 시간대 온라인 예약 시스템이 있는 예외적인 경우만.
 
 ## 3. blocks (페이지 등장 순서)
 

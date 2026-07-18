@@ -60,7 +60,7 @@
 
 **CTA 유형(`cta_primary_action`) 기본값**: 감성형→`reservation`, 신뢰형→`call`, 무인·즉시방문형(스터디카페·무인매장)→`direction`.
 
-**CTA 상호작용 모드(`cta_interaction_mode`)**: `functional`(버튼이 즉시 행동 실행 — tel: 링크, 네이버예약 링크 등) / `guided`(실제 창구가 DM·카톡 등 사람 응대 — 버튼은 연결만 하고 정보 블록에 안내를 덧붙임).
+**CTA 상호작용 모드(`cta_interaction_mode`)**: 정의는 `copywriting.md` 7장 참고(모든 vertical 공통 — 여기 다시 설명하지 않음). general은 업종에 따라 자연스럽게 갈린다 — 신뢰형(전화 중심)은 `functional`, 감성형·혼합형 중 실제 창구가 DM·카톡인 경우는 `guided`.
 
 **`axis_a_tone`은 CTA·헤드라인뿐 아니라 이 페이지의 모든 카피(atmosphere·philosophy·menu 설명·FAQ 답변 포함)에 일관되게 적용한다.** 감성형인데 신뢰스트립만 따뜻하고 나머지 블록이 건조하거나, 신뢰형인데 히어로만 차분하고 나머지가 들뜬 톤이면 안 된다 — 정한 톤 하나로 페이지 전체를 관통시킨다.
 

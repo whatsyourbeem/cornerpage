@@ -27,11 +27,6 @@ export interface FaqPairDraft {
   answer: string;
 }
 
-/** 지금 단계는 실제 업로드를 하지 않으므로, 파일명을 그대로 placeholder로 보여준다. */
-export function fileLabel(file: File | null): string | null {
-  return file ? `[선택된 파일] ${file.name}` : null;
-}
-
 /**
  * 전역 CSS(Tailwind preflight)가 폼 요소에 appearance:none을 적용해서, 이 스타일
  * 없이는 <input type="file">의 네이티브 "파일 선택" 버튼이 아예 안 보인다(빈 공간만
@@ -161,39 +156,7 @@ export function ProgressBar({ step, total, label }: { step: number; total: numbe
   );
 }
 
-export function JsonPreview({ json, onBack }: { json: string; onBack: () => void }) {
-  return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px 80px" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 4px" }}>Claude API로 보낼 JSON (미리보기)</h1>
-      <p style={{ fontSize: 13, color: "#666", margin: "0 0 20px" }}>
-        아직 실제로 생성하지 않아요 — 수집된 답변이 이 모양 그대로예요. 이미지는 업로드 전이라 파일명만 표시됩니다.
-      </p>
-      <pre
-        style={{
-          background: "#f5f5f5",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          padding: 16,
-          fontSize: 12,
-          lineHeight: 1.5,
-          overflowX: "auto",
-          whiteSpace: "pre",
-        }}
-      >
-        {json}
-      </pre>
-      <button
-        type="button"
-        onClick={onBack}
-        style={{ ...navButtonStyle, ...primaryButtonStyle, marginTop: 16, width: "100%" }}
-      >
-        다시 수정하기
-      </button>
-    </main>
-  );
-}
-
-/** 단계 내비게이션 바(이전/다음/제출). 마지막 단계에서는 onSubmit(미리보기 버튼)로 바뀐다. */
+/** 단계 내비게이션 바(이전/다음/제출). 마지막 단계에서는 onSubmit(수동 생성 흐름 시작 버튼)으로 바뀐다. */
 export function WizardNav({
   step,
   isLastStep,
@@ -227,7 +190,7 @@ export function WizardNav({
         </button>
       ) : (
         <button type="button" onClick={onSubmit} style={{ ...navButtonStyle, ...primaryButtonStyle }}>
-          보낼 JSON 미리보기
+          이미지 업로드하고 요청 준비하기
         </button>
       )}
     </div>

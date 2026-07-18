@@ -1,0 +1,188 @@
+{
+  "meta": {
+    "business_name": "지음필라테스",
+    "industry_category": "필라테스",
+    "lead_emphasis": "transformations",
+    "inquiry_channels": [
+      {
+        "type": "kakao",
+        "action_value": "https://pf.kakao.com/example",
+        "other_label": null
+      },
+      {
+        "type": "call",
+        "action_value": "010-1234-5678",
+        "other_label": null
+      }
+    ],
+    "browse_channels": [
+      {
+        "type": "instagram",
+        "action_value": "https://instagram.com/jieum_pilates",
+        "other_label": null
+      },
+      {
+        "type": "naver_map",
+        "action_value": "https://naver.me/example",
+        "other_label": null
+      }
+    ],
+    "logo_url": null,
+    "brand_color": null
+  },
+  "blocks": {
+    "topbar": {
+      "display_name": "지음필라테스",
+      "cta_label": "무료상담 신청"
+    },
+    "hero": {
+      "badge": "수내동 · 필라테스 스튜디오",
+      "headline": "8년째 재활 전문으로, 한 사람만 보는 PT",
+      "tagline": "운동 경험이 없는 회원님이 전체의 70%입니다",
+      "background_image_url": null,
+      "cta_label": "무료상담 신청"
+    },
+    "trust_strip": {
+      "items": [
+        {
+          "value": "8년",
+          "label": "지도 경력"
+        },
+        {
+          "value": "127명",
+          "label": "누적 변화 사례"
+        },
+        {
+          "value": "4개",
+          "label": "보유 자격증"
+        }
+      ]
+    },
+    "philosophy": null,
+    "atmosphere": null,
+    "menu": {
+      "label": "PT 프로그램",
+      "mode": "item_consult",
+      "items": [
+        {
+          "name": "1:1 개인 PT",
+          "price": null,
+          "description": null,
+          "image_url": null,
+          "badge": null
+        }
+      ],
+      "full_list_link_enabled": false
+    },
+    "gallery": null,
+    "reviews": {
+      "items": [
+        {
+          "body": "박현우 트레이너님한테 3개월 배웠는데 자세 교정부터 꼼꼼히 봐주셨어요",
+          "rating": 5,
+          "author": "김○영",
+          "source": "네이버 예약",
+          "trainer_tag": "박현우"
+        }
+      ]
+    },
+    "info": {
+      "address": "경기 성남시 분당구 수내동",
+      "map_coordinates": {
+        "lat": 37.38,
+        "lng": 127.11
+      },
+      "hours": {
+        "type": "structured",
+        "structured": [
+          {
+            "day": "mon",
+            "open": "09:00",
+            "close": "21:00",
+            "break": null,
+            "last_order": null,
+            "closed": false
+          }
+        ]
+      },
+      "phone": "010-1234-5678",
+      "external_links": [
+        {
+          "platform": "kakao",
+          "url": "https://pf.kakao.com/example"
+        }
+      ],
+      "business_info": null
+    },
+    "sticky_cta": {
+      "cta_label": "카톡으로 편하게 물어보기"
+    },
+    "how_it_works": {
+      "steps": [
+        {
+          "order": 1,
+          "title": "상담 신청",
+          "description": "카톡으로 문의"
+        },
+        {
+          "order": 2,
+          "title": "체험 수업",
+          "description": "1회 체험"
+        },
+        {
+          "order": 3,
+          "title": "등록",
+          "description": "프로그램 등록"
+        }
+      ]
+    },
+    "faq": {
+      "items": [
+        {
+          "question": "운동 경험이 없는데 괜찮을까요?",
+          "answer": "회원님의 70%가 운동을 처음 시작하신 분들이에요."
+        }
+      ]
+    },
+    "professionals": {
+      "section_label": "강사진 소개",
+      "items": [
+        {
+          "name": "박현우",
+          "title": "대표 트레이너",
+          "photo_url": null,
+          "certifications": [
+            "생활스포츠지도사 2급",
+            "NSCA-CPT"
+          ],
+          "specialty": "체형교정·재활 운동",
+          "years_experience": 8,
+          "bio_quote": "운동이 처음인 분들이 다치지 않게, 기본기부터 차근차근 봐드립니다."
+        }
+      ]
+    },
+    "transformations": {
+      "items": [
+        {
+          "before_image_url": "https://example.com/before.jpg",
+          "after_image_url": "https://example.com/after.jpg",
+          "duration_label": "12주",
+          "result_highlight": "체지방률 6%p 감소",
+          "member_label": "김○영님",
+          "trainer_tag": "박현우 트레이너"
+        }
+      ]
+    },
+    "facility": {
+      "size_pyeong": 45,
+      "has_shower": true,
+      "has_locker": true,
+      "has_parking": false,
+      "equipment_list": [
+        "리포머 5대",
+        "타워 2대"
+      ],
+      "photos": null
+    }
+  }
+}

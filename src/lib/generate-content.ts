@@ -1,9 +1,11 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import Ajv2020 from "ajv/dist/2020";
-import contentSchema from "../../spec/schema/content.schema.json";
+import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema.json";
+import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
-import { SKILL_PROMPT } from "./skill-prompt.generated";
+import { SKILL_PROMPTS } from "./skill-prompt.generated";
+import { determineVertical, RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
 import type {
   CtaPrimaryAction,
   CtaInteractionMode,
@@ -17,7 +19,7 @@ import type {
  * Claude API를 호출하는 실제 콘텐츠 생성기. mock-generate-content.ts를 대체한다.
  * 방법B(스킬 문서 텍스트 결합) 전략과 근거는 Notion "백엔드 API 아키텍처" 문서 2장 참고.
  *
- * DraftAnswers는 spec/skill/references/general/input-questions.md의 질문 흐름을 그대로 따르는
+ * DraftAnswers는 spec/for-frontend/general/input-questions.md의 질문 흐름을 그대로 따르는
  * "가공 전 사업 정보"다. axis_a_tone/axis_b_layout/cta 유형·카피(headline 등)를
  * 프론트가 미리 정해서 넘기던 이전 목업 파이프라인 방식(placeholder /create 폼)과
  * 달리, 이제는 업종·강점·메뉴 같은 원재료만 넘기고 톤/레이아웃 판단과 카피 작성은
@@ -29,8 +31,8 @@ import type {
  * 냈다: (1) minItems/maxItems가 0·1 이외면 거부, (2) if/then/else가 있으면 거부.
  * 이 둘을 스키마에서 벗겨내고 나니 이번엔 "compiled grammar is too large"로
  * 거부됐다 — 스키마 자체가 strict grammar 컴파일 한도를 넘는 규모. 그래서
- * Structured Outputs를 아예 포기하고, 프롬프트(SKILL_PROMPT에 포함된
- * prompt-schema-summary.md — schema.md의 축약본)로 구조를 지시한 뒤 ajv로 전체
+ * Structured Outputs를 아예 포기하고, 프롬프트(SKILL_PROMPTS[vertical]에 포함된
+ * schema-summary.md — 완성 예시를 뺀 구조 정의만 남긴 문서)로 구조를 지시한 뒤 ajv로 전체
  * 스키마(content.schema.json, if/then 포함)를 최종 검증하는 방식으로 바꿨다 —
  * 애초에 기술 문서 6장이 "이중 안전망"이라 부른 ajv 쪽이 사실상 유일한 강제
  * 수단이 된 것.
@@ -40,6 +42,17 @@ import type {
  * Ajv(draft-07 기본)로 컴파일하면 "no schema with key or ref
  * .../2020-12/schema" 에러가 난다(실측 확인). Notion 문서 6장의 예시 코드가
  * plain Ajv를 쓰고 있는데 이건 이 스키마에서는 실제로 동작하지 않는다.
+ *
+ * vertical(spec/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
+ * 갈라져서(현재 general/boutique-fitness), LLM 호출 전에 업종 텍스트로 vertical을
+ * 먼저 정해(determineVertical) 그에 맞는 스키마·프롬프트·ajv 검증기를 골라 쓴다.
+ *
+ * boutique-fitness는 2026-07-18 기준 스키마/프롬프트가 실제로 완성됐지만(신규
+ * 블록 3종·meta 구조 변경 등 general과 크게 다름), 렌더러는 아직 general
+ * 전용이다(MiniHomepageSite.tsx가 axis_a_tone/axis_b_layout이 없으면
+ * LAYOUT_ORDER[undefined]에서 크래시하고, professionals/transformations/
+ * facility 블록 컴포넌트도 없음). 그래서 RENDERER_READY_VERTICALS로 실제 생성을
+ * 막아둔다 — 렌더러가 준비되면 verticals.ts의 그 배열에 추가하는 것만으로 풀린다.
  */
 
 export interface DraftHoursEntry {
@@ -90,10 +103,29 @@ export interface DraftAnswers {
   faq_answers: { question: string; answer: string }[];
 }
 
+/** vertical의 스키마/프롬프트는 있지만 렌더러가 아직 못 그리는 경우 API 라우트가 잡아서 안내용 응답으로 바꾼다. */
+export class VerticalNotReadyError extends Error {
+  constructor(public readonly vertical: Vertical) {
+    super(`vertical "${vertical}"은 스키마는 준비됐지만 렌더러가 아직 지원하지 않습니다.`);
+    this.name = "VerticalNotReadyError";
+  }
+}
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const ajv = new Ajv2020({ strict: false });
-const validateContent = ajv.compile(contentSchema);
+// vertical마다 독립된 Ajv 인스턴스를 쓴다 — 두 스키마의 $id가 같아서(현재 동일
+// 복사본) 하나의 Ajv 인스턴스에 둘 다 compile하면 "schema with key already
+// exists" 충돌이 난다. errorsText도 컴파일에 쓴 인스턴스로 호출해야 하므로
+// validate와 ajv를 한 쌍으로 묶어 보관한다.
+function buildValidator(schema: object) {
+  const ajv = new Ajv2020({ strict: false });
+  return { ajv, validate: ajv.compile(schema) };
+}
+
+const validators: Record<Vertical, ReturnType<typeof buildValidator>> = {
+  general: buildValidator(contentSchemaGeneral),
+  "boutique-fitness": buildValidator(contentSchemaBoutiqueFitness),
+};
 
 function extractText(message: Anthropic.Message): string {
   for (const block of message.content) {
@@ -110,18 +142,19 @@ function stripCodeFence(text: string): string {
 
 async function attemptGenerate(
   answers: DraftAnswers,
-  coordinates: { lat: number; lng: number }
+  coordinates: { lat: number; lng: number },
+  vertical: Vertical
 ): Promise<MiniHomepageContent> {
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 8192,
-    system: SKILL_PROMPT,
+    system: SKILL_PROMPTS[vertical],
     messages: [
       {
         role: "user",
         content:
-          "다음은 사장님이 입력한 사업 정보(가공 전 원본)다. axis_a_tone·axis_b_layout " +
-          "같은 판단 필드부터 각 블록의 온오프·순서·카피까지 전부 스킬 지침에 따라 " +
+          "다음은 사장님이 입력한 사업 정보(가공 전 원본)다. meta의 판단 필드부터 " +
+          "각 블록의 온오프·순서·카피까지 전부 스킬 지침에 따라 " +
           "직접 판단해서 콘텐츠 JSON을 생성해줘. 출력은 콘텐츠 JSON 하나만 — 다른 " +
           `설명 문구나 마크다운 코드펜스 없이 순수 JSON만 응답해.\n\n${JSON.stringify(answers, null, 2)}`,
       },
@@ -171,20 +204,37 @@ async function attemptGenerate(
     content.blocks.atmosphere = null;
   }
 
-  if (!validateContent(content)) {
-    throw new Error(`콘텐츠 스키마 검증 실패: ${ajv.errorsText(validateContent.errors)}`);
+  const { ajv, validate } = validators[vertical];
+  if (!validate(content)) {
+    throw new Error(`콘텐츠 스키마 검증 실패: ${ajv.errorsText(validate.errors)}`);
   }
 
   return content as unknown as MiniHomepageContent;
 }
 
-/** 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터 지어내기 금지). */
-export async function generateContent(answers: DraftAnswers): Promise<MiniHomepageContent> {
+/**
+ * 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터
+ * 지어내기 금지). vertical을 content와 함께 반환하는 이유: 호출부(POST
+ * /api/sites)가 sites.vertical 컬럼에 저장할 값이 필요한데, determineVertical()을
+ * 호출부에서 따로 한 번 더 부르면 이 함수 내부 판단과 어긋날 여지가 생긴다 — 이
+ * 함수가 실제로 쓴 값을 그대로 돌려줘서 content_json과 vertical이 항상 같은
+ * 판단 결과를 가리키도록 보장한다.
+ */
+export async function generateContent(
+  answers: DraftAnswers
+): Promise<{ content: MiniHomepageContent; vertical: Vertical }> {
+  const vertical = determineVertical(answers.industry_category);
+  if (!RENDERER_READY_VERTICALS.includes(vertical)) {
+    // 지오코딩·Claude 호출 전에 막아서 비용 낭비도 함께 없앤다.
+    throw new VerticalNotReadyError(vertical);
+  }
   const coordinates = await geocodeAddress(answers.address);
   try {
-    return await attemptGenerate(answers, coordinates);
+    const content = await attemptGenerate(answers, coordinates, vertical);
+    return { content, vertical };
   } catch (err) {
     console.error("콘텐츠 생성 실패, 1회 재시도:", err);
-    return await attemptGenerate(answers, coordinates);
+    const content = await attemptGenerate(answers, coordinates, vertical);
+    return { content, vertical };
   }
 }

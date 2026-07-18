@@ -1,0 +1,771 @@
+"use client";
+
+import { useState } from "react";
+import type { DayOfWeek } from "@/lib/content-types";
+import {
+  DAYS,
+  Field,
+  HoursEditor,
+  JsonPreview,
+  ProgressBar,
+  Section,
+  WizardNav,
+  defaultHours,
+  fileInputStyle,
+  fileLabel,
+  fileNameStyle,
+  type DayHours,
+  type FaqPairDraft,
+} from "../_shared/form-ui";
+
+/**
+ * boutique-fitness vertical 입력 폼. spec/for-frontend/boutique-fitness/
+ * input-questions.md의 STEP 구성을 그대로 따른다 — general과 스키마 자체가
+ * 달라서(신규 블록 3종·meta 구조 변경 등, generate-content.ts 참고) 질문 흐름도
+ * 완전히 분리된 라우트다.
+ *
+ * meta.cta_primary_action/cta_interaction_mode(general 개념)는 이 vertical에
+ * 없다 — 대신 meta.inquiry_channels(예약·문의 채널, 최소 1개 복수 선택)와
+ * meta.browse_channels(둘러보기 채널, 복수 선택·선택)로 대체됐다(2026-07-18
+ * 스키마 변경). 버튼 하나=행동 하나가 아니라, 버튼을 누르면 다이얼로그가 열려
+ * 고른 채널들을 나열하는 구조 — 채널별 표시 문구·아이콘은 렌더러가 type 값으로
+ * 고정 템플릿 렌더링하고 스킬은 만들지 않는다.
+ *
+ * ⚠️ 지금은 실제 Claude API를 호출하지 않는다 — RENDERER_READY_VERTICALS로
+ * boutique-fitness 생성 자체가 아직 막혀있기도 하다(verticals.ts 참고). 마지막
+ * 단계에서 보낼 JSON을 화면에 표시만 한다. 이미지도 실제로 업로드하지 않고
+ * 파일명만 placeholder로 넣는다 — 실제 생성이 열리면 /api/upload 호출과
+ * /api/sites 제출을 다시 연결해야 한다.
+ */
+
+const STEPS = ["기본 정보", "전문가 프로필", "회원 변화·후기", "공간", "프로그램·이용방법"];
+
+type InquiryChannelType = "call" | "naver_reservation" | "kakao" | "instagram_dm" | "other";
+type BrowseChannelType = "kakao" | "naver_blog" | "instagram" | "youtube" | "naver_map" | "other";
+
+interface ChannelDraft {
+  checked: boolean;
+  actionValue: string;
+  otherLabel: string;
+}
+
+const INQUIRY_CHANNELS: { type: InquiryChannelType; label: string; placeholder: string }[] = [
+  { type: "call", label: "전화", placeholder: "010-1234-5678" },
+  { type: "naver_reservation", label: "네이버예약", placeholder: "https://booking.naver.com/..." },
+  { type: "kakao", label: "카카오톡", placeholder: "https://pf.kakao.com/..." },
+  { type: "instagram_dm", label: "인스타그램 DM", placeholder: "https://instagram.com/..." },
+  { type: "other", label: "기타", placeholder: "전화번호 또는 링크" },
+];
+
+const BROWSE_CHANNELS: { type: BrowseChannelType; label: string; placeholder: string }[] = [
+  { type: "kakao", label: "카카오톡 채널", placeholder: "https://pf.kakao.com/..." },
+  { type: "naver_blog", label: "네이버블로그", placeholder: "https://blog.naver.com/..." },
+  { type: "instagram", label: "인스타그램", placeholder: "https://instagram.com/..." },
+  { type: "youtube", label: "유튜브", placeholder: "https://youtube.com/..." },
+  { type: "naver_map", label: "네이버지도", placeholder: "https://naver.me/..." },
+  { type: "other", label: "기타", placeholder: "링크" },
+];
+
+function initChannelState<T extends string>(types: readonly { type: T }[]): Record<T, ChannelDraft> {
+  return Object.fromEntries(
+    types.map((t) => [t.type, { checked: false, actionValue: "", otherLabel: "" }])
+  ) as Record<T, ChannelDraft>;
+}
+
+function isChannelValid(channel: ChannelDraft, type: string): boolean {
+  if (!channel.checked || !channel.actionValue.trim()) return false;
+  if (type === "other" && !channel.otherLabel.trim()) return false;
+  return true;
+}
+
+function buildChannels<T extends string>(
+  types: readonly { type: T }[],
+  state: Record<T, ChannelDraft>
+) {
+  return types
+    .filter((t) => isChannelValid(state[t.type], t.type))
+    .map((t) => {
+      const c = state[t.type];
+      return t.type === "other"
+        ? { type: t.type, action_value: c.actionValue.trim(), other_label: c.otherLabel.trim() }
+        : { type: t.type, action_value: c.actionValue.trim(), other_label: null };
+    });
+}
+
+function ChannelChecklist<T extends string>({
+  options,
+  state,
+  onChange,
+}: {
+  options: { type: T; label: string; placeholder: string }[];
+  state: Record<T, ChannelDraft>;
+  onChange: (type: T, patch: Partial<ChannelDraft>) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {options.map((opt) => {
+        const c = state[opt.type];
+        return (
+          <div key={opt.type} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={c.checked}
+                onChange={(e) => onChange(opt.type, { checked: e.target.checked })}
+              />
+              {opt.label}
+            </label>
+            {c.checked && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 22 }}>
+                <input
+                  placeholder={opt.placeholder}
+                  value={c.actionValue}
+                  onChange={(e) => onChange(opt.type, { actionValue: e.target.value })}
+                />
+                {opt.type === "other" && (
+                  <input
+                    placeholder="채널 이름 (예: 밴드, 문자)"
+                    value={c.otherLabel}
+                    onChange={(e) => onChange(opt.type, { otherLabel: e.target.value })}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+interface ProfessionalDraft {
+  name: string;
+  title: string;
+  photo: File | null;
+  certificationsText: string;
+  specialty: string;
+  yearsExperience: string;
+  bioQuote: string;
+}
+
+interface TransformationDraft {
+  beforeImage: File | null;
+  afterImage: File | null;
+  durationLabel: string;
+  resultHighlight: string;
+  memberLabel: string;
+  trainerTag: string;
+}
+
+interface BfReviewDraft {
+  body: string;
+  author: string;
+  rating: string;
+  source: string;
+  trainerTag: string;
+}
+
+interface ProgramDraft {
+  name: string;
+  price: string;
+  consult: boolean;
+}
+
+export default function BoutiqueFitnessCreatePage() {
+  const [step, setStep] = useState(0);
+
+  const [industryCategory, setIndustryCategory] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
+  const [inquiryChannels, setInquiryChannels] = useState(() => initChannelState(INQUIRY_CHANNELS));
+  const [browseChannels, setBrowseChannels] = useState(() => initChannelState(BROWSE_CHANNELS));
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [leadEmphasis, setLeadEmphasis] = useState<
+    "" | "transformations" | "reviews" | "professionals" | "facility"
+  >("");
+
+  const [professionals, setProfessionals] = useState<ProfessionalDraft[]>([
+    { name: "", title: "", photo: null, certificationsText: "", specialty: "", yearsExperience: "", bioQuote: "" },
+  ]);
+
+  const [transformations, setTransformations] = useState<TransformationDraft[]>([
+    { beforeImage: null, afterImage: null, durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
+  ]);
+  const [reviews, setReviews] = useState<BfReviewDraft[]>([
+    { body: "", author: "", rating: "", source: "", trainerTag: "" },
+  ]);
+
+  const [sizePyeong, setSizePyeong] = useState("");
+  const [hasShower, setHasShower] = useState(false);
+  const [hasLocker, setHasLocker] = useState(false);
+  const [hasParking, setHasParking] = useState(false);
+  const [equipmentText, setEquipmentText] = useState("");
+  const [facilityPhotos, setFacilityPhotos] = useState<File[]>([]);
+  const [atmosphereText, setAtmosphereText] = useState("");
+  const [philosophyText, setPhilosophyText] = useState("");
+
+  const [programs, setPrograms] = useState<ProgramDraft[]>([{ name: "", price: "", consult: true }]);
+  const [freeTrialAvailable, setFreeTrialAvailable] = useState(false);
+  const [howItWorksNote, setHowItWorksNote] = useState("");
+  const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
+
+  const [previewJson, setPreviewJson] = useState<string | null>(null);
+
+  function canProceed(): boolean {
+    if (step === 0) {
+      const hasInquiryChannel = INQUIRY_CHANNELS.some((t) => isChannelValid(inquiryChannels[t.type], t.type));
+      return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "" && hasInquiryChannel;
+    }
+    if (step === 1) return professionals.some((p) => p.name.trim() !== "");
+    return true;
+  }
+
+  function updateInquiryChannel(type: InquiryChannelType, patch: Partial<ChannelDraft>) {
+    setInquiryChannels((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
+  }
+
+  function updateBrowseChannel(type: BrowseChannelType, patch: Partial<ChannelDraft>) {
+    setBrowseChannels((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
+  }
+
+  function updateProfessional(i: number, patch: Partial<ProfessionalDraft>) {
+    setProfessionals((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+
+  function updateTransformation(i: number, patch: Partial<TransformationDraft>) {
+    setTransformations((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+  }
+
+  function updateReview(i: number, patch: Partial<BfReviewDraft>) {
+    setReviews((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function updateProgram(i: number, patch: Partial<ProgramDraft>) {
+    setPrograms((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+
+  function updateFaqPair(i: number, patch: Partial<FaqPairDraft>) {
+    setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
+  }
+
+  function handlePreview() {
+    const finalProfessionals = professionals
+      .filter((p) => p.name.trim())
+      .map((p) => ({
+        name: p.name.trim(),
+        title: p.title.trim(),
+        photo_url: fileLabel(p.photo),
+        certifications: p.certificationsText
+          .split(/[,\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+        specialty: p.specialty.trim(),
+        years_experience: p.yearsExperience.trim() ? Number(p.yearsExperience) : null,
+        bio_quote: p.bioQuote.trim() || null,
+      }));
+
+    const finalTransformations = transformations
+      .filter((t) => t.beforeImage || t.afterImage || t.resultHighlight.trim())
+      .map((t) => ({
+        before_image_url: fileLabel(t.beforeImage),
+        after_image_url: fileLabel(t.afterImage),
+        duration_label: t.durationLabel.trim(),
+        result_highlight: t.resultHighlight.trim(),
+        member_label: t.memberLabel.trim(),
+        trainer_tag: t.trainerTag.trim() || null,
+      }));
+
+    const finalReviews = reviews
+      .filter((r) => r.body.trim())
+      .map((r) => ({
+        body: r.body.trim(),
+        author: r.author.trim() || "익명",
+        rating: r.rating ? Number(r.rating) : null,
+        source: r.source.trim() || null,
+        trainer_tag: r.trainerTag.trim() || null,
+      }));
+
+    const equipmentList = equipmentText
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const hasFacilityData =
+      sizePyeong.trim() || hasShower || hasLocker || hasParking || equipmentList.length > 0 || facilityPhotos.length > 0;
+
+    const faqAnswers = faqPairs
+      .filter((pair) => pair.question.trim() && pair.answer.trim())
+      .map((pair) => ({ question: pair.question.trim(), answer: pair.answer.trim() }));
+
+    const finalPrograms = programs
+      .filter((p) => p.name.trim())
+      .map((p) => ({ name: p.name.trim(), price: p.consult ? null : p.price.trim() || null }));
+
+    const answers = {
+      industry_category: industryCategory,
+      business_name: businessName,
+      address,
+      phone,
+      consult_hours: {
+        type: "structured" as const,
+        structured: DAYS.map((d) => ({
+          day: d.key,
+          open: hours[d.key].closed ? null : hours[d.key].open,
+          close: hours[d.key].closed ? null : hours[d.key].close,
+          closed: hours[d.key].closed,
+        })),
+      },
+      inquiry_channels: buildChannels(INQUIRY_CHANNELS, inquiryChannels),
+      browse_channels:
+        buildChannels(BROWSE_CHANNELS, browseChannels).length > 0
+          ? buildChannels(BROWSE_CHANNELS, browseChannels)
+          : null,
+      hero_image_url: fileLabel(heroFile),
+      logo_url: fileLabel(logoFile),
+      lead_emphasis: leadEmphasis || null,
+      professionals: finalProfessionals,
+      transformations: finalTransformations,
+      reviews: finalReviews,
+      facility: hasFacilityData
+        ? {
+            size_pyeong: sizePyeong.trim() ? Number(sizePyeong) : null,
+            has_shower: hasShower,
+            has_locker: hasLocker,
+            has_parking: hasParking,
+            equipment_list: equipmentList.length > 0 ? equipmentList : null,
+            photos: facilityPhotos.length > 0 ? facilityPhotos.map((f) => fileLabel(f) as string) : null,
+          }
+        : null,
+      atmosphere: atmosphereText.trim() || null,
+      philosophy: philosophyText.trim() || null,
+      programs: finalPrograms,
+      free_trial_available: freeTrialAvailable,
+      how_it_works_note: howItWorksNote.trim() || null,
+      faq_answers: faqAnswers,
+    };
+
+    setPreviewJson(JSON.stringify({ vertical: "boutique-fitness", answers }, null, 2));
+  }
+
+  if (previewJson) {
+    return <JsonPreview json={previewJson} onBack={() => setPreviewJson(null)} />;
+  }
+
+  return (
+    <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
+      <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+
+      {step === 0 && (
+        <Section title="기본 정보">
+          <Field label="업종 (한 줄로)">
+            <input
+              value={industryCategory}
+              onChange={(e) => setIndustryCategory(e.target.value)}
+              placeholder="예: 필라테스 스튜디오, PT 전문 짐, 요가원"
+              autoFocus
+            />
+          </Field>
+          <Field label="스튜디오 이름">
+            <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="예: 지음필라테스" />
+          </Field>
+          <Field label="지역/주소">
+            <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="예: 서울 강남구 신사동" />
+          </Field>
+          <Field label="전화번호">
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="02-1234-5678" />
+          </Field>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>상담·수업 가능 시간대</legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              예약제로 운영하시면, &quot;문 여는 시간&quot;이 아니라 &quot;상담·수업 잡을 수 있는 시간대&quot;를 알려주세요.
+            </p>
+            <HoursEditor hours={hours} onChange={setHours} />
+          </fieldset>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>예약·문의 채널 (복수 선택, 최소 1개)</legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              방문자가 누르면 여기서 고르신 채널들이 한 번에 나열돼요 — 원하는 방식으로 편하게 연락하실 수 있게요.
+            </p>
+            <ChannelChecklist options={INQUIRY_CHANNELS} state={inquiryChannels} onChange={updateInquiryChannel} />
+          </fieldset>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>둘러보기 채널 (복수 선택, 선택)</legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              가게를 둘러보고 싶어하는 분들을 위한 채널이에요. 상담·예약과는 별개로, 히어로 영역에 바로 노출됩니다.
+            </p>
+            <ChannelChecklist options={BROWSE_CHANNELS} state={browseChannels} onChange={updateBrowseChannel} />
+          </fieldset>
+
+          <Field label="대표 사진">
+            <input
+              type="file"
+              accept="image/*"
+              style={fileInputStyle}
+              onChange={(e) => setHeroFile(e.target.files?.[0] ?? null)}
+            />
+            {heroFile && <p style={fileNameStyle}>선택됨: {heroFile.name}</p>}
+          </Field>
+          <Field label="로고">
+            <input
+              type="file"
+              accept="image/*"
+              style={fileInputStyle}
+              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+            />
+            {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
+          </Field>
+
+          <Field
+            label="손님께 가장 먼저 자신 있게 보여주고 싶은 게 있다면요? (선택)"
+            hint="고르지 않으셔도 괜찮아요. 저희가 알아서 가장 설득력 있는 순서로 배치해드려요."
+          >
+            <select value={leadEmphasis} onChange={(e) => setLeadEmphasis(e.target.value as typeof leadEmphasis)}>
+              <option value="">고르지 않음</option>
+              <option value="transformations">회원 변화 사례</option>
+              <option value="reviews">후기</option>
+              <option value="professionals">트레이너 경력</option>
+              <option value="facility">시설</option>
+            </select>
+          </Field>
+        </Section>
+      )}
+
+      {step === 1 && (
+        <Section title="전문가 프로필 (필수)">
+          <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
+            이 정보가 홈페이지의 핵심이에요. 손님들은 &quot;어떤 공간인가&quot;보다 &quot;누구에게 배우는가&quot;를 더 궁금해합니다.
+          </p>
+          {professionals.map((p, i) => (
+            <fieldset key={i} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+              <legend style={{ fontSize: 13, fontWeight: 700 }}>트레이너 {i + 1}</legend>
+              <input placeholder="이름" value={p.name} onChange={(e) => updateProfessional(i, { name: e.target.value })} />
+              <input
+                placeholder="직함 (예: 대표 트레이너, 강사, 원장)"
+                value={p.title}
+                onChange={(e) => updateProfessional(i, { title: e.target.value })}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                style={fileInputStyle}
+                onChange={(e) => updateProfessional(i, { photo: e.target.files?.[0] ?? null })}
+              />
+              {p.photo && <p style={fileNameStyle}>선택됨: {p.photo.name}</p>}
+              <input
+                placeholder="보유 자격증 (쉼표로 구분, 없으면 비워두세요)"
+                value={p.certificationsText}
+                onChange={(e) => updateProfessional(i, { certificationsText: e.target.value })}
+              />
+              <input
+                placeholder="전문 분야 (예: 체형교정, 재활, 다이어트)"
+                value={p.specialty}
+                onChange={(e) => updateProfessional(i, { specialty: e.target.value })}
+              />
+              <input
+                placeholder="지도 경력(년 수)"
+                value={p.yearsExperience}
+                onChange={(e) => updateProfessional(i, { yearsExperience: e.target.value })}
+                style={{ width: 140 }}
+              />
+              <input
+                placeholder="지도 철학·스타일 한 줄 (선택)"
+                value={p.bioQuote}
+                onChange={(e) => updateProfessional(i, { bioQuote: e.target.value })}
+              />
+            </fieldset>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              setProfessionals((prev) => [
+                ...prev,
+                { name: "", title: "", photo: null, certificationsText: "", specialty: "", yearsExperience: "", bioQuote: "" },
+              ])
+            }
+            style={{ fontSize: 13 }}
+          >
+            + 트레이너 추가
+          </button>
+        </Section>
+      )}
+
+      {step === 2 && (
+        <Section title="회원 변화 사례·후기 (선택이지만 강력 권장)">
+          <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
+            솔직히 말씀드리면, 이 두 가지가 홈페이지 설득력의 8할을 좌우해요. 시간이 되실 때 1개라도 채워주시면 결과물이 확실히 달라집니다.
+          </p>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>회원 변화 사례 (1~4개 권장)</legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              ⚠️ 회원님께 미리 동의를 받은 사진만 올려주세요 — 나중에 문제가 될 수 있어요.
+            </p>
+            {transformations.map((t, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #eee" }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={fileInputStyle}
+                      onChange={(e) => updateTransformation(i, { beforeImage: e.target.files?.[0] ?? null })}
+                    />
+                    {t.beforeImage && <p style={fileNameStyle}>Before: {t.beforeImage.name}</p>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={fileInputStyle}
+                      onChange={(e) => updateTransformation(i, { afterImage: e.target.files?.[0] ?? null })}
+                    />
+                    {t.afterImage && <p style={fileNameStyle}>After: {t.afterImage.name}</p>}
+                  </div>
+                </div>
+                <input
+                  placeholder="기간 (예: 12주)"
+                  value={t.durationLabel}
+                  onChange={(e) => updateTransformation(i, { durationLabel: e.target.value })}
+                />
+                <input
+                  placeholder="핵심 변화 (예: 체지방률 6%p 감소)"
+                  value={t.resultHighlight}
+                  onChange={(e) => updateTransformation(i, { resultHighlight: e.target.value })}
+                />
+                <input
+                  placeholder="회원 이름 (익명 처리, 예: 김O영님)"
+                  value={t.memberLabel}
+                  onChange={(e) => updateTransformation(i, { memberLabel: e.target.value })}
+                />
+                <input
+                  placeholder="담당 트레이너 (선택, 여러 명이면 누가 지도했는지)"
+                  value={t.trainerTag}
+                  onChange={(e) => updateTransformation(i, { trainerTag: e.target.value })}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                setTransformations((prev) => [
+                  ...prev,
+                  { beforeImage: null, afterImage: null, durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
+                ])
+              }
+              style={{ fontSize: 13 }}
+            >
+              + 사례 추가
+            </button>
+          </fieldset>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>후기 (1~4개, 텍스트로 원문 그대로)</legend>
+            {reviews.map((r, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                <textarea
+                  placeholder="후기 내용"
+                  rows={2}
+                  value={r.body}
+                  onChange={(e) => updateReview(i, { body: e.target.value })}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    placeholder="작성자 (예: 김O영)"
+                    value={r.author}
+                    onChange={(e) => updateReview(i, { author: e.target.value })}
+                  />
+                  <input
+                    placeholder="별점 (선택, 1~5)"
+                    value={r.rating}
+                    onChange={(e) => updateReview(i, { rating: e.target.value })}
+                    style={{ width: 90 }}
+                  />
+                </div>
+                <input
+                  placeholder="어디서 받은 후기인지 (예: 네이버 예약, 카카오맵, 인스타그램 DM)"
+                  value={r.source}
+                  onChange={(e) => updateReview(i, { source: e.target.value })}
+                />
+                <input
+                  placeholder="담당 트레이너 (선택, 후기에 실제 언급된 경우만)"
+                  value={r.trainerTag}
+                  onChange={(e) => updateReview(i, { trainerTag: e.target.value })}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                setReviews((prev) => [...prev, { body: "", author: "", rating: "", source: "", trainerTag: "" }])
+              }
+              style={{ fontSize: 13 }}
+            >
+              + 후기 추가
+            </button>
+          </fieldset>
+        </Section>
+      )}
+
+      {step === 3 && (
+        <Section title="공간 (선택)">
+          <Field label="평수 (선택)">
+            <input
+              value={sizePyeong}
+              onChange={(e) => setSizePyeong(e.target.value)}
+              placeholder="숫자만 (예: 25)"
+              style={{ width: 140 }}
+            />
+          </Field>
+          <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <input type="checkbox" checked={hasShower} onChange={(e) => setHasShower(e.target.checked)} />
+              샤워실
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <input type="checkbox" checked={hasLocker} onChange={(e) => setHasLocker(e.target.checked)} />
+              개인 라커
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <input type="checkbox" checked={hasParking} onChange={(e) => setHasParking(e.target.checked)} />
+              주차 가능
+            </label>
+          </div>
+          <Field label="보유 기구 (선택, 쉼표로 구분)">
+            <input
+              value={equipmentText}
+              onChange={(e) => setEquipmentText(e.target.value)}
+              placeholder="예: 리포머 5대, 캐딜락 2대"
+            />
+          </Field>
+          <Field label="공간 사진 (선택, 트레이너·시설 사진과 겹치지 않는 분위기 사진)">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              style={fileInputStyle}
+              onChange={(e) => setFacilityPhotos(Array.from(e.target.files ?? []))}
+            />
+            {facilityPhotos.length > 0 && <p style={fileNameStyle}>{facilityPhotos.length}장 선택됨</p>}
+          </Field>
+          <Field
+            label="공간에서 손님들이 특히 좋아하는 부분이 있나요? (선택)"
+            hint="이 답변이 있으면 사진만으로는 안 전해지는 이 공간만의 느낌이 문구로 살아나요."
+          >
+            <textarea
+              value={atmosphereText}
+              onChange={(e) => setAtmosphereText(e.target.value)}
+              rows={2}
+              placeholder="예: 조용함, 채광, 음악"
+            />
+          </Field>
+          <Field
+            label="이 스튜디오를 열게 된 계기가 있나요? (선택)"
+            hint="짧아도 좋아요. 이 답변은 눈에 띄는 문구로 따로 강조돼요."
+          >
+            <textarea
+              value={philosophyText}
+              onChange={(e) => setPhilosophyText(e.target.value)}
+              rows={2}
+              placeholder="트레이너 개인 이야기 말고, 이 공간을 만들게 된 이유"
+            />
+          </Field>
+        </Section>
+      )}
+
+      {step === 4 && (
+        <Section title="프로그램·이용방법 (필수 + 선택)">
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
+            {programs.map((p, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                <input
+                  placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
+                  value={p.name}
+                  onChange={(e) => updateProgram(i, { name: e.target.value })}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="가격"
+                    value={p.price}
+                    disabled={p.consult}
+                    onChange={(e) => updateProgram(i, { price: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
+                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
+                    상담 후 안내
+                  </label>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
+              style={{ fontSize: 13 }}
+            >
+              + 프로그램 추가
+            </button>
+          </fieldset>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
+            무료 체험이나 1회 체험 프로그램이 있어요
+          </label>
+
+          <Field label="특이한 이용 절차가 있다면 알려주세요 (선택)">
+            <textarea
+              value={howItWorksNote}
+              onChange={(e) => setHowItWorksNote(e.target.value)}
+              rows={2}
+              placeholder="업종 기본 흐름(상담→체험→등록)은 자동으로 만들어져요. 특이한 절차만 적어주세요."
+            />
+          </Field>
+
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>
+              자주 묻는 질문이 있다면 적어주세요
+            </legend>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
+              &quot;초보자도 가능한가요?&quot; 같은 질문에 대한 답은 특히 강력해요.
+            </p>
+            {faqPairs.map((pair, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                <input
+                  placeholder="질문 (예: 환불 규정이 어떻게 되나요?)"
+                  value={pair.question}
+                  onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+                />
+                <input
+                  placeholder="답변"
+                  value={pair.answer}
+                  onChange={(e) => updateFaqPair(i, { answer: e.target.value })}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setFaqPairs((prev) => [...prev, { question: "", answer: "" }])}
+              style={{ fontSize: 13 }}
+            >
+              + 질문 추가
+            </button>
+          </fieldset>
+        </Section>
+      )}
+
+      <WizardNav
+        step={step}
+        isLastStep={step === STEPS.length - 1}
+        canProceed={canProceed()}
+        onBack={() => setStep((s) => s - 1)}
+        onNext={() => setStep((s) => s + 1)}
+        onSubmit={handlePreview}
+      />
+    </main>
+  );
+}

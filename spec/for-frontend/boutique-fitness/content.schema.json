@@ -1,0 +1,1220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mini-homepage-builder.dev/schemas/content.boutique-fitness.json",
+  "title": "BoutiqueFitnessContentJSON",
+  "description": "미니홈페이지빌더 스킬의 boutique-fitness vertical 출력 콘텐츠 JSON 스키마(정식 명세, ajv 검증용). 사람이 읽는 구조 설명은 for-claude-api/boutique-fitness/schema-summary.md, 완성 예시는 for-frontend/fixtures/boutique-fitness/ 참고.",
+  "type": "object",
+  "required": [
+    "meta",
+    "blocks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "$ref": "#/$defs/Meta"
+    },
+    "blocks": {
+      "$ref": "#/$defs/Blocks"
+    }
+  },
+  "$defs": {
+    "Meta": {
+      "type": "object",
+      "required": [
+        "business_name",
+        "industry_category",
+        "lead_emphasis",
+        "inquiry_channels",
+        "browse_channels",
+        "logo_url",
+        "brand_color"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "business_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "industry_category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logo_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "brand_color": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "lead_emphasis": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "transformations",
+            "reviews",
+            "professionals",
+            "facility",
+            null
+          ],
+          "description": "사장님이 가장 자신 있게 내세우고 싶다고 고른 항목. 무응답(null)이면 기본값 transformations로 처리(렌더러 또는 생성 로직에서)."
+        },
+        "inquiry_channels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/InquiryChannel"
+          },
+          "description": "예약/문의 채널. 프론트엔드가 입력 폼에서 이미 확정해 전달 — 스킬은 판단하지 않고 그대로 통과시킨다."
+        },
+        "browse_channels": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/BrowseChannel"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "둘러보기 채널(선택). 없으면 null. 마찬가지로 스킬은 판단하지 않고 그대로 통과시킨다."
+        }
+      }
+    },
+    "Blocks": {
+      "type": "object",
+      "required": [
+        "topbar",
+        "hero",
+        "trust_strip",
+        "professionals",
+        "menu",
+        "info",
+        "sticky_cta"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "topbar": {
+          "$ref": "#/$defs/Topbar"
+        },
+        "hero": {
+          "$ref": "#/$defs/Hero"
+        },
+        "trust_strip": {
+          "$ref": "#/$defs/TrustStrip"
+        },
+        "philosophy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Philosophy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "atmosphere": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Atmosphere"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "menu": {
+          "$ref": "#/$defs/Menu"
+        },
+        "gallery": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Gallery"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviews": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reviews"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "info": {
+          "$ref": "#/$defs/Info"
+        },
+        "sticky_cta": {
+          "$ref": "#/$defs/StickyCta"
+        },
+        "how_it_works": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HowItWorks"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "faq": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Faq"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "professionals": {
+          "$ref": "#/$defs/Professionals"
+        },
+        "transformations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Transformations"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "facility": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Facility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Topbar": {
+      "type": "object",
+      "required": [
+        "display_name",
+        "cta_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cta_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Hero": {
+      "type": "object",
+      "required": [
+        "badge",
+        "headline",
+        "tagline",
+        "background_image_url",
+        "cta_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "badge": {
+          "type": "string",
+          "minLength": 1
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tagline": {
+          "type": "string",
+          "minLength": 1
+        },
+        "background_image_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "cta_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "TrustStrip": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "value",
+              "label"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "Philosophy": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Atmosphere": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "MenuItem": {
+      "type": "object",
+      "required": [
+        "name",
+        "price",
+        "description",
+        "image_url",
+        "badge"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "badge": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "MenuTier": {
+      "type": "object",
+      "required": [
+        "label",
+        "price"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "MenuCategory": {
+      "type": "object",
+      "required": [
+        "category_name",
+        "tiers",
+        "representative_tier_index"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "category_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/MenuTier"
+          }
+        },
+        "representative_tier_index": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Menu": {
+      "type": "object",
+      "required": [
+        "label",
+        "mode",
+        "full_list_link_enabled"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "item_price",
+            "item_consult",
+            "package_table"
+          ]
+        },
+        "items": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {
+                "$ref": "#/$defs/MenuItem"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "categories": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/MenuCategory"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "full_list_link_enabled": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "package_table"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "categories"
+            ],
+            "properties": {
+              "items": {
+                "const": null
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "categories": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "item_consult"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "properties": {
+                    "price": {
+                      "const": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "Gallery": {
+      "type": "object",
+      "required": [
+        "images",
+        "more_link_url"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "more_link_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        }
+      }
+    },
+    "ReviewItem": {
+      "type": "object",
+      "required": [
+        "body",
+        "rating",
+        "author",
+        "source",
+        "trainer_tag"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rating": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 5
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trainer_tag": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "리뷰 원문에 담당 전문가 이름이 실제로 언급된 경우만 채움 — 추론·생성 금지"
+        }
+      }
+    },
+    "Reviews": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/ReviewItem"
+          }
+        }
+      }
+    },
+    "HoursStructuredEntry": {
+      "type": "object",
+      "required": [
+        "day",
+        "open",
+        "close",
+        "break",
+        "last_order",
+        "closed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "day": {
+          "enum": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri",
+            "sat",
+            "sun"
+          ]
+        },
+        "open": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$|^24:00$"
+        },
+        "close": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$|^24:00$"
+        },
+        "break": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$|^24:00$"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_order": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$|^24:00$"
+        },
+        "closed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Hours": {
+      "type": "object",
+      "required": [
+        "type",
+        "structured"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "24h",
+            "structured"
+          ]
+        },
+        "structured": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/HoursStructuredEntry"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "24h"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "structured": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "structured"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "structured"
+            ],
+            "properties": {
+              "structured": {
+                "type": "array",
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "ExternalLink": {
+      "type": "object",
+      "required": [
+        "platform",
+        "url"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "enum": [
+            "instagram",
+            "kakao",
+            "naver_reservation",
+            "blog"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "BusinessInfo": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "registered_name": {
+          "type": "string"
+        },
+        "ceo_name": {
+          "type": "string"
+        },
+        "registration_number": {
+          "type": "string"
+        }
+      }
+    },
+    "Info": {
+      "type": "object",
+      "required": [
+        "address",
+        "map_coordinates",
+        "hours",
+        "phone",
+        "external_links",
+        "business_info"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_coordinates": {
+          "type": "object",
+          "required": [
+            "lat",
+            "lng"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "lat": {
+              "type": "number"
+            },
+            "lng": {
+              "type": "number"
+            }
+          }
+        },
+        "hours": {
+          "$ref": "#/$defs/Hours"
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExternalLink"
+          }
+        },
+        "business_info": {
+          "$ref": "#/$defs/BusinessInfo"
+        }
+      }
+    },
+    "StickyCta": {
+      "type": "object",
+      "required": [
+        "cta_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "cta_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "HowItWorksStep": {
+      "type": "object",
+      "required": [
+        "order",
+        "title",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "HowItWorks": {
+      "type": "object",
+      "required": [
+        "steps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "steps": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/HowItWorksStep"
+          }
+        }
+      }
+    },
+    "FaqItem": {
+      "type": "object",
+      "required": [
+        "question",
+        "answer"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Faq": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/FaqItem"
+          }
+        }
+      }
+    },
+    "TransformationItem": {
+      "type": "object",
+      "required": [
+        "before_image_url",
+        "after_image_url",
+        "duration_label",
+        "result_highlight",
+        "member_label",
+        "trainer_tag"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "before_image_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "after_image_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "duration_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_highlight": {
+          "type": "string",
+          "minLength": 1
+        },
+        "member_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trainer_tag": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Transformations": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/TransformationItem"
+          }
+        }
+      }
+    },
+    "ProfessionalItem": {
+      "type": "object",
+      "required": [
+        "name",
+        "title",
+        "photo_url",
+        "certifications",
+        "specialty",
+        "years_experience",
+        "bio_quote"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "photo_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "certifications": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "specialty": {
+          "type": "string",
+          "minLength": 1
+        },
+        "years_experience": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "bio_quote": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Professionals": {
+      "type": "object",
+      "required": [
+        "section_label",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "section_label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ProfessionalItem"
+          }
+        }
+      }
+    },
+    "Facility": {
+      "type": "object",
+      "required": [
+        "size_pyeong",
+        "has_shower",
+        "has_locker",
+        "has_parking",
+        "equipment_list",
+        "photos"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "size_pyeong": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "has_shower": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "has_locker": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "has_parking": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "equipment_list": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "photos": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "InquiryChannel": {
+      "type": "object",
+      "required": [
+        "type",
+        "action_value",
+        "other_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "call",
+            "naver_reservation",
+            "kakao",
+            "instagram_dm",
+            "other"
+          ]
+        },
+        "action_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "other_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "other"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "other_label": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "other_label": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    "BrowseChannel": {
+      "type": "object",
+      "required": [
+        "type",
+        "action_value",
+        "other_label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "kakao",
+            "naver_blog",
+            "instagram",
+            "youtube",
+            "naver_map",
+            "other"
+          ]
+        },
+        "action_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "other_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "other"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "other_label": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "other_label": {
+                "const": null
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 /**
  * meta.brand_color(사장님 지정 hex)를 씨앗 색으로 삼아 --brand/--brand-deep/--accent/
- * --button-text 전체 팔레트를 결정적으로 유도한다. spec/design/design-guide.md 3-4/3-5 참고.
+ * --button-text 전체 팔레트를 결정적으로 유도한다. spec/for-frontend/general/design-guide.md 3-4/3-5 참고.
  */
 
 type Rgb = { r: number; g: number; b: number };

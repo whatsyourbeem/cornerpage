@@ -6,17 +6,16 @@ import {
   DAYS,
   Field,
   HoursEditor,
-  JsonPreview,
   ProgressBar,
   Section,
   WizardNav,
   defaultHours,
   fileInputStyle,
-  fileLabel,
   fileNameStyle,
   type DayHours,
   type FaqPairDraft,
 } from "../_shared/form-ui";
+import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
 
 /**
  * boutique-fitness vertical 입력 폼. spec/for-frontend/boutique-fitness/
@@ -31,11 +30,14 @@ import {
  * 고른 채널들을 나열하는 구조 — 채널별 표시 문구·아이콘은 렌더러가 type 값으로
  * 고정 템플릿 렌더링하고 스킬은 만들지 않는다.
  *
- * ⚠️ 지금은 실제 Claude API를 호출하지 않는다 — RENDERER_READY_VERTICALS로
- * boutique-fitness 생성 자체가 아직 막혀있기도 하다(verticals.ts 참고). 마지막
- * 단계에서 보낼 JSON을 화면에 표시만 한다. 이미지도 실제로 업로드하지 않고
- * 파일명만 placeholder로 넣는다 — 실제 생성이 열리면 /api/upload 호출과
- * /api/sites 제출을 다시 연결해야 한다.
+ * ⚠️ 클로드 API는 아직 자동 호출하지 않는다 — 마지막 단계에서 실제 이미지
+ * 업로드·draft 발급까지 마친 뒤 "보낼 요청 본문"을 화면에 보여주고, 사람이
+ * claude.ai 등에 직접 붙여넣어 받은 응답을 다시 붙여넣으면 나머지(보정·검증·
+ * 저장)를 수행한다 — ManualGenerationFlow(../_shared/manual-flow.tsx) 참고.
+ * POST /api/sites/manual은 RENDERER_READY_VERTICALS 게이트를 적용하지 않아서
+ * boutique-fitness도 실제로 저장까지 된다 — 다만 렌더러가 아직 이 vertical의
+ * 새 블록을 못 그려서, 저장된 사이트를 지금 방문하면 깨진다(2026-07-19 결정,
+ * 테스트 목적으로 감수).
  */
 
 const STEPS = ["기본 정보", "전문가 프로필", "회원 변화·후기", "공간", "프로그램·이용방법"];
@@ -212,7 +214,7 @@ export default function BoutiqueFitnessCreatePage() {
   const [howItWorksNote, setHowItWorksNote] = useState("");
   const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
-  const [previewJson, setPreviewJson] = useState<string | null>(null);
+  const [showManualFlow, setShowManualFlow] = useState(false);
 
   function canProceed(): boolean {
     if (step === 0) {
@@ -251,32 +253,44 @@ export default function BoutiqueFitnessCreatePage() {
     setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
   }
 
-  function handlePreview() {
-    const finalProfessionals = professionals
-      .filter((p) => p.name.trim())
-      .map((p) => ({
-        name: p.name.trim(),
-        title: p.title.trim(),
-        photo_url: fileLabel(p.photo),
-        certifications: p.certificationsText
-          .split(/[,\n]/)
-          .map((s) => s.trim())
-          .filter(Boolean),
-        specialty: p.specialty.trim(),
-        years_experience: p.yearsExperience.trim() ? Number(p.yearsExperience) : null,
-        bio_quote: p.bioQuote.trim() || null,
-      }));
+  const finalProfessionalsList = professionals.filter((p) => p.name.trim());
+  const finalTransformationsList = transformations.filter(
+    (t) => t.beforeImage || t.afterImage || t.resultHighlight.trim()
+  );
 
-    const finalTransformations = transformations
-      .filter((t) => t.beforeImage || t.afterImage || t.resultHighlight.trim())
-      .map((t) => ({
-        before_image_url: fileLabel(t.beforeImage),
-        after_image_url: fileLabel(t.afterImage),
-        duration_label: t.durationLabel.trim(),
-        result_highlight: t.resultHighlight.trim(),
-        member_label: t.memberLabel.trim(),
-        trainer_tag: t.trainerTag.trim() || null,
-      }));
+  const pendingUploads: PendingUpload[] = [
+    ...(heroFile ? [{ slot: "hero", file: heroFile }] : []),
+    ...(logoFile ? [{ slot: "logo", file: logoFile }] : []),
+    ...finalProfessionalsList.flatMap((p, i) => (p.photo ? [{ slot: `professional-${i}-photo`, file: p.photo }] : [])),
+    ...finalTransformationsList.flatMap((t, i) => [
+      ...(t.beforeImage ? [{ slot: `transformation-${i}-before`, file: t.beforeImage }] : []),
+      ...(t.afterImage ? [{ slot: `transformation-${i}-after`, file: t.afterImage }] : []),
+    ]),
+    ...facilityPhotos.map((file, i) => ({ slot: `facility-${i}`, file })),
+  ];
+
+  function buildAnswers(urls: Record<string, string>) {
+    const finalProfessionals = finalProfessionalsList.map((p, i) => ({
+      name: p.name.trim(),
+      title: p.title.trim(),
+      photo_url: urls[`professional-${i}-photo`] ?? null,
+      certifications: p.certificationsText
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+      specialty: p.specialty.trim(),
+      years_experience: p.yearsExperience.trim() ? Number(p.yearsExperience) : null,
+      bio_quote: p.bioQuote.trim() || null,
+    }));
+
+    const finalTransformations = finalTransformationsList.map((t, i) => ({
+      before_image_url: urls[`transformation-${i}-before`] ?? null,
+      after_image_url: urls[`transformation-${i}-after`] ?? null,
+      duration_label: t.durationLabel.trim(),
+      result_highlight: t.resultHighlight.trim(),
+      member_label: t.memberLabel.trim(),
+      trainer_tag: t.trainerTag.trim() || null,
+    }));
 
     const finalReviews = reviews
       .filter((r) => r.body.trim())
@@ -303,7 +317,7 @@ export default function BoutiqueFitnessCreatePage() {
       .filter((p) => p.name.trim())
       .map((p) => ({ name: p.name.trim(), price: p.consult ? null : p.price.trim() || null }));
 
-    const answers = {
+    return {
       industry_category: industryCategory,
       business_name: businessName,
       address,
@@ -322,8 +336,8 @@ export default function BoutiqueFitnessCreatePage() {
         buildChannels(BROWSE_CHANNELS, browseChannels).length > 0
           ? buildChannels(BROWSE_CHANNELS, browseChannels)
           : null,
-      hero_image_url: fileLabel(heroFile),
-      logo_url: fileLabel(logoFile),
+      hero_image_url: urls["hero"] ?? null,
+      logo_url: urls["logo"] ?? null,
       lead_emphasis: leadEmphasis || null,
       professionals: finalProfessionals,
       transformations: finalTransformations,
@@ -335,7 +349,10 @@ export default function BoutiqueFitnessCreatePage() {
             has_locker: hasLocker,
             has_parking: hasParking,
             equipment_list: equipmentList.length > 0 ? equipmentList : null,
-            photos: facilityPhotos.length > 0 ? facilityPhotos.map((f) => fileLabel(f) as string) : null,
+            photos:
+              facilityPhotos.length > 0
+                ? facilityPhotos.map((_, i) => urls[`facility-${i}`]).filter((u): u is string => !!u)
+                : null,
           }
         : null,
       atmosphere: atmosphereText.trim() || null,
@@ -345,12 +362,17 @@ export default function BoutiqueFitnessCreatePage() {
       how_it_works_note: howItWorksNote.trim() || null,
       faq_answers: faqAnswers,
     };
-
-    setPreviewJson(JSON.stringify({ vertical: "boutique-fitness", answers }, null, 2));
   }
 
-  if (previewJson) {
-    return <JsonPreview json={previewJson} onBack={() => setPreviewJson(null)} />;
+  if (showManualFlow) {
+    return (
+      <ManualGenerationFlow
+        vertical="boutique-fitness"
+        pendingUploads={pendingUploads}
+        buildAnswers={buildAnswers}
+        onBack={() => setShowManualFlow(false)}
+      />
+    );
   }
 
   return (
@@ -764,7 +786,7 @@ export default function BoutiqueFitnessCreatePage() {
         canProceed={canProceed()}
         onBack={() => setStep((s) => s - 1)}
         onNext={() => setStep((s) => s + 1)}
-        onSubmit={handlePreview}
+        onSubmit={() => setShowManualFlow(true)}
       />
     </main>
   );

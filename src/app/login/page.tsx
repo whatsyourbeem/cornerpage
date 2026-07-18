@@ -18,6 +18,18 @@ function LoginContent() {
     });
   };
 
+  // next build는 Vercel의 preview·production 배포 모두 NODE_ENV를
+  // "production"으로 세팅한다(로컬 next dev만 "development") — 이 버튼은
+  // 배포된 환경 어디에도 노출되지 않고 로컬 개발에서만 보인다.
+  const handleDevLogin = async () => {
+    const res = await fetch("/api/dev-login", { method: "POST" });
+    if (res.ok) {
+      window.location.href = next;
+    } else {
+      alert("테스트 로그인에 실패했어요.");
+    }
+  };
+
   return (
     <main
       style={{
@@ -54,6 +66,24 @@ function LoginContent() {
       >
         Google로 계속하기
       </button>
+      {process.env.NODE_ENV !== "production" && (
+        <button
+          onClick={handleDevLogin}
+          style={{
+            marginTop: 4,
+            padding: "10px 20px",
+            borderRadius: 8,
+            border: "1px dashed #bbb",
+            background: "#fafafa",
+            color: "#666",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          테스트 로그인 (로컬 전용)
+        </button>
+      )}
     </main>
   );
 }

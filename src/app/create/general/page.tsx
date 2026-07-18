@@ -6,17 +6,16 @@ import {
   DAYS,
   Field,
   HoursEditor,
-  JsonPreview,
   ProgressBar,
   Section,
   WizardNav,
   defaultHours,
   fileInputStyle,
-  fileLabel,
   fileNameStyle,
   type DayHours,
   type FaqPairDraft,
 } from "../_shared/form-ui";
+import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
 
 /**
  * general vertical 입력 폼. spec/for-frontend/general/input-questions.md의 STEP
@@ -27,10 +26,10 @@ import {
  * 톤·레이아웃·카피는 여기서 확정하지 않는다 — 스킬(Claude)이 원본 사업 정보를
  * 보고 직접 판단할 몫이다(generate-content.ts 참고).
  *
- * ⚠️ 지금은 실제 Claude API를 호출하지 않는다 — /create 쪽 새 vertical 라우팅
- * 구조부터 먼저 검증하는 단계다. 마지막 단계에서 보낼 JSON을 화면에 표시만 한다.
- * 이미지도 실제로 업로드하지 않고 파일명만 placeholder로 넣는다 — 실제 제출이
- * 열리면 /api/sites/draft·/api/upload·/api/sites 호출을 다시 연결해야 한다.
+ * ⚠️ 클로드 API는 아직 자동 호출하지 않는다 — 마지막 단계에서 실제 이미지
+ * 업로드·draft 발급까지 마친 뒤 "보낼 요청 본문"을 화면에 보여주고, 사람이
+ * claude.ai 등에 직접 붙여넣어 받은 응답을 다시 붙여넣으면 나머지(보정·검증·
+ * 저장)를 수행한다 — ManualGenerationFlow(../_shared/manual-flow.tsx) 참고.
  */
 
 const STEPS = ["업종", "기본 정보", "강점·소개", "서비스·사진", "신뢰·링크", "이용방법·FAQ"];
@@ -87,7 +86,7 @@ export default function GeneralCreatePage() {
   const [howItWorksNote, setHowItWorksNote] = useState("");
   const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
-  const [previewJson, setPreviewJson] = useState<string | null>(null);
+  const [showManualFlow, setShowManualFlow] = useState(false);
 
   function canProceed(): boolean {
     if (step === 0) return industry.trim() !== "";
@@ -104,7 +103,16 @@ export default function GeneralCreatePage() {
     setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
   }
 
-  function handlePreview() {
+  const namedMenuItems = menuItems.filter((item) => item.name.trim());
+
+  const pendingUploads: PendingUpload[] = [
+    ...(heroFile ? [{ slot: "hero", file: heroFile }] : []),
+    ...(logoFile ? [{ slot: "logo", file: logoFile }] : []),
+    ...namedMenuItems.flatMap((item, i) => (item.image ? [{ slot: `menu-${i}`, file: item.image }] : [])),
+    ...galleryFiles.map((file, i) => ({ slot: `gallery-${i}`, file })),
+  ];
+
+  function buildAnswers(urls: Record<string, string>) {
     const finalStrengths = strengthsText
       .split(/[,\n]/)
       .map((s) => s.trim())
@@ -112,9 +120,8 @@ export default function GeneralCreatePage() {
     const faqAnswers = faqPairs
       .filter((pair) => pair.question.trim() && pair.answer.trim())
       .map((pair) => ({ question: pair.question.trim(), answer: pair.answer.trim() }));
-    const namedMenuItems = menuItems.filter((item) => item.name.trim());
 
-    const answers = {
+    return {
       industry_category: industry,
       business_name: businessName,
       address,
@@ -130,20 +137,20 @@ export default function GeneralCreatePage() {
               closed: hours[d.key].closed,
             })),
           },
-      hero_image_url: fileLabel(heroFile),
-      logo_url: fileLabel(logoFile),
+      hero_image_url: urls["hero"] ?? null,
+      logo_url: urls["logo"] ?? null,
       cta_primary_action: ctaPrimaryAction,
       intro: intro.trim() || null,
       philosophy: philosophyText.trim() || null,
       atmosphere: atmosphereText.trim() || null,
       strengths: finalStrengths,
-      menu_items: namedMenuItems.map((item) => ({
+      menu_items: namedMenuItems.map((item, i) => ({
         name: item.name.trim(),
         price: item.consult ? null : item.price.trim() || null,
         description: item.description.trim() || null,
-        image_url: fileLabel(item.image),
+        image_url: urls[`menu-${i}`] ?? null,
       })),
-      gallery_image_urls: galleryFiles.map((f) => fileLabel(f) as string),
+      gallery_image_urls: galleryFiles.map((_, i) => urls[`gallery-${i}`]).filter((u): u is string => !!u),
       external_links: (Object.keys(links) as ExternalLinkPlatform[])
         .filter((platform) => links[platform].trim())
         .map((platform) => ({ platform, url: links[platform].trim() })),
@@ -158,12 +165,17 @@ export default function GeneralCreatePage() {
       how_it_works_note: howItWorksNote.trim() || null,
       faq_answers: faqAnswers,
     };
-
-    setPreviewJson(JSON.stringify({ vertical: "general", answers }, null, 2));
   }
 
-  if (previewJson) {
-    return <JsonPreview json={previewJson} onBack={() => setPreviewJson(null)} />;
+  if (showManualFlow) {
+    return (
+      <ManualGenerationFlow
+        vertical="general"
+        pendingUploads={pendingUploads}
+        buildAnswers={buildAnswers}
+        onBack={() => setShowManualFlow(false)}
+      />
+    );
   }
 
   return (
@@ -445,7 +457,7 @@ export default function GeneralCreatePage() {
         canProceed={canProceed()}
         onBack={() => setStep((s) => s - 1)}
         onNext={() => setStep((s) => s + 1)}
-        onSubmit={handlePreview}
+        onSubmit={() => setShowManualFlow(true)}
       />
     </main>
   );

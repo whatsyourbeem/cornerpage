@@ -4,7 +4,7 @@ import Ajv2020 from "ajv/dist/2020";
 import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema.json";
 import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
-import { SKILL_PROMPTS } from "./skill-prompt.generated";
+import { buildClaudeRequestBody } from "./claude-request";
 import { determineVertical, RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
 import type {
   CtaPrimaryAction,
@@ -140,28 +140,18 @@ function stripCodeFence(text: string): string {
   return fenced ? fenced[1] : text;
 }
 
-async function attemptGenerate(
-  answers: DraftAnswers,
-  coordinates: { lat: number; lng: number },
-  vertical: Vertical
-): Promise<MiniHomepageContent> {
-  const response = await client.messages.create({
-    model: "claude-sonnet-5",
-    max_tokens: 8192,
-    system: SKILL_PROMPTS[vertical],
-    messages: [
-      {
-        role: "user",
-        content:
-          "다음은 사장님이 입력한 사업 정보(가공 전 원본)다. meta의 판단 필드부터 " +
-          "각 블록의 온오프·순서·카피까지 전부 스킬 지침에 따라 " +
-          "직접 판단해서 콘텐츠 JSON을 생성해줘. 출력은 콘텐츠 JSON 하나만 — 다른 " +
-          `설명 문구나 마크다운 코드펜스 없이 순수 JSON만 응답해.\n\n${JSON.stringify(answers, null, 2)}`,
-      },
-    ],
-  });
-
-  const content = JSON.parse(stripCodeFence(extractText(response))) as {
+/**
+ * Claude 응답 텍스트(원문 그대로, 코드펜스 있어도 됨) → 결정적 보정 → ajv 검증까지
+ * 처리하는 공용 함수. 자동 파이프라인(attemptGenerate)과 수동 테스트 흐름(POST
+ * /api/sites/manual — 사람이 claude.ai에서 직접 받아온 응답을 붙여넣는 경로)이
+ * 이 함수 하나를 공유한다 — 보정·검증 로직이 두 경로에서 갈라지지 않게 하기 위해서다.
+ */
+export function processGeneratedContent(
+  rawText: string,
+  vertical: Vertical,
+  coordinates: { lat: number; lng: number }
+): unknown {
+  const content = JSON.parse(stripCodeFence(rawText)) as {
     blocks?: {
       info?: {
         map_coordinates?: unknown;
@@ -209,7 +199,17 @@ async function attemptGenerate(
     throw new Error(`콘텐츠 스키마 검증 실패: ${ajv.errorsText(validate.errors)}`);
   }
 
-  return content as unknown as MiniHomepageContent;
+  return content;
+}
+
+async function attemptGenerate(
+  answers: DraftAnswers,
+  coordinates: { lat: number; lng: number },
+  vertical: Vertical
+): Promise<MiniHomepageContent> {
+  const response = await client.messages.create(buildClaudeRequestBody(vertical, answers));
+  const content = processGeneratedContent(extractText(response), vertical, coordinates);
+  return content as MiniHomepageContent;
 }
 
 /**

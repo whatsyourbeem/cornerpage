@@ -9,16 +9,21 @@ import { VERTICALS } from "../src/lib/verticals";
 // 직접 본다(2026-07-16 이전엔 schema.md가 예시를 따로 들고 있었는데 fixtures와
 // byte-for-byte 중복이라 폐기됨).
 //
+// blocks.md는 for-claude-api/에서 빠졌다(2026-07-18) — 실질 지침이 이미
+// schema-summary.md의 필드별 인라인 주석에 압축돼 있다는 게 확인되어
+// for-context/{vertical}/blocks.md(설계 근거 문서, API 미전송)로 옮겨졌다.
+// 그래서 vertical당 프롬프트에 실리는 파일이 3개→2개로 줄었다.
+//
 // spec/for-claude-api/ 밑은 "여기 있는 파일 = 통째로 API로 보내도 되는 파일"이
 // 되도록 설계되어 있다(spec/README.md 1장) — vertical별로 콘텐츠 스키마 자체가
-// 다르므로, SKILL.md + copywriting.md(공통) + 각 vertical의 blocks.md·
-// schema-summary.md·industry-data.md를 vertical마다 따로 조합해
-// SKILL_PROMPTS[vertical] 하나씩 만든다.
+// 다르므로, SKILL.md + copywriting.md(공통) + 각 vertical의 schema-summary.md·
+// industry-data.md를 vertical마다 따로 조합해 SKILL_PROMPTS[vertical] 하나씩
+// 만든다.
 const COMMON_FILES = ["spec/for-claude-api/SKILL.md", "spec/for-claude-api/copywriting.md"];
 
 function verticalFiles(vertical: string): string[] {
   const base = `spec/for-claude-api/${vertical}`;
-  return [`${base}/blocks.md`, `${base}/schema-summary.md`, `${base}/industry-data.md`];
+  return [`${base}/schema-summary.md`, `${base}/industry-data.md`];
 }
 
 function readAll(files: string[]): string {

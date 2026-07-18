@@ -1,8 +1,12 @@
 # 블록별 슬롯 구조(층1)·작성 원칙(층2)·좋은/나쁜 예(층2.5) — boutique-fitness
 
 > Step 2(블록 구성·순서)와 Step 3 중 **콘텐츠** 부분의 결과물을 담는 문서.
-> **이 파일은 실제 Claude API 시스템 프롬프트에 그대로 실린다**(README.md 2장) — 그래서 디자인 정보(색상 hex·px 값·그림자 등)는
-> 절대 여기 넣지 않는다. 디자인은 `../../for-frontend/boutique-fitness/design-guide.md`에 별도로 기록한다
+> ⚠️ **이 파일은 더 이상 Claude API 시스템 프롬프트에 포함되지 않는다(2026-07-16 변경).** 대조 결과 이 문서의 실질적 지침이 이미
+> `../../for-claude-api/boutique-fitness/schema-summary.md`의 필드별 인라인 주석에 압축돼 있었다 — 이 문서가 추가로 주는 건
+> "왜 이렇게 했는지" 근거와 예시뿐이라, 근거는 여기(`for-context/`)로 옮기고 고위험 블록 예시만 `schema-summary.md` 끝부분에
+> 압축해 남겼다. **이 문서는 이제 순수 설계 근거 문서다** — Step2/3를 다시 검토하거나 새 vertical을 만들 때, 또는
+> `schema-summary.md`의 어느 규칙이 왜 그렇게 정해졌는지 확인할 때 사람이 연다.
+> 디자인 정보(색상 hex·px 값·그림자 등)는 여기 넣지 않는다 — `../../for-frontend/boutique-fitness/design-guide.md`에 별도 기록
 > (블록별 상세 디자인은 그 문서의 "10. 블록별 상세 디자인 명세" 참고 — 콘텐츠 논의와 함께 정하되 저장 위치는 분리).
 > 이 문서는 general의 `blocks.md`와 같은 형식을 따르되, "왜 general과 다르게 갔는지"를 각 블록에 짧게 남겨
 > 나중에 다른 vertical을 만들 때 참고할 수 있게 한다.

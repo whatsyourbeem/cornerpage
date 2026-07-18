@@ -9,6 +9,15 @@
 > - `reviews.items`에 `trainer_tag` 필드 추가.
 > - 블록 순서 자체가 general과 다름(아래 목차가 실제 페이지 순서).
 
+## 이 vertical의 카피 톤 — "차분한 확신" (모든 블록에 적용, 개별 규칙 없는 필드도 포함)
+
+`copywriting.md`의 일반 원칙(최상급 금지·AI 티 방지·가짜 긴급함 금지)은 노골적인 과장만 막는다. 이 vertical은 거기서 한 단계 더 나아가, **사실이어도 텐션이 과도하게 높은 문체를 피한다.** 근거: 대형 PT 체인 특유의 "빨강+검정, 느낌표 많은 공격적 세일즈" 톤은 이 vertical이 지우려는 강매 불안을 오히려 되살린다(상세는 `definition.md` 7장 반례). 그래서:
+
+- **느낌표·감탄사를 절제한다.** "환상적인 공간에서 시작하세요!" 대신 "큰 창으로 오후 햇살이 들어오는 공간입니다"처럼, 사실을 담담하게 서술한다.
+- **증거(수치·사실)가 스스로 말하게 하고, 문장이 대신 흥분하지 않는다.** "체지방률 6%p 감소, 놀랍지 않나요?" 대신 그냥 "체지방률 6%p 감소".
+- **이 원칙은 개별 규칙이 없는 필드(`atmosphere`·`philosophy`·`facility`·FAQ 답변 등)에도 똑같이 적용된다** — 아래에 각 블록마다 별도로 "절제하라"고 반복해서 적어두지 않았다고 해서 예외인 게 아니다.
+- 목표는 "차분하지만 확신에 찬" 어조다 — 위축되거나 소극적인 것과는 다르다. 자신감은 담되(전문가 경력·구체적 성과), 그걸 표현하는 방식이 절제돼 있다.
+
 ---
 
 # 콘텐츠 JSON 스키마 — boutique-fitness
@@ -92,7 +101,7 @@
   ]
 } | null
 ```
-4개 필드(before/after/duration/result) 전부 필수 — 하나라도 없으면 그 항목 자체를 만들지 않는다. 결과 수치·기간 없는 사진만으로는 이 블록을 켜지 않는다. **사실 조작 리스크가 가장 큰 블록 — 사장님이 준 데이터만.**
+4개 필드(before/after/duration/result) 전부 필수 — 하나라도 없으면 그 항목 자체를 만들지 않는다. 결과 수치·기간 없는 사진만으로는 이 블록을 켜지 않는다. **사실 조작 리스크가 가장 큰 블록 — 사장님이 준 데이터만.** 권장 개수 1~4개(리뷰·갤러리처럼 채워야 할 목표 개수가 아니라, 사장님이 준 만큼만 — 하나도 없으면 `null`).
 
 ### 3-1. reviews (선택, 사실상 필수급)
 ```json
@@ -167,24 +176,37 @@
 ```
 `equipment_list`는 구체적 수량과 함께(예: "리포머 5대"). `photos`는 갤러리와 중복 금지.
 
-### 5. menu (필수)
+### 5. menu (필수, mode에 따라 구조 분기)
 ```json
 "menu": {
   "label": "string, required ('메뉴' 대신 업종 언어로: 'PT 프로그램' | '수업 구성' | '클래스 안내')",
   "mode": "item_price | item_consult | package_table (이 vertical은 item_consult가 강한 기본값)",
-  "items": [ { "name": "string, required", "price": "string | null", "description": "string | null", "image_url": "url | null", "badge": "string | null" } ],
+
+  // mode == item_price | item_consult:
+  "items": [ { "name": "string, required", "price": "string | null (item_consult면 항상 null → '상담 문의' 렌더)", "description": "string | null", "image_url": "url | null", "badge": "string | null" } ],
+  // 대표 1~3개만. 하한 강제 금지(있는 만큼만, 최소 1개). 1개뿐이면 full_list_link_enabled: false.
+
+  // mode == package_table (코치 등급제 등 계층 요금제):
   "categories": [ { "category_name": "string", "tiers": [ { "label": "string", "price": "string" } ], "representative_tier_index": "integer" } ],
+
   "full_list_link_enabled": "boolean"
 }
 ```
-`item_price`(고정가 노출)는 원칙적으로 쓰지 않는다. `package_table`은 코치 등급제처럼 구조가 명확할 때만.
+**mode가 package_table이면 `items`는 반드시 null, `item_price`·`item_consult`면 `categories`는 반드시 null(상호 배타 — 둘 다 채우거나 둘 다 비우면 스키마 검증 실패).** `item_price`(고정가 노출)는 원칙적으로 쓰지 않는다. `package_table`은 코치 등급제처럼 구조가 명확할 때만.
 
 ### 6. info (필수)
 ```json
 "info": {
   "address": "string, required",
   "map_coordinates": { "lat": "number", "lng": "number" },
-  "hours": { "type": "24h | structured", "structured": [ { "day": "mon|tue|wed|thu|fri|sat|sun", "open": "HH:mm|null", "close": "HH:mm|null", "break": ["HH:mm","HH:mm"]|null, "last_order": "HH:mm|null", "closed": "boolean" } ] },
+  "hours": {
+    "type": "24h | structured",
+    "structured": "type이 24h면 반드시 null. type이 structured면 반드시 비어있지 않은 배열(최소 1개 요일)이어야 함 — 둘 다 아닌 조합(예: type=structured인데 structured=null)은 렌더러 크래시를 유발하므로 절대 금지:",
+    "structured_array_shape": [
+      { "day": "mon|tue|wed|thu|fri|sat|sun", "open": "HH:mm", "close": "HH:mm",
+        "break": ["HH:mm","HH:mm"], "last_order": "HH:mm", "closed": "boolean" }
+    ]
+  },
   "phone": "string, required",
   "external_links": [ { "platform": "instagram|kakao|naver_reservation|blog", "url": "string" } ],
   "business_info": { "registered_name": "string", "ceo_name": "string", "registration_number": "string" } | null
@@ -225,4 +247,16 @@
 **필수 블록(항상 값이 있어야 함)**: `topbar · hero · trust_strip · professionals · menu · info · sticky_cta` — general(6개) 대비 `professionals`가 추가되어 7개.
 
 **선택이지만 적극 확보 대상**: `transformations` · `reviews` — `definition.md`의 증거 위계상 직접 증거이므로, 데이터가 있으면 반드시 채운다.
+
+---
+
+## 5. 핵심 예시 (고위험 블록만 압축)
+
+전체 근거·상세 원칙은 `../../for-context/boutique-fitness/blocks.md`(사람이 읽는 문서, 프롬프트에 포함 안 됨) 참고. 여기엔 사실 조작·AI 티 위험이 큰 블록의 예시만 압축해서 남긴다.
+
+- **hero.headline** 좋은 예: "8년째 재활 전문으로, 한 사람만 보는 PT"(사실 기반, 결과 약속 없음) / 나쁜 예: "당신의 몸을 확실히 바꿔드립니다"(증거 없이 결과 선약속 — transformations·reviews의 역할을 가로챔)
+- **transformations** 좋은 예: `{ "duration_label": "12주", "result_highlight": "체지방률 6%p 감소" }` / 나쁜 예: `{ "duration_label": null, "result_highlight": "환상적인 변화!" }`(기간·수치 없이 감탄사만 — 이 블록은 절대 지어내지 않는다, 사실 조작 리스크 최고)
+- **reviews.trainer_tag / transformations.trainer_tag** 원문에 이름이 실제로 언급된 경우만 채운다. "아마 이 사람이겠지" 식 추론 절대 금지.
+- **professionals.certifications** 실제 보유한 것만. 없으면 빈 배열 — 자격증 사칭은 신뢰·법적 리스크로 직결.
+- **professionals.bio_quote** 좋은 예: "운동이 처음인 분들이 다치지 않게, 기본기부터 차근차근 봐드립니다."(전문성 전달) / 나쁜 예: "대한민국 최고의 실력으로 인생을 바꿔드립니다"(최상급·과장)
 

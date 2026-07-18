@@ -55,7 +55,7 @@ tokens:
   components_harvested: false
 ---
 
-> 이 문서 안의 `definition.md`는 `../../for-context/boutique-fitness/definition.md`를, `blocks.md`는 `../../for-claude-api/boutique-fitness/blocks.md`를 가리킨다(같은 폴더에 없음 — 폴더 구조는 README.md 1장 참고).
+> 이 문서 안의 `definition.md`는 `../../for-context/boutique-fitness/definition.md`를, `blocks.md`는 `../../for-context/boutique-fitness/blocks.md`를 가리킨다(같은 폴더에 없음 — 폴더 구조는 README.md 1장 참고).
 
 부티크 피트니스(PT·필라테스·요가 등 1:1/소수정예 지도형 스튜디오) 전용 고정 디자인 톤. `definition.md`의 판단(직접증거 우선, 강매 불안 해소, 절제된 확신)을 시각 언어로 번역한 것이다.
 
@@ -123,7 +123,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - 사진: 둥근 사각형(radius 16px), 정사각 비율
 - 이름: `h-22`, 직함: `body-15`/`--ink-muted`
 - 자격증·전문분야: `tag-cert` 칩으로 나열(배경 `--brand-light`, 텍스트 `--brand`)
-- 한 줄 지도철학(`bio_quote`): `body-16`, 인용부호 없이(콘텐츠 원칙은 `../../for-claude-api/boutique-fitness/blocks.md` 참고)
+- 한 줄 지도철학(`bio_quote`): `body-16`, 인용부호 없이(콘텐츠 원칙은 `../../for-context/boutique-fitness/blocks.md` 참고)
 
 **시설 스펙 (`facility`)**
 - 아이콘(24px, `--brand` 색) + 라벨(`body-15`) 행 반복, 2~3열 그리드
@@ -145,7 +145,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - **컨테이너**: max-width 1080px, 중앙 정렬, 좌우 여백 92%
 - **섹션 간격**: 데스크톱 96px, 모바일 64px
 - **모바일 브레이크포인트**: 768px
-- **블록 배치 순서** (원본은 `../../for-claude-api/boutique-fitness/blocks.md` "확정된 블록 순서" — 콘텐츠 작성 원칙까지 필요 없다면 아래만 봐도 렌더링 순서를 알 수 있다):
+- **블록 배치 순서** (원본은 `../../for-context/boutique-fitness/blocks.md` "확정된 블록 순서" — 콘텐츠 작성 원칙까지 필요 없다면 아래만 봐도 렌더링 순서를 알 수 있다):
   ```
   0. 상단 고정바
   1. 히어로
@@ -163,7 +163,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
   ```
   `lead_emphasis`(사장님이 고른 최우선 어필 포인트)에 따라 3~3-2 구간의 순서가 바뀔 수 있다. facility가 선택된 경우에만 예외적으로 4번 클러스터에서 분리되어 최상단(3번 자리)으로 이동한다.
 - **증거 클러스터(비포애프터·리뷰·전문가) 배치**: 가로 캐러셀보다 **세로 스택 우선**. 이유: `definition.md`의 "정해진 순서로 지나가게 한다"는 선형적 설득 원칙상, 가로 스크롤은 사용자가 순서를 건너뛰기 쉬워 원칙과 충돌. 리뷰처럼 여러 개를 나열해야 하는 경우에도 세로로 2~3개만 보여주고 "더보기"로 확장하는 방식을 우선한다.
-- **내비게이션 없음**(상단바 결정 참고 — `../../for-claude-api/boutique-fitness/blocks.md` 블록 0)
+- **내비게이션 없음**(상단바 결정 참고 — `../../for-context/boutique-fitness/blocks.md` 블록 0)
 
 ## 6. Depth & Elevation
 
@@ -202,7 +202,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 
 ## 10. 블록별 상세 디자인 명세
 
-`blocks.md`(콘텐츠 문서, API로 전송됨)와 짝을 이루는 디자인 명세. 블록별 콘텐츠 논의와 함께 정하되, 저장 위치는 반드시 이 문서로 분리한다 — `blocks.md`는 Claude API 시스템 프롬프트에 그대로 실리는 파일이라 디자인 정보(hex·px 등)가 섞이면 불필요한 토큰 비용이 발생한다.
+`blocks.md`(콘텐츠 설계 근거 문서, `for-context/`에 위치 — API로는 전송되지 않음, 실질 지침은 `schema-summary.md`에 이미 압축되어 있음)와 짝을 이루는 디자인 명세. 블록별 콘텐츠 논의와 함께 정하되, 저장 위치는 반드시 이 문서로 분리한다 — 디자인 정보(hex·px 등)가 `for-claude-api/`의 프롬프트 파일에 섞이면 불필요한 토큰 비용이 발생하기 때문이다.
 
 ### 10-1. 상단 고정바
 - 배경: `--brand`(`#1F3A35`), 텍스트: `#FFFFFF`

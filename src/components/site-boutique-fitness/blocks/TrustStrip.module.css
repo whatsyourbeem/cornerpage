@@ -13,6 +13,14 @@
   border-right: none;
 }
 
+.icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 8px;
+  color: var(--brand);
+}
+
 .value {
   display: block;
   font-size: clamp(28px, 7vw, 40px);

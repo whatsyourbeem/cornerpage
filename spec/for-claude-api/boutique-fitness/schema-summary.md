@@ -78,21 +78,41 @@
 ```json
 "hero": {
   "badge": "string, required (지역 + 구체적 전문분야, 예: '수내동 · 필라테스 스튜디오')",
-  "headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지 — 증거는 뒤 블록이 담당)",
+  "headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지 — 증거는 뒤 블록이 담당. 줄바꿈은 \\n으로 직접 지정 — 최대 2줄, 각 줄 4~20자. 20자 넘는 문장을 \\n 없이 한 줄로 넣으면 스키마가 거부한다)",
   "tagline": "string, required ('나도 할 수 있을까' 불안을 사실 기반으로 완화하는 자리)",
   "background_image_url": "url | null",
   "cta_label": "string, required (저부담)"
 }
 ```
+**`headline` 줄바꿈 규칙(중요)**: 브라우저가 뷰포트 너비에 따라 임의 위치에서 줄바꿈하는 걸 막기 위해, 줄바꿈 위치를 생성 단계에서 직접 정한다. 20자 이내로 짧으면 `\n` 없이 한 줄로. 그보다 길면 **의미 단위(구·절 경계)**로 끊어서 `\n` 하나만 넣는다 — 조사·어절 중간에서 끊지 않는다.
+
+**좋은 예:** `"8년째 재활 전문으로,\n한 사람만 보는 PT"` — 쉼표(의미 단위) 뒤에서 끊음, 각 줄 20자 이내.
+**나쁜 예:** `"8년째 재활 전문으로, 한 사람만 보는 PT"`(27자, `\n` 없음 — 스키마 거부) / `"8년째 재활 전문으로, 한\n사람만 보는 PT"`(어절 중간에서 끊음 — 스키마는 통과해도 의미 단위 원칙 위반).
+
 `meta.browse_channels`가 있으면 히어로에 채널별 버튼이 함께 나열된다(프론트엔드가 `meta`에서 직접 읽어 렌더링 — hero 스키마 자체엔 필드 없음, 스킬이 신경 쓸 부분 아님).
 
 ### 2. trust_strip (필수)
 ```json
 "trust_strip": {
-  "items": [ { "value": "string", "label": "string" } ]
+  "items": [ { "value": "string", "label": "string", "icon": "Calendar | Clock | Users | Award | BadgeCheck | TrendingUp | RefreshCw | Heart | Star | Dumbbell | MessagesSquare | Trophy" } ]
 }
 ```
 정확히 3개. 사람·성과 지표 우선(경력 연차·누적 변화 수·자격증 수). 시설 지표(평수·운영시간 등)는 여기 넣지 않고 `facility`로.
+
+**`icon`은 반드시 위 12개 목록 중에서만 고른다 — 목록에 없는 이름을 지어내거나 비슷한 이름으로 대체하지 않는다.** lucide-react 아이콘 컴포넌트명을 렌더러가 그대로 매핑해서 쓰므로, 목록 밖 값은 렌더링이 깨진다.
+
+**지표 유형별 권장 아이콘**(참고용, 사장님이 준 실제 지표에 맞춰 판단):
+- 경력·운영 연차 → `Calendar`(우선) 또는 `Clock`
+- 누적 회원 수·변화 사례 수 → `Users`(인원 중심) 또는 `TrendingUp`(변화·성장 중심)
+- 보유 자격증·수상 이력 → `Award`(우선) 또는 `Trophy`(대회 입상 등)
+- 재등록률·재방문율 → `RefreshCw` 또는 `Heart`
+- 수업·세션 횟수 → `Dumbbell` 또는 `Repeat` 성격이면 `RefreshCw`
+- 상담 건수 → `MessagesSquare`
+- 평점·만족도 → `Star`
+- 인증·신뢰 지표 일반(위에 안 맞을 때) → `BadgeCheck`
+
+**좋은 예:** `{ "value": "8년", "label": "지도 경력", "icon": "Calendar" }` / `{ "value": "127명", "label": "누적 변화 사례", "icon": "TrendingUp" }` / `{ "value": "4개", "label": "보유 자격증", "icon": "Award" }`
+**나쁜 예:** `"icon": "Fitness"` — 목록에 없는 이름을 지어냄(존재하지 않는 lucide 아이콘일 가능성 높음).
 
 ### 3. transformations (선택, 사실상 필수급)
 ```json
@@ -262,7 +282,7 @@
 
 전체 근거·상세 원칙은 `../../for-context/boutique-fitness/blocks.md`(사람이 읽는 문서, 프롬프트에 포함 안 됨) 참고. 여기엔 사실 조작·AI 티 위험이 큰 블록의 예시만 압축해서 남긴다.
 
-- **hero.headline** 좋은 예: "8년째 재활 전문으로, 한 사람만 보는 PT"(사실 기반, 결과 약속 없음) / 나쁜 예: "당신의 몸을 확실히 바꿔드립니다"(증거 없이 결과 선약속 — transformations·reviews의 역할을 가로챔)
+- **hero.headline** 좋은 예: "8년째 재활 전문으로,\n한 사람만 보는 PT"(사실 기반, 결과 약속 없음, 의미 단위 줄바꿈) / 나쁜 예: "당신의 몸을 확실히 바꿔드립니다"(증거 없이 결과 선약속 — transformations·reviews의 역할을 가로챔)
 - **transformations** 좋은 예: `{ "duration_label": "12주", "result_highlight": "체지방률 6%p 감소" }` / 나쁜 예: `{ "duration_label": null, "result_highlight": "환상적인 변화!" }`(기간·수치 없이 감탄사만 — 이 블록은 절대 지어내지 않는다, 사실 조작 리스크 최고)
 - **reviews.trainer_tag / transformations.trainer_tag** 원문에 이름이 실제로 언급된 경우만 채운다. "아마 이 사람이겠지" 식 추론 절대 금지.
 - **professionals.certifications** 실제 보유한 것만. 없으면 빈 배열 — 자격증 사칭은 신뢰·법적 리스크로 직결.

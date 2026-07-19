@@ -1,8 +1,41 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { TrustStrip as TrustStripType } from "@/lib/content-types-boutique-fitness";
+import {
+  Award,
+  BadgeCheck,
+  Calendar,
+  Clock,
+  Dumbbell,
+  Heart,
+  MessagesSquare,
+  RefreshCw,
+  Star,
+  TrendingUp,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import type {
+  TrustStrip as TrustStripType,
+  TrustStripIcon,
+} from "@/lib/content-types-boutique-fitness";
 import styles from "./TrustStrip.module.css";
+
+const TRUST_STRIP_ICONS: Record<TrustStripIcon, LucideIcon> = {
+  Calendar,
+  Clock,
+  Users,
+  Award,
+  BadgeCheck,
+  TrendingUp,
+  RefreshCw,
+  Heart,
+  Star,
+  Dumbbell,
+  MessagesSquare,
+  Trophy,
+};
 
 /** "1,240+" -> { prefix: "", number: 1240, suffix: "+" } / 파싱 불가면 null */
 function parseNumeric(value: string) {
@@ -74,14 +107,18 @@ export function TrustStrip({ trustStrip }: { trustStrip: TrustStripType }) {
   return (
     <div className="mhp-band mhp-band-light mhp-section">
       <div className={`mhp-container ${styles.strip}`}>
-        {trustStrip.items.map((item, i) => (
-          <div className={styles.item} key={i}>
-            <span className={styles.value}>
-              <CountUpValue value={item.value} />
-            </span>
-            <span className={styles.label}>{item.label}</span>
-          </div>
-        ))}
+        {trustStrip.items.map((item, i) => {
+          const Icon = TRUST_STRIP_ICONS[item.icon];
+          return (
+            <div className={styles.item} key={i}>
+              {Icon && <Icon className={styles.icon} aria-hidden />}
+              <span className={styles.value}>
+                <CountUpValue value={item.value} />
+              </span>
+              <span className={styles.label}>{item.label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

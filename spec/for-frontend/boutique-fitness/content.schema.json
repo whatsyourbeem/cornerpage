@@ -243,7 +243,8 @@
         },
         "headline": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^.{4,20}(\\n.{4,20})?$",
+          "description": "최대 2줄(줄바꿈은 \\n 하나만 허용). 각 줄 4~20자. 20자를 넘는 문장을 줄바꿈 없이 한 줄로 넣는 것은 이 패턴이 거부한다 — 브라우저가 임의 위치에서 줄바꿈하지 않도록, 긴 헤드라인은 반드시 의미 단위로 끊어 \\n을 넣어야 한다."
         },
         "tagline": {
           "type": "string",
@@ -277,7 +278,8 @@
             "type": "object",
             "required": [
               "value",
-              "label"
+              "label",
+              "icon"
             ],
             "additionalProperties": false,
             "properties": {
@@ -288,6 +290,23 @@
               "label": {
                 "type": "string",
                 "minLength": 1
+              },
+              "icon": {
+                "enum": [
+                  "Calendar",
+                  "Clock",
+                  "Users",
+                  "Award",
+                  "BadgeCheck",
+                  "TrendingUp",
+                  "RefreshCw",
+                  "Heart",
+                  "Star",
+                  "Dumbbell",
+                  "MessagesSquare",
+                  "Trophy"
+                ],
+                "description": "lucide-react 아이콘 컴포넌트명(PascalCase). 이 목록 안에서만 선택 — 지어내거나 오타 내지 않는다."
               }
             }
           }

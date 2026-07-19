@@ -69,7 +69,12 @@ export interface Topbar {
 
 export interface Hero {
   badge: string;
-  /** 정체성·전문성 사실 기반. 증거를 아직 안 보여준 단계라 결과 약속 문구 금지 */
+  /**
+   * 정체성·전문성 사실 기반. 증거를 아직 안 보여준 단계라 결과 약속 문구 금지.
+   * **줄바꿈은 `\n`으로 명시적으로 지정한다** — 최대 2줄, 각 줄 4~20자.
+   * 20자를 넘는 문장을 줄바꿈 없이 넣는 건 스키마가 거부한다(브라우저의 임의 줄바꿈 방지 목적).
+   * 좋은 예: `"8년째 재활 전문으로,\n한 사람만 보는 PT"` — 의미 단위로 끊음.
+   */
   headline: string;
   /** "나도 할 수 있을까" 불안을 첫 노출로 완화하는 자리(사실 기반일 때만) */
   tagline: string;
@@ -82,9 +87,18 @@ export interface Hero {
 
 // ---------- 블록 2: trust_strip ----------
 
+export type TrustStripIcon =
+  | "Calendar" | "Clock" | "Users" | "Award" | "BadgeCheck"
+  | "TrendingUp" | "RefreshCw" | "Heart" | "Star" | "Dumbbell"
+  | "MessagesSquare" | "Trophy";
+
 export interface TrustStripItem {
   value: string;
   label: string;
+  /** lucide-react 아이콘 컴포넌트명(PascalCase). 이 12개 목록 안에서만 선택 —
+   *  지어내거나 오타 내지 않는다. 렌더러가 이 문자열을 그대로 lucide-react 컴포넌트로 매핑한다.
+   *  기존에 이 필드 없이 저장된 사이트는 렌더러에서 아이콘 없이(값+라벨만) 폴백 렌더링한다. */
+  icon: TrustStripIcon;
 }
 
 export interface TrustStrip {

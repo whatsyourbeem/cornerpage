@@ -1,13 +1,15 @@
 import { supabase } from "./supabase";
-import type { MiniHomepageContent } from "./content-types";
 import type { Vertical } from "./verticals";
 
+/** vertical에 따라 실제 모양이 general/boutique-fitness 스키마로 갈리므로, 여기서는
+ * unknown으로 두고 렌더러 dispatch 지점(site/[slug]·preview/[slug])에서 vertical을 보고
+ * 맞는 content.types.ts로 캐스팅한다. */
 export interface SiteRow {
   id: string;
   slug: string;
   vertical: Vertical;
   business_name: string;
-  content_json: MiniHomepageContent;
+  content_json: unknown;
   created_at: string;
   updated_at: string;
 }

@@ -1,0 +1,17 @@
+.quoteMark {
+  font-size: clamp(40px, 8vw, 56px);
+  line-height: 1;
+  margin: 0 0 -10px;
+  color: var(--accent);
+  opacity: 0.55;
+}
+
+.text {
+  font-weight: 700;
+  font-size: clamp(20px, 4.6vw, 28px);
+  line-height: 1.4;
+  margin: 0;
+  max-width: 620px;
+  color: var(--ink);
+  white-space: pre-line;
+}

@@ -10,13 +10,10 @@ export type Vertical = (typeof VERTICALS)[number];
 /**
  * 렌더러(MiniHomepageSite.tsx 등)가 실제로 그릴 수 있는 vertical 목록. 스키마/
  * 프롬프트가 완성돼도 렌더러가 그 블록 구성을 지원해야 실제로 생성을 열 수 있다
- * — boutique-fitness는 schema/prompt가 2026-07-18 기준 완성됐지만, meta에
- * axis_a_tone/axis_b_layout이 없고(LAYOUT_ORDER[undefined]로 렌더러가
- * 크래시함) professionals/transformations/facility 블록 컴포넌트도 아직 없어서
- * 여기 추가하지 않는다. 렌더러 작업이 끝나면 이 배열에 추가하는 것만으로
- * generateContent()의 게이트가 풀린다.
+ * — boutique-fitness는 2026-07-19 렌더러(src/components/site-boutique-fitness/) 완성 및
+ * 지음필라테스 실데이터 브라우저 검증까지 끝나서 게이트를 풀었다.
  */
-export const RENDERER_READY_VERTICALS: readonly Vertical[] = ["general"];
+export const RENDERER_READY_VERTICALS: readonly Vertical[] = ["general", "boutique-fitness"];
 
 // boutique-fitness = PT·필라테스·요가 등 1:1/소수정예 트레이너 주도형 스튜디오
 // (spec/README.md 3장). 대형 회원제 헬스장("헬스장"·"피트니스센터" 등)은

@@ -1,0 +1,7 @@
+.text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-body);
+  margin: 0;
+  white-space: pre-line;
+}

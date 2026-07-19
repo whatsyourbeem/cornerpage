@@ -67,6 +67,48 @@
   --motion-level: 2;
 }
 
+/*
+  boutique-fitness 고정 톤 — "차분한 확신"(spec/for-frontend/boutique-fitness/design-guide.md 2장).
+  general처럼 axis별로 갈리지 않고 vertical 전체에 고정되는 팔레트라 [data-tone] 하나만 존재한다.
+  --font-headline을 --font-sans로 맞춰둬서, 일부 블록이 재사용하는 --font-headline 참조 CSS가
+  이 톤에서도 그대로 동작한다(Pretendard 단독 사용 — design-guide.md 3장).
+*/
+[data-tone="grounded"] {
+  --brand: #1f3a35;
+  --brand-deep: #12211d;
+  --brand-light: #eaf1ef;
+  --accent: #e8663d;
+  --accent-deep: #c94f2b;
+  --accent-on-dark: #ff8b65;
+  --paper: #faf8f5;
+  --paper-alt: #f3efe9;
+  --ink: #26241f;
+  --ink-body: #57534a;
+  --ink-muted: #8b857a;
+  --border: #e3ded4;
+  --star: #e8a93d;
+  --error: #d64545;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+  --shadow-floating: 0px 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-sticky: 0px -2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0px 4px 12px rgba(0, 0, 0, 0.08);
+  --container-width: 1080px;
+  --font-headline: var(--font-sans);
+  --headline-weight: 700;
+  --headline-tracking: 0;
+  --section-padding: 64px;
+  --motion-level: 1;
+}
+
+@media (min-width: 768px) {
+  [data-tone="grounded"] {
+    --section-padding: 96px;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -152,7 +194,7 @@ body {
 }
 
 .mhp-section {
-  padding-block: 120px;
+  padding-block: var(--section-padding, 120px);
 }
 
 /*

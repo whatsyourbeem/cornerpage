@@ -1,0 +1,33 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--brand);
+  min-height: 64px;
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--container-width);
+  margin-inline: auto;
+  padding: 10px 20px;
+}
+
+.logotype {
+  font-weight: 600;
+  font-size: 18px;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logoImg {
+  height: 32px;
+  width: auto;
+  display: block;
+}

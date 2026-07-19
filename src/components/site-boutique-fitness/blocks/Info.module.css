@@ -1,0 +1,75 @@
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  font-size: 15px;
+}
+
+.row:last-of-type {
+  border-bottom: none;
+}
+
+.rowLabel {
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  flex-shrink: 0;
+  width: 64px;
+}
+
+.rowValue {
+  text-align: right;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.link {
+  color: var(--accent-on-dark, var(--accent));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hoursList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.hoursLine {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.hoursDay {
+  font-weight: 700;
+  width: 18px;
+}
+
+.externalLinks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.externalLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+}
+
+.businessInfo {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  line-height: 1.8;
+}

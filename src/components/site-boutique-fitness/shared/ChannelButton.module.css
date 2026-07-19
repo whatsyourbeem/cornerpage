@@ -1,0 +1,36 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: box-shadow 0.15s ease;
+}
+
+.button:hover {
+  box-shadow: var(--shadow-floating);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--brand);
+}
+
+.small {
+  width: auto;
+  padding: 8px 12px;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.small .icon {
+  width: 16px;
+  height: 16px;
+}

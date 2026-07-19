@@ -1,0 +1,143 @@
+.cardGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.cardImage {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+}
+
+.cardBody {
+  padding: 16px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.listRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.listRow:last-child {
+  border-bottom: none;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.itemName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.itemDesc {
+  font-size: 15px;
+  color: var(--ink-body);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+  background: var(--brand-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.price {
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.priceConsult {
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.categoryName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--brand);
+  margin: 0 0 10px;
+}
+
+.tierTable {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tierRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  font-size: 15px;
+  background: #ffffff;
+}
+
+.tierRow:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.tierRepresentative {
+  background: var(--paper-alt);
+  font-weight: 700;
+}
+
+.tierRepBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand);
+  border: 1px solid var(--brand);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+}
+
+.fullListHint {
+  margin-top: 16px;
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

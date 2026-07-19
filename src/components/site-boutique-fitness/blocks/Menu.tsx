@@ -1,14 +1,24 @@
-import type { Info, Menu as MenuType } from "@/lib/content-types-boutique-fitness";
+import type { BrowseChannel, Info, Menu as MenuType } from "@/lib/content-types-boutique-fitness";
+import { browseChannelHref } from "@/lib/channels-boutique-fitness";
 import { naverMapHref } from "@/lib/info-links-boutique-fitness";
 import { SmartImage } from "@/components/site/shared/SmartImage";
 import styles from "./Menu.module.css";
 
-function fullListHref(info: Info) {
-  return info.external_links[0]?.url ?? naverMapHref(info.address);
+function fullListHref(info: Info, browseChannels: BrowseChannel[] | null) {
+  const first = browseChannels?.[0];
+  return first ? browseChannelHref(first) : naverMapHref(info.address);
 }
 
 /** design-guide.md 4장: card-evidence와 같은 톤이나 강조색 없이 중립적으로(가격 정보는 차분하게). */
-export function Menu({ menu, info }: { menu: MenuType; info: Info }) {
+export function Menu({
+  menu,
+  info,
+  browseChannels,
+}: {
+  menu: MenuType;
+  info: Info;
+  browseChannels: BrowseChannel[] | null;
+}) {
   const isTable = menu.mode === "package_table";
 
   return (
@@ -46,7 +56,7 @@ export function Menu({ menu, info }: { menu: MenuType; info: Info }) {
         )}
 
         {menu.full_list_link_enabled && (
-          <a href={fullListHref(info)} className={styles.fullListHint}>
+          <a href={fullListHref(info, browseChannels)} className={styles.fullListHint}>
             더 보기 →
           </a>
         )}

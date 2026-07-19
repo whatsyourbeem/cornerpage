@@ -136,6 +136,7 @@ export interface BrandPalette {
   brand: string;
   brandDeep: string;
   accent: string;
+  accentDeep: string;
   accentOnDark: string;
   buttonText: string;
 }
@@ -159,6 +160,7 @@ export function deriveBrandPalette(seedHex: string, paperHex: string): BrandPale
     brand,
     brandDeep,
     accent: brand,
+    accentDeep: darken(brand, 0.1),
     accentOnDark,
     buttonText: pickReadableTextColor(brand),
   };

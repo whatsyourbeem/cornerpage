@@ -1,0 +1,10 @@
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.pin {
+  color: var(--accent-on-dark, var(--accent));
+  transform: translateY(-2px);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}

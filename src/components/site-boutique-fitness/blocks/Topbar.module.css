@@ -1,9 +1,18 @@
 .bar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 40;
-  background: var(--brand);
+  background: transparent;
+  backdrop-filter: none;
   min-height: 64px;
+  transition: background 0.2s ease, backdrop-filter 0.2s ease;
+}
+
+.bar.scrolled {
+  background: color-mix(in srgb, var(--brand) 55%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .inner {

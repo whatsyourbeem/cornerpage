@@ -1,3 +1,40 @@
+.photos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.photos:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+
+.photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .photos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .photos:has(> :only-child) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.atmosphereText {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-body);
+  margin: 0 0 20px;
+  white-space: pre-line;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

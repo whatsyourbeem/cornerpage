@@ -25,7 +25,7 @@ description: >
 1. **업종(vertical) 라우팅 판단** — 사업 정보에서 업종을 확인하고, 등록된 vertical 목록(이 폴더 바로 아래의 `general/`, `boutique-fitness/` 하위 폴더들) 중 어디에 해당하는지 고른다. 현재 목록: **`boutique-fitness`**(PT·필라테스·요가 등 1:1/소수정예 트레이너 주도형 스튜디오), **`general`**(그 외 매칭되는 vertical이 없는 모든 업종 — 특수 예외가 아니라 vertical 목록의 기본값 항목). 이후 콘텐츠 생성에 쓰는 2개 파일(`schema-summary.md`·`industry-data.md`)은 **여기서 고른 vertical 폴더 하위의 것을 쓴다**(전부 이 폴더 `for-claude-api/` 안에 있다). 예외적으로 같은 폴더 바로 아래의 `copywriting.md`만은 모든 vertical이 공유하는 순수 카피 작성 원칙(블록 구조와 무관)이라 vertical 판단과 무관하게 그대로 쓴다. (정보 수집용 `input-questions.md`는 이 폴더 밖 `../for-frontend/{vertical}/`에 별도로 있다 — 원래 claude.ai 대화형 테스트에서 참고하던 파일이지만, 정보가 이미 갖춰진 상태로 대화가 시작되는 경우가 많아져 실질 사용 빈도는 낮다. 프론트엔드 입력 폼 설계 스펙이 주 용도다.)
 2. **입력 정보 파악** — 사용자가 준 사업 정보를 확인한다. 부족하면 위에서 고른 vertical의 `../for-frontend/{vertical}/input-questions.md` 문항 순서대로 물어본다. 이미 대화에 정보가 있으면 다시 묻지 않는다.
    - **극히 부족한 경우(가게명·업종·연락처 정도뿐) JSON을 바로 생성하지 않는다.** 필수 블록(히어로·신뢰스트립·메뉴 등, 정확한 목록은 vertical마다 다름)이 실질적 내용 없이 이름과 자리표시자만으로 채워질 상황이면, 콘텐츠 JSON을 출력하는 대신 해당 vertical의 `input-questions.md` 앞부분(필수 정보·핵심 강점 관련 문항)을 먼저 물어본다. "일단 만들어보고 나중에 채우자"는 접근은 하지 않는다 — 빈약한 결과물이 사장님에게 실망을 준다.
-3. **업종별 meta 판단 필드 확정** — vertical마다 판단 방식이 다르다. **general**은 아래 "meta 판단 로직"으로 톤(axis_a)·레이아웃(axis_b)을 정한다. **다른 vertical(예: boutique-fitness)은 이 축 체계 자체가 없을 수 있다** — 그 경우 이 단계를 건너뛰고, 해당 vertical의 `schema-summary.md`가 명시하는 자체 판단 필드(boutique-fitness라면 `lead_emphasis`)와 고정 기본값을 따른다. 어느 경우든 `cta_primary_action`·`cta_interaction_mode`는 항상 정한다.
+3. **업종별 meta 판단 필드 확정** — vertical마다 판단 방식이 다르다. **general**은 아래 "meta 판단 로직"으로 톤(axis_a)·레이아웃(axis_b)을 정하고, `cta_primary_action`·`cta_interaction_mode`도 항상 정한다. **다른 vertical(예: boutique-fitness)은 이 필드 구성 자체가 다를 수 있다** — boutique-fitness는 축 체계도 없고 `cta_primary_action`·`cta_interaction_mode` 필드 자체도 없다(대신 `lead_emphasis`·`inquiry_channels`·`browse_channels`). 어느 vertical이든 **해당 vertical의 `schema-summary.md`가 명시하는 meta 필드 구성을 그대로 따른다** — general 기준으로 추측하지 않는다.
 4. **블록 온·오프 및 순서 결정** — 데이터가 있는 선택 블록만 켠다(없으면 `null`). 블록 목록·필수 여부·순서는 vertical마다 다르며 **해당 vertical의 `schema-summary.md` 3장(blocks 필드)이 유일한 원본이다** — general은 축B(갤러리우선/메뉴우선)로 갤러리·메뉴 순서를 정하고, boutique-fitness는 순서 자체가 대부분 고정이며 `lead_emphasis` 선택에 따라 증거 블록 일부만 재배치한다.
 5. **콘텐츠 생성** — 각 블록의 카피를 "카피 생성 원칙"에 따라 작성한다. 근거 없는 최상급 표현은 항상 사실 기반으로 다듬는다.
 6. **JSON 출력** — 1번에서 고른 vertical 폴더의 `schema-summary.md`(예: `boutique-fitness/schema-summary.md`)에 정확히 맞춰 출력한다. 필수 필드 누락 금지, 없는 데이터는 `null`.
@@ -58,7 +58,7 @@ description: >
 - **boutique-fitness**: 축 체계 자체가 없다. 톤·블록 구성·순서가 vertical 전체에 고정되어 있고, 사장님이 고른 `lead_emphasis`(어필 포인트)로 증거 블록 일부 순서만 조정한다. 상세는 `boutique-fitness/schema-summary.md` 참고.
 - **새 vertical을 만들 때**: 이 축 체계를 그대로 물려받을 필요 없다. 그 vertical에 맞는 판단 로직을 새로 정의하고 해당 `schema-summary.md`에 기술한다.
 
-어느 vertical이든 `cta_primary_action`·`cta_interaction_mode`는 항상 정해야 하는 공통 필드다 — 값의 기본 논리만 vertical마다 다르다.
+**general**은 `cta_primary_action`·`cta_interaction_mode`가 항상 정해야 하는 공통 필드다. **boutique-fitness는 이 두 필드 자체가 없다**(2026-07-17부터 — `meta.inquiry_channels`·`meta.browse_channels`로 대체됨). vertical마다 CTA 관련 필드 구성 자체가 다를 수 있으니, 반드시 해당 vertical의 `schema-summary.md` 2장을 확인한다.
 
 ---
 
@@ -84,14 +84,14 @@ description: >
 
 ## 블록 구조 (3층 모델)
 
-미니홈페이지는 여러 개의 블록으로 구성된다. **정확한 블록 개수·목록은 vertical마다 다르다**(general은 13개, boutique-fitness는 15개 — 아래 "블록 목록·필수 여부·순서" 참고). 각 블록은 3층으로 정의된다:
+미니홈페이지는 여러 개의 블록으로 구성된다. **정확한 블록 개수·목록은 vertical마다 다르다**(general은 13개, boutique-fitness는 14개 — 아래 "블록 목록·필수 여부·순서" 참고). 각 블록은 3층으로 정의된다:
 - **층 1 (슬롯 구성)** = JSON 필드 구조 (고정). → 해당 vertical의 `schema-summary.md`
 - **층 2 (작성 원칙)** = 각 슬롯에 담길 내용의 "성질" 규정 (가드레일). → `schema-summary.md`의 필드별 인라인 주석에 압축되어 있다(예: `"headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지...)"`처럼 규칙이 스키마 설명 안에 들어있다). 전체 근거·상세 설명은 `../for-context/{vertical}/blocks.md`(프롬프트에는 포함되지 않는 사람용 문서)에 있다.
 - **층 2.5 (좋은 예/나쁜 예)** = 품질 안정용 실제 사례. → 고위험 블록(사실 조작·AI 티 위험이 큰 것)만 `schema-summary.md` 끝부분("핵심 예시" 절)에 압축 수록. 전체 예시는 `blocks.md`에 있다.
 
 ### 블록 목록·필수 여부·순서
 
-**이것도 vertical마다 다르다 — 아래에 표를 고정해두지 않는다.** 각 vertical의 `schema-summary.md` 3장(blocks 필드)이 그 vertical의 블록 목록·순서를 항목별로 이미 담고 있고(어떤 조건에서 켜지는지도 각 항목에 명시), 그게 유일한 원본이다. 예: general은 13개 항목 중 6개 필수(topbar·hero·trust_strip·menu·info·sticky_cta), boutique-fitness는 15개 항목 중 7개 필수(같은 6개 + `professionals`). **일반적인 상식으로 블록 구성을 추측하지 말고, 반드시 해당 vertical의 `schema-summary.md`를 그대로 따른다.**
+**이것도 vertical마다 다르다 — 아래에 표를 고정해두지 않는다.** 각 vertical의 `schema-summary.md` 3장(blocks 필드)이 그 vertical의 블록 목록·순서를 항목별로 이미 담고 있고(어떤 조건에서 켜지는지도 각 항목에 명시), 그게 유일한 원본이다. 예: general은 13개 항목 중 6개 필수(topbar·hero·trust_strip·menu·info·sticky_cta), boutique-fitness는 14개 항목 중 7개 필수(같은 6개 + `professionals`). **일반적인 상식으로 블록 구성을 추측하지 말고, 반드시 해당 vertical의 `schema-summary.md`를 그대로 따른다.**
 
 **Null = 블록 온·오프 스위치:** 선택 블록에 데이터가 없으면 해당 필드를 `null`로 출력한다. 렌더러가 `null`인 블록을 그리지 않는다. 빈 블록을 억지로 채우지 않는 것이 신뢰의 핵심.
 
@@ -124,7 +124,7 @@ description: >
 
 - [ ] HTML/CSS를 생성하지 않는다. JSON만 출력한다.
 - [ ] 출력물이 마크다운 코드펜스나 설명 문장 없이 순수 JSON 객체 하나뿐이다.
-- [ ] `meta`의 판단 필드를 먼저 확정한다(vertical마다 다름 — general은 톤·레이아웃·CTA유형·CTA모드·로고 5개, boutique-fitness는 `lead_emphasis`·CTA유형·CTA모드·로고. 해당 vertical의 `schema-summary.md` 2장 참고).
+- [ ] `meta`의 판단 필드를 먼저 확정한다(vertical마다 다름 — general은 톤·레이아웃·CTA유형·CTA모드·로고 5개, boutique-fitness는 `lead_emphasis`·`inquiry_channels`·`browse_channels`·로고. 해당 vertical의 `schema-summary.md` 2장 참고).
 - [ ] `brand_color`는 판단하지 않고 입력값을 그대로 통과시킨다(없으면 null 유지).
 - [ ] 없는 데이터는 `null`. 억지로 지어내지 않는다.
 - [ ] 리뷰는 유저 원문이 있을 때만 포함(원문 그대로, 가공 금지).

@@ -69,7 +69,12 @@ export interface Topbar {
 
 export interface Hero {
   badge: string;
-  /** 정체성·전문성 사실 기반. 증거를 아직 안 보여준 단계라 결과 약속 문구 금지 */
+  /**
+   * 정체성·전문성 사실 기반. 증거를 아직 안 보여준 단계라 결과 약속 문구 금지.
+   * **줄바꿈은 `\n`으로 명시적으로 지정한다** — 최대 2줄, 각 줄 4~20자.
+   * 20자를 넘는 문장을 줄바꿈 없이 넣는 건 스키마가 거부한다(브라우저의 임의 줄바꿈 방지 목적).
+   * 좋은 예: `"8년째 재활 전문으로,\n한 사람만 보는 PT"` — 의미 단위로 끊음.
+   */
   headline: string;
   /** "나도 할 수 있을까" 불안을 첫 노출로 완화하는 자리(사실 기반일 때만) */
   tagline: string;
@@ -82,9 +87,18 @@ export interface Hero {
 
 // ---------- 블록 2: trust_strip ----------
 
+export type TrustStripIcon =
+  | "Calendar" | "Clock" | "Users" | "Award" | "BadgeCheck"
+  | "TrendingUp" | "RefreshCw" | "Heart" | "Star" | "Dumbbell"
+  | "MessagesSquare" | "Trophy";
+
 export interface TrustStripItem {
   value: string;
   label: string;
+  /** lucide-react 아이콘 컴포넌트명(PascalCase). 이 12개 목록 안에서만 선택 —
+   *  지어내거나 오타 내지 않는다. 렌더러가 이 문자열을 그대로 lucide-react 컴포넌트로 매핑한다.
+   *  기존에 이 필드 없이 저장된 사이트는 렌더러에서 아이콘 없이(값+라벨만) 폴백 렌더링한다. */
+  icon: TrustStripIcon;
 }
 
 export interface TrustStrip {
@@ -158,13 +172,7 @@ export interface Philosophy {
   text: string;
 }
 
-// ---------- 블록 4-1: atmosphere (선택) ----------
-
-export interface Atmosphere {
-  text: string;
-}
-
-// ---------- 블록 4-2: gallery (선택, 역할 축소) ----------
+// ---------- 블록 4-1: gallery (선택, 역할 축소) ----------
 
 export interface Gallery {
   /** professionals·facility·transformations 사진과 중복 배치 금지 — 순수 분위기 사진만 */
@@ -172,7 +180,7 @@ export interface Gallery {
   more_link_url: string | null;
 }
 
-// ---------- 블록 4-3: facility (신규, 선택) ----------
+// ---------- 블록 4-2: facility (선택) ----------
 
 export interface Facility {
   size_pyeong: number | null;
@@ -183,6 +191,11 @@ export interface Facility {
   equipment_list: string[] | null;
   /** gallery와 중복 배치 금지 — 이 스펙을 보여주는 용도로만 */
   photos: string[] | null;
+  /** 감각적 디테일 위주(공간·소리·조용함 등) 분위기 서술.
+   *  2026-07-17부터 별도 atmosphere 블록 대신 여기로 통합됨 — 항상 같은 "공간 클러스터"에
+   *  붙어 다니고 독립적으로 위치가 바뀔 일이 없어, 별도 top-level 블록으로 쪼갤 이유가 general만큼
+   *  강하지 않았다(general은 atmosphere를 계속 독립 블록으로 유지 — 이 vertical만의 변경). */
+  atmosphere_text: string | null;
 }
 
 // ---------- 블록 5: menu (모드에 따라 분기, item_consult가 사실상 기본) ----------
@@ -244,13 +257,6 @@ export type Hours =
   | { type: "24h"; structured: null }
   | { type: "structured"; structured: HoursStructuredEntry[] };
 
-export type ExternalLinkPlatform = "instagram" | "kakao" | "naver_reservation" | "blog";
-
-export interface ExternalLink {
-  platform: ExternalLinkPlatform;
-  url: string;
-}
-
 export interface BusinessInfo {
   registered_name: string;
   ceo_name: string;
@@ -263,10 +269,18 @@ export interface Info {
   /** 예약제 운영이면 "워크인 가능 시간"이 아니라 "상담·수업 가능 시간대"로 이해 */
   hours: Hours;
   phone: string;
-  /** 카카오톡 채널·인스타그램 DM이 실제 1차 상담 창구인 경우가 많음 — 있으면 반드시 포함 */
-  external_links: ExternalLink[];
   business_info: BusinessInfo | null;
+  /**
+   * 지하철역에 한정하지 않는 랜드마크 기반 도보 거리(2026-07-17 신규).
+   * 예: "시청 사거리에서 도보 5분", "OO도서관 도보 3분". 접근성이 이 vertical의 핵심 신뢰
+   * 요소 중 하나라 별도 강조 필드로 둔다 — 주소 문자열 안에 섞어 쓰지 않는다.
+   */
+  landmark_distance: string | null;
 }
+/**
+ * `external_links` 필드는 2026-07-17 제거됨 — `meta.browse_channels`(둘러보기 채널)와 완전히 중복이었다.
+ * 정보 블록 하단에 링크를 보여줄 땐 렌더러가 `meta.browse_channels`를 재사용한다(스킬이 두 번 판단할 이유가 없어짐).
+ */
 
 // ---------- 블록 7: sticky_cta ----------
 
@@ -312,8 +326,8 @@ export interface Blocks {
   transformations: Transformations | null;
   reviews: Reviews | null;
   philosophy: Philosophy | null;
-  atmosphere: Atmosphere | null;
   gallery: Gallery | null;
+  /** atmosphere_text 필드로 옛 atmosphere 블록을 흡수함(2026-07-17) */
   facility: Facility | null;
   menu: Menu;
   info: Info;

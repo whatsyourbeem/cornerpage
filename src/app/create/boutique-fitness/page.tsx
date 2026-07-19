@@ -42,102 +42,24 @@ import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow
 
 const STEPS = ["기본 정보", "전문가 프로필", "회원 변화·후기", "공간", "프로그램·이용방법"];
 
-type InquiryChannelType = "call" | "naver_reservation" | "kakao" | "instagram_dm" | "other";
-type BrowseChannelType = "kakao" | "naver_blog" | "instagram" | "youtube" | "naver_map" | "other";
-
-interface ChannelDraft {
-  checked: boolean;
-  actionValue: string;
-  otherLabel: string;
+/**
+ * 2026-07-19 링크 입력 재설계(spec/for-frontend/boutique-fitness/input-questions.md STEP 2):
+ * 예전엔 문의 채널·둘러보기 채널을 완전히 분리된 두 체크리스트로 받아서, 카카오톡/인스타그램처럼
+ * 두 역할을 겸하는 링크는 똑같은 URL을 두 번 입력해야 했다. 이제 플랫폼당 링크 입력 하나뿐이고,
+ * 채널 성격이 고정된 플랫폼(네이버예약=문의 전용, 네이버블로그·유튜브·네이버지도=둘러보기 전용)은
+ * 입력하는 즉시 자동 분류된다. 카카오톡·인스타그램만 둘 다로 쓰일 수 있어 체크박스로 문의 겸용
+ * 여부를 고르게 한다(기본 체크 — 링크는 항상 browse_channels에도 들어간다).
+ */
+interface DualPurposeLinkDraft {
+  url: string;
+  alsoInquiry: boolean;
 }
 
-const INQUIRY_CHANNELS: { type: InquiryChannelType; label: string; placeholder: string }[] = [
-  { type: "call", label: "전화", placeholder: "010-1234-5678" },
-  { type: "naver_reservation", label: "네이버예약", placeholder: "https://booking.naver.com/..." },
-  { type: "kakao", label: "카카오톡", placeholder: "https://pf.kakao.com/..." },
-  { type: "instagram_dm", label: "인스타그램 DM", placeholder: "https://instagram.com/..." },
-  { type: "other", label: "기타", placeholder: "전화번호 또는 링크" },
-];
-
-const BROWSE_CHANNELS: { type: BrowseChannelType; label: string; placeholder: string }[] = [
-  { type: "kakao", label: "카카오톡 채널", placeholder: "https://pf.kakao.com/..." },
-  { type: "naver_blog", label: "네이버블로그", placeholder: "https://blog.naver.com/..." },
-  { type: "instagram", label: "인스타그램", placeholder: "https://instagram.com/..." },
-  { type: "youtube", label: "유튜브", placeholder: "https://youtube.com/..." },
-  { type: "naver_map", label: "네이버지도", placeholder: "https://naver.me/..." },
-  { type: "other", label: "기타", placeholder: "링크" },
-];
-
-function initChannelState<T extends string>(types: readonly { type: T }[]): Record<T, ChannelDraft> {
-  return Object.fromEntries(
-    types.map((t) => [t.type, { checked: false, actionValue: "", otherLabel: "" }])
-  ) as Record<T, ChannelDraft>;
-}
-
-function isChannelValid(channel: ChannelDraft, type: string): boolean {
-  if (!channel.checked || !channel.actionValue.trim()) return false;
-  if (type === "other" && !channel.otherLabel.trim()) return false;
-  return true;
-}
-
-function buildChannels<T extends string>(
-  types: readonly { type: T }[],
-  state: Record<T, ChannelDraft>
-) {
-  return types
-    .filter((t) => isChannelValid(state[t.type], t.type))
-    .map((t) => {
-      const c = state[t.type];
-      return t.type === "other"
-        ? { type: t.type, action_value: c.actionValue.trim(), other_label: c.otherLabel.trim() }
-        : { type: t.type, action_value: c.actionValue.trim(), other_label: null };
-    });
-}
-
-function ChannelChecklist<T extends string>({
-  options,
-  state,
-  onChange,
-}: {
-  options: { type: T; label: string; placeholder: string }[];
-  state: Record<T, ChannelDraft>;
-  onChange: (type: T, patch: Partial<ChannelDraft>) => void;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {options.map((opt) => {
-        const c = state[opt.type];
-        return (
-          <div key={opt.type} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={c.checked}
-                onChange={(e) => onChange(opt.type, { checked: e.target.checked })}
-              />
-              {opt.label}
-            </label>
-            {c.checked && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 22 }}>
-                <input
-                  placeholder={opt.placeholder}
-                  value={c.actionValue}
-                  onChange={(e) => onChange(opt.type, { actionValue: e.target.value })}
-                />
-                {opt.type === "other" && (
-                  <input
-                    placeholder="채널 이름 (예: 밴드, 문자)"
-                    value={c.otherLabel}
-                    onChange={(e) => onChange(opt.type, { otherLabel: e.target.value })}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+interface OtherLinkDraft {
+  url: string;
+  label: string;
+  forInquiry: boolean;
+  forBrowse: boolean;
 }
 
 interface ProfessionalDraft {
@@ -181,8 +103,15 @@ export default function BoutiqueFitnessCreatePage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
-  const [inquiryChannels, setInquiryChannels] = useState(() => initChannelState(INQUIRY_CHANNELS));
-  const [browseChannels, setBrowseChannels] = useState(() => initChannelState(BROWSE_CHANNELS));
+  const [naverReservationLink, setNaverReservationLink] = useState("");
+  const [kakaoLink, setKakaoLink] = useState<DualPurposeLinkDraft>({ url: "", alsoInquiry: true });
+  const [instagramLink, setInstagramLink] = useState<DualPurposeLinkDraft>({ url: "", alsoInquiry: true });
+  const [naverBlogLink, setNaverBlogLink] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
+  const [naverMapLink, setNaverMapLink] = useState("");
+  const [otherLinks, setOtherLinks] = useState<OtherLinkDraft[]>([
+    { url: "", label: "", forInquiry: false, forBrowse: false },
+  ]);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [leadEmphasis, setLeadEmphasis] = useState<
@@ -206,6 +135,7 @@ export default function BoutiqueFitnessCreatePage() {
   const [hasParking, setHasParking] = useState(false);
   const [equipmentText, setEquipmentText] = useState("");
   const [facilityPhotos, setFacilityPhotos] = useState<File[]>([]);
+  const [landmarkDistance, setLandmarkDistance] = useState("");
   const [atmosphereText, setAtmosphereText] = useState("");
   const [philosophyText, setPhilosophyText] = useState("");
 
@@ -218,19 +148,45 @@ export default function BoutiqueFitnessCreatePage() {
 
   function canProceed(): boolean {
     if (step === 0) {
-      const hasInquiryChannel = INQUIRY_CHANNELS.some((t) => isChannelValid(inquiryChannels[t.type], t.type));
-      return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "" && hasInquiryChannel;
+      // 전화번호는 항상 call 문의 채널로 자동 등록되므로, 별도의 "문의 채널 최소 1개" 체크가 불필요하다.
+      return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "";
     }
     if (step === 1) return professionals.some((p) => p.name.trim() !== "");
     return true;
   }
 
-  function updateInquiryChannel(type: InquiryChannelType, patch: Partial<ChannelDraft>) {
-    setInquiryChannels((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
+  function buildInquiryChannels() {
+    const list: { type: string; action_value: string; other_label: string | null }[] = [];
+    if (phone.trim()) list.push({ type: "call", action_value: phone.trim(), other_label: null });
+    if (naverReservationLink.trim())
+      list.push({ type: "naver_reservation", action_value: naverReservationLink.trim(), other_label: null });
+    if (kakaoLink.url.trim() && kakaoLink.alsoInquiry)
+      list.push({ type: "kakao", action_value: kakaoLink.url.trim(), other_label: null });
+    if (instagramLink.url.trim() && instagramLink.alsoInquiry)
+      list.push({ type: "instagram_dm", action_value: instagramLink.url.trim(), other_label: null });
+    otherLinks
+      .filter((o) => o.url.trim() && o.label.trim() && o.forInquiry)
+      .forEach((o) => list.push({ type: "other", action_value: o.url.trim(), other_label: o.label.trim() }));
+    return list;
   }
 
-  function updateBrowseChannel(type: BrowseChannelType, patch: Partial<ChannelDraft>) {
-    setBrowseChannels((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
+  function buildBrowseChannels() {
+    const list: { type: string; action_value: string; other_label: string | null }[] = [];
+    if (kakaoLink.url.trim()) list.push({ type: "kakao", action_value: kakaoLink.url.trim(), other_label: null });
+    if (naverBlogLink.trim())
+      list.push({ type: "naver_blog", action_value: naverBlogLink.trim(), other_label: null });
+    if (instagramLink.url.trim())
+      list.push({ type: "instagram", action_value: instagramLink.url.trim(), other_label: null });
+    if (youtubeLink.trim()) list.push({ type: "youtube", action_value: youtubeLink.trim(), other_label: null });
+    if (naverMapLink.trim()) list.push({ type: "naver_map", action_value: naverMapLink.trim(), other_label: null });
+    otherLinks
+      .filter((o) => o.url.trim() && o.label.trim() && o.forBrowse)
+      .forEach((o) => list.push({ type: "other", action_value: o.url.trim(), other_label: o.label.trim() }));
+    return list.length > 0 ? list : null;
+  }
+
+  function updateOtherLink(i: number, patch: Partial<OtherLinkDraft>) {
+    setOtherLinks((prev) => prev.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
   }
 
   function updateProfessional(i: number, patch: Partial<ProfessionalDraft>) {
@@ -307,7 +263,13 @@ export default function BoutiqueFitnessCreatePage() {
       .map((s) => s.trim())
       .filter(Boolean);
     const hasFacilityData =
-      sizePyeong.trim() || hasShower || hasLocker || hasParking || equipmentList.length > 0 || facilityPhotos.length > 0;
+      sizePyeong.trim() ||
+      hasShower ||
+      hasLocker ||
+      hasParking ||
+      equipmentList.length > 0 ||
+      facilityPhotos.length > 0 ||
+      atmosphereText.trim();
 
     const faqAnswers = faqPairs
       .filter((pair) => pair.question.trim() && pair.answer.trim())
@@ -331,11 +293,8 @@ export default function BoutiqueFitnessCreatePage() {
           closed: hours[d.key].closed,
         })),
       },
-      inquiry_channels: buildChannels(INQUIRY_CHANNELS, inquiryChannels),
-      browse_channels:
-        buildChannels(BROWSE_CHANNELS, browseChannels).length > 0
-          ? buildChannels(BROWSE_CHANNELS, browseChannels)
-          : null,
+      inquiry_channels: buildInquiryChannels(),
+      browse_channels: buildBrowseChannels(),
       hero_image_url: urls["hero"] ?? null,
       logo_url: urls["logo"] ?? null,
       lead_emphasis: leadEmphasis || null,
@@ -353,9 +312,10 @@ export default function BoutiqueFitnessCreatePage() {
               facilityPhotos.length > 0
                 ? facilityPhotos.map((_, i) => urls[`facility-${i}`]).filter((u): u is string => !!u)
                 : null,
+            atmosphere_text: atmosphereText.trim() || null,
           }
         : null,
-      atmosphere: atmosphereText.trim() || null,
+      landmark_distance: landmarkDistance.trim() || null,
       philosophy: philosophyText.trim() || null,
       programs: finalPrograms,
       free_trial_available: freeTrialAvailable,
@@ -408,19 +368,145 @@ export default function BoutiqueFitnessCreatePage() {
           </fieldset>
 
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>예약·문의 채널 (복수 선택, 최소 1개)</legend>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>링크</legend>
             <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
-              방문자가 누르면 여기서 고르신 채널들이 한 번에 나열돼요 — 원하는 방식으로 편하게 연락하실 수 있게요.
+              전화번호는 이미 위에서 받았으니 자동으로 문의 채널에 등록돼요. 카카오톡·인스타그램은 상담 창구로도,
+              둘러보기 채널로도 자주 쓰이더라고요 — 체크박스는 편하신 대로 기본 체크해뒀으니, 다르게 쓰고 싶으실 때만
+              바꿔주세요.
             </p>
-            <ChannelChecklist options={INQUIRY_CHANNELS} state={inquiryChannels} onChange={updateInquiryChannel} />
-          </fieldset>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>네이버지도</label>
+                <input
+                  placeholder="https://naver.me/..."
+                  value={naverMapLink}
+                  onChange={(e) => setNaverMapLink(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
 
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>둘러보기 채널 (복수 선택, 선택)</legend>
-            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
-              가게를 둘러보고 싶어하는 분들을 위한 채널이에요. 상담·예약과는 별개로, 히어로 영역에 바로 노출됩니다.
-            </p>
-            <ChannelChecklist options={BROWSE_CHANNELS} state={browseChannels} onChange={updateBrowseChannel} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>네이버예약</label>
+                <input
+                  placeholder="https://booking.naver.com/..."
+                  value={naverReservationLink}
+                  onChange={(e) => setNaverReservationLink(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>카카오톡 채널</label>
+                  <input
+                    placeholder="https://pf.kakao.com/..."
+                    value={kakaoLink.url}
+                    onChange={(e) => setKakaoLink((prev) => ({ ...prev, url: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    marginTop: 4,
+                    marginLeft: 104,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={kakaoLink.alsoInquiry}
+                    onChange={(e) => setKakaoLink((prev) => ({ ...prev, alsoInquiry: e.target.checked }))}
+                  />
+                  이 링크로 문의도 받고 싶어요
+                </label>
+              </div>
+
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>인스타그램</label>
+                  <input
+                    placeholder="https://instagram.com/..."
+                    value={instagramLink.url}
+                    onChange={(e) => setInstagramLink((prev) => ({ ...prev, url: e.target.value }))}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    marginTop: 4,
+                    marginLeft: 104,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={instagramLink.alsoInquiry}
+                    onChange={(e) => setInstagramLink((prev) => ({ ...prev, alsoInquiry: e.target.checked }))}
+                  />
+                  이 링크로 문의(DM)도 받고 싶어요
+                </label>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>유튜브</label>
+                <input
+                  placeholder="https://youtube.com/..."
+                  value={youtubeLink}
+                  onChange={(e) => setYoutubeLink(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>네이버블로그</label>
+                <input
+                  placeholder="https://blog.naver.com/..."
+                  value={naverBlogLink}
+                  onChange={(e) => setNaverBlogLink(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
+
+              {otherLinks.map((o, i) => (
+                <div key={i}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>
+                      기타 링크 {otherLinks.length > 1 ? i + 1 : ""}
+                    </label>
+                    <input
+                      placeholder="링크"
+                      value={o.url}
+                      onChange={(e) => updateOtherLink(i, { url: e.target.value })}
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                  {o.url.trim() && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4, marginLeft: 104 }}>
+                      <input
+                        placeholder="채널 이름 (예: 밴드, 문자)"
+                        value={o.label}
+                        onChange={(e) => updateOtherLink(i, { label: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setOtherLinks((prev) => [...prev, { url: "", label: "", forInquiry: false, forBrowse: false }])
+                }
+                style={{ fontSize: 13 }}
+              >
+                + 기타 링크 추가
+              </button>
+            </div>
           </fieldset>
 
           <Field label="대표 사진">
@@ -662,6 +748,16 @@ export default function BoutiqueFitnessCreatePage() {
               value={equipmentText}
               onChange={(e) => setEquipmentText(e.target.value)}
               placeholder="예: 리포머 5대, 캐딜락 2대"
+            />
+          </Field>
+          <Field
+            label="가장 가까운 눈에 띄는 장소에서 도보 거리 (선택)"
+            hint="지하철역이 아니어도 괜찮아요 — 사거리·도서관·큰 건물 등. 있으면 위치 안내에서 눈에 띄게 강조해드려요."
+          >
+            <input
+              value={landmarkDistance}
+              onChange={(e) => setLandmarkDistance(e.target.value)}
+              placeholder="예: 시청 사거리에서 도보 5분"
             />
           </Field>
           <Field label="공간 사진 (선택, 트레이너·시설 사진과 겹치지 않는 분위기 사진)">

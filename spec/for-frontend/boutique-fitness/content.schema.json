@@ -124,16 +124,6 @@
             }
           ]
         },
-        "atmosphere": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Atmosphere"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "menu": {
           "$ref": "#/$defs/Menu"
         },
@@ -243,7 +233,8 @@
         },
         "headline": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^.{4,20}(\\n.{4,20})?$",
+          "description": "최대 2줄(줄바꿈은 \\n 하나만 허용). 각 줄 4~20자. 20자를 넘는 문장을 줄바꿈 없이 한 줄로 넣는 것은 이 패턴이 거부한다 — 브라우저가 임의 위치에서 줄바꿈하지 않도록, 긴 헤드라인은 반드시 의미 단위로 끊어 \\n을 넣어야 한다."
         },
         "tagline": {
           "type": "string",
@@ -277,7 +268,8 @@
             "type": "object",
             "required": [
               "value",
-              "label"
+              "label",
+              "icon"
             ],
             "additionalProperties": false,
             "properties": {
@@ -288,6 +280,23 @@
               "label": {
                 "type": "string",
                 "minLength": 1
+              },
+              "icon": {
+                "enum": [
+                  "Calendar",
+                  "Clock",
+                  "Users",
+                  "Award",
+                  "BadgeCheck",
+                  "TrendingUp",
+                  "RefreshCw",
+                  "Heart",
+                  "Star",
+                  "Dumbbell",
+                  "MessagesSquare",
+                  "Trophy"
+                ],
+                "description": "lucide-react 아이콘 컴포넌트명(PascalCase). 이 목록 안에서만 선택 — 지어내거나 오타 내지 않는다."
               }
             }
           }
@@ -295,19 +304,6 @@
       }
     },
     "Philosophy": {
-      "type": "object",
-      "required": [
-        "text"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "text": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "Atmosphere": {
       "type": "object",
       "required": [
         "text"
@@ -731,28 +727,6 @@
       ],
       "additionalProperties": false
     },
-    "ExternalLink": {
-      "type": "object",
-      "required": [
-        "platform",
-        "url"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "platform": {
-          "enum": [
-            "instagram",
-            "kakao",
-            "naver_reservation",
-            "blog"
-          ]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        }
-      }
-    },
     "BusinessInfo": {
       "type": [
         "object",
@@ -778,8 +752,8 @@
         "map_coordinates",
         "hours",
         "phone",
-        "external_links",
-        "business_info"
+        "business_info",
+        "landmark_distance"
       ],
       "additionalProperties": false,
       "properties": {
@@ -810,14 +784,15 @@
           "type": "string",
           "minLength": 1
         },
-        "external_links": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ExternalLink"
-          }
-        },
         "business_info": {
           "$ref": "#/$defs/BusinessInfo"
+        },
+        "landmark_distance": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "지하철역에 한정하지 않는 랜드마크 기반 도보 거리. 예: '시청 사거리에서 도보 5분'"
         }
       }
     },
@@ -1045,7 +1020,8 @@
         "has_locker",
         "has_parking",
         "equipment_list",
-        "photos"
+        "photos",
+        "atmosphere_text"
       ],
       "additionalProperties": false,
       "properties": {
@@ -1100,6 +1076,13 @@
               "type": "null"
             }
           ]
+        },
+        "atmosphere_text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "감각적 디테일 위주(공간·소리·조용함 등) 분위기 서술. 2026-07-17부터 별도 atmosphere 블록 대신 여기로 통합."
         }
       }
     },

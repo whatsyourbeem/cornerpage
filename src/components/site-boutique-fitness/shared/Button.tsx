@@ -7,16 +7,19 @@ export function Button({
   onClick,
   href,
   variant = "primary",
+  size = "md",
 }: {
   label: string;
   onClick?: () => void;
   href?: string;
   variant?: "primary" | "outline" | "onDark";
+  size?: "sm" | "md";
 }) {
   const className = [
     styles.button,
     variant === "outline" ? styles.outline : "",
     variant === "onDark" ? styles.onDark : "",
+    size === "sm" ? styles.sm : "",
   ]
     .filter(Boolean)
     .join(" ");

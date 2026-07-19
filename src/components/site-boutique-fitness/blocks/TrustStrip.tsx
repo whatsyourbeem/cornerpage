@@ -103,6 +103,39 @@ function CountUpValue({ value }: { value: string }) {
   return <span ref={ref}>{display}</span>;
 }
 
+/** 아이콘도 카운트업과 같은 타이밍(뷰포트 진입 시 1회)에 등장 애니메이션을 튼다. */
+function RevealIcon({ icon: Icon }: { icon: LucideIcon }) {
+  const [revealed, setRevealed] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) {
+      setRevealed(true);
+      return;
+    }
+
+    const el = ref.current;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setRevealed(true);
+        observer.disconnect();
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <span ref={ref} className={`${styles.iconWrap} ${revealed ? styles.iconRevealed : ""}`}>
+      <Icon className={styles.icon} aria-hidden />
+    </span>
+  );
+}
+
 export function TrustStrip({ trustStrip }: { trustStrip: TrustStripType }) {
   return (
     <div className="mhp-band mhp-band-light mhp-section">
@@ -111,7 +144,7 @@ export function TrustStrip({ trustStrip }: { trustStrip: TrustStripType }) {
           const Icon = TRUST_STRIP_ICONS[item.icon];
           return (
             <div className={styles.item} key={i}>
-              {Icon && <Icon className={styles.icon} aria-hidden />}
+              {Icon && <RevealIcon icon={Icon} />}
               <span className={styles.value}>
                 <CountUpValue value={item.value} />
               </span>

@@ -41,3 +41,9 @@
   background: var(--accent-on-dark);
   opacity: 0.9;
 }
+
+.sm {
+  min-height: 38px;
+  padding: 8px 20px;
+  font-size: 14px;
+}

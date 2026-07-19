@@ -95,18 +95,25 @@ export async function POST(request: Request) {
     (typeof answers.business_name === "string" ? answers.business_name : "") ??
     "";
 
-  const { error } = await supabaseAdmin.from("sites").insert({
-    id,
-    owner_id: user.id,
-    vertical,
-    business_name: businessName,
-    content_json: content,
-  });
+  // insert 시 slug를 비워두면 set_default_slug 트리거가 id와 무관한 무작위
+  // 20자 hex로 채운다(20260711040000_use_random_slug.sql) — 응답에 id를 slug로
+  // 잘못 돌려주면 그 URL이 실제로는 404난다. select로 실제 값을 다시 받아온다.
+  const { data: inserted, error } = await supabaseAdmin
+    .from("sites")
+    .insert({
+      id,
+      owner_id: user.id,
+      vertical,
+      business_name: businessName,
+      content_json: content,
+    })
+    .select("slug")
+    .single();
 
   if (error) {
     console.error("site insert failed:", error.message);
     return NextResponse.json({ error: "failed to create site" }, { status: 500 });
   }
 
-  return NextResponse.json({ id, slug: id });
+  return NextResponse.json({ id, slug: inserted.slug });
 }

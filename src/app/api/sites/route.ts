@@ -17,7 +17,9 @@ export const maxDuration = 120;
 
 /**
  * 최종 제출. /api/sites/draft에서 발급한 id를 그대로 DB row id로 쓴다
- * (slug는 비워두면 트리거가 id로 채운다 — 나중에 유저가 원하는 값으로 바꿀 수 있음).
+ * (slug는 비워두면 set_default_slug 트리거가 id와 무관한 무작위 20자 hex로
+ * 채운다 — 20260711040000_use_random_slug.sql. insert 응답의 id를 slug로
+ * 오인해 돌려주면 안 된다 — 실제 slug 컬럼 값을 다시 select해서 반환한다).
  */
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -72,18 +74,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error } = await supabaseAdmin.from("sites").insert({
-    id,
-    owner_id: user.id,
-    vertical,
-    business_name: content.meta.business_name,
-    content_json: content,
-  });
+  const { data: inserted, error } = await supabaseAdmin
+    .from("sites")
+    .insert({
+      id,
+      owner_id: user.id,
+      vertical,
+      business_name: content.meta.business_name,
+      content_json: content,
+    })
+    .select("slug")
+    .single();
 
   if (error) {
     console.error("site insert failed:", error.message);
     return NextResponse.json({ error: "failed to create site" }, { status: 500 });
   }
 
-  return NextResponse.json({ id, slug: id });
+  return NextResponse.json({ id, slug: inserted.slug });
 }

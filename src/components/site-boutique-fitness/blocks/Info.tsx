@@ -1,6 +1,7 @@
+import { MapPin } from "lucide-react";
 import type { BrowseChannel, Info as InfoType } from "@/lib/content-types-boutique-fitness";
 import { browseChannelHref, browseChannelLabel } from "@/lib/channels-boutique-fitness";
-import { naverMapHref, telHref } from "@/lib/info-links-boutique-fitness";
+import { naverMapHref, osmEmbedSrc, telHref } from "@/lib/info-links-boutique-fitness";
 import { dayLabel, formatHoursLine, sortStructuredHours } from "@/lib/hours-boutique-fitness";
 import styles from "./Info.module.css";
 
@@ -15,6 +16,21 @@ export function Info({
     <div className="mhp-band mhp-band-dark mhp-section" id="info">
       <div className="mhp-container">
         <p className="mhp-eyebrow">오시는 길</p>
+
+        {info.landmark_distance && (
+          <p className={styles.landmark}>
+            <MapPin className={styles.landmarkIcon} aria-hidden />
+            {info.landmark_distance}
+          </p>
+        )}
+
+        <div className={styles.mapEmbed}>
+          <iframe
+            src={osmEmbedSrc(info.map_coordinates.lat, info.map_coordinates.lng)}
+            title="지도"
+            loading="lazy"
+          />
+        </div>
 
         <div className={styles.row}>
           <span className={styles.rowLabel}>주소</span>

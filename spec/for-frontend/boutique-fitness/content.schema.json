@@ -124,16 +124,6 @@
             }
           ]
         },
-        "atmosphere": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Atmosphere"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "menu": {
           "$ref": "#/$defs/Menu"
         },
@@ -314,19 +304,6 @@
       }
     },
     "Philosophy": {
-      "type": "object",
-      "required": [
-        "text"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "text": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "Atmosphere": {
       "type": "object",
       "required": [
         "text"
@@ -775,7 +752,8 @@
         "map_coordinates",
         "hours",
         "phone",
-        "business_info"
+        "business_info",
+        "landmark_distance"
       ],
       "additionalProperties": false,
       "properties": {
@@ -808,6 +786,13 @@
         },
         "business_info": {
           "$ref": "#/$defs/BusinessInfo"
+        },
+        "landmark_distance": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "지하철역에 한정하지 않는 랜드마크 기반 도보 거리. 예: '시청 사거리에서 도보 5분'"
         }
       }
     },
@@ -1035,7 +1020,8 @@
         "has_locker",
         "has_parking",
         "equipment_list",
-        "photos"
+        "photos",
+        "atmosphere_text"
       ],
       "additionalProperties": false,
       "properties": {
@@ -1090,6 +1076,13 @@
               "type": "null"
             }
           ]
+        },
+        "atmosphere_text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "감각적 디테일 위주(공간·소리·조용함 등) 분위기 서술. 2026-07-17부터 별도 atmosphere 블록 대신 여기로 통합."
         }
       }
     },

@@ -62,7 +62,6 @@
       ]
     },
     "philosophy": null,
-    "atmosphere": null,
     "menu": {
       "label": "PT 프로그램",
       "mode": "item_consult",
@@ -109,7 +108,8 @@
         ]
       },
       "phone": "010-1234-5678",
-      "business_info": null
+      "business_info": null,
+      "landmark_distance": "수내역 1번 출구 도보 5분"
     },
     "sticky_cta": {
       "cta_label": "카톡으로 편하게 물어보기"
@@ -179,7 +179,8 @@
         "리포머 5대",
         "타워 2대"
       ],
-      "photos": null
+      "photos": null,
+      "atmosphere_text": null
     }
   }
 }

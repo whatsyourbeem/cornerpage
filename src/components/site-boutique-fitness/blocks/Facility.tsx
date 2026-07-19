@@ -1,4 +1,5 @@
 import type { Facility as FacilityType } from "@/lib/content-types-boutique-fitness";
+import { SmartImage } from "@/components/site/shared/SmartImage";
 import styles from "./Facility.module.css";
 
 const CHECKS: { key: "has_shower" | "has_locker" | "has_parking"; label: string }[] = [
@@ -12,6 +13,14 @@ export function Facility({ facility }: { facility: FacilityType }) {
     <div className="mhp-band mhp-band-light-alt mhp-section">
       <div className="mhp-container">
         <p className="mhp-eyebrow">시설 안내</p>
+        {facility.photos && facility.photos.length > 0 && (
+          <div className={styles.photos}>
+            {facility.photos.map((src, i) => (
+              <SmartImage key={src + i} src={src} alt="" className={styles.photo} />
+            ))}
+          </div>
+        )}
+        {facility.atmosphere_text && <p className={styles.atmosphereText}>{facility.atmosphere_text}</p>}
         <div className={styles.grid}>
           {facility.size_pyeong != null && (
             <div className={styles.stat}>

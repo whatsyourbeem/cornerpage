@@ -135,6 +135,7 @@ export default function BoutiqueFitnessCreatePage() {
   const [hasParking, setHasParking] = useState(false);
   const [equipmentText, setEquipmentText] = useState("");
   const [facilityPhotos, setFacilityPhotos] = useState<File[]>([]);
+  const [landmarkDistance, setLandmarkDistance] = useState("");
   const [atmosphereText, setAtmosphereText] = useState("");
   const [philosophyText, setPhilosophyText] = useState("");
 
@@ -262,7 +263,13 @@ export default function BoutiqueFitnessCreatePage() {
       .map((s) => s.trim())
       .filter(Boolean);
     const hasFacilityData =
-      sizePyeong.trim() || hasShower || hasLocker || hasParking || equipmentList.length > 0 || facilityPhotos.length > 0;
+      sizePyeong.trim() ||
+      hasShower ||
+      hasLocker ||
+      hasParking ||
+      equipmentList.length > 0 ||
+      facilityPhotos.length > 0 ||
+      atmosphereText.trim();
 
     const faqAnswers = faqPairs
       .filter((pair) => pair.question.trim() && pair.answer.trim())
@@ -305,9 +312,10 @@ export default function BoutiqueFitnessCreatePage() {
               facilityPhotos.length > 0
                 ? facilityPhotos.map((_, i) => urls[`facility-${i}`]).filter((u): u is string => !!u)
                 : null,
+            atmosphere_text: atmosphereText.trim() || null,
           }
         : null,
-      atmosphere: atmosphereText.trim() || null,
+      landmark_distance: landmarkDistance.trim() || null,
       philosophy: philosophyText.trim() || null,
       programs: finalPrograms,
       free_trial_available: freeTrialAvailable,
@@ -740,6 +748,16 @@ export default function BoutiqueFitnessCreatePage() {
               value={equipmentText}
               onChange={(e) => setEquipmentText(e.target.value)}
               placeholder="예: 리포머 5대, 캐딜락 2대"
+            />
+          </Field>
+          <Field
+            label="가장 가까운 눈에 띄는 장소에서 도보 거리 (선택)"
+            hint="지하철역이 아니어도 괜찮아요 — 사거리·도서관·큰 건물 등. 있으면 위치 안내에서 눈에 띄게 강조해드려요."
+          >
+            <input
+              value={landmarkDistance}
+              onChange={(e) => setLandmarkDistance(e.target.value)}
+              placeholder="예: 시청 사거리에서 도보 5분"
             />
           </Field>
           <Field label="공간 사진 (선택, 트레이너·시설 사진과 겹치지 않는 분위기 사진)">

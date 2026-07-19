@@ -84,14 +84,14 @@ description: >
 
 ## 블록 구조 (3층 모델)
 
-미니홈페이지는 여러 개의 블록으로 구성된다. **정확한 블록 개수·목록은 vertical마다 다르다**(general은 13개, boutique-fitness는 15개 — 아래 "블록 목록·필수 여부·순서" 참고). 각 블록은 3층으로 정의된다:
+미니홈페이지는 여러 개의 블록으로 구성된다. **정확한 블록 개수·목록은 vertical마다 다르다**(general은 13개, boutique-fitness는 14개 — 아래 "블록 목록·필수 여부·순서" 참고). 각 블록은 3층으로 정의된다:
 - **층 1 (슬롯 구성)** = JSON 필드 구조 (고정). → 해당 vertical의 `schema-summary.md`
 - **층 2 (작성 원칙)** = 각 슬롯에 담길 내용의 "성질" 규정 (가드레일). → `schema-summary.md`의 필드별 인라인 주석에 압축되어 있다(예: `"headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지...)"`처럼 규칙이 스키마 설명 안에 들어있다). 전체 근거·상세 설명은 `../for-context/{vertical}/blocks.md`(프롬프트에는 포함되지 않는 사람용 문서)에 있다.
 - **층 2.5 (좋은 예/나쁜 예)** = 품질 안정용 실제 사례. → 고위험 블록(사실 조작·AI 티 위험이 큰 것)만 `schema-summary.md` 끝부분("핵심 예시" 절)에 압축 수록. 전체 예시는 `blocks.md`에 있다.
 
 ### 블록 목록·필수 여부·순서
 
-**이것도 vertical마다 다르다 — 아래에 표를 고정해두지 않는다.** 각 vertical의 `schema-summary.md` 3장(blocks 필드)이 그 vertical의 블록 목록·순서를 항목별로 이미 담고 있고(어떤 조건에서 켜지는지도 각 항목에 명시), 그게 유일한 원본이다. 예: general은 13개 항목 중 6개 필수(topbar·hero·trust_strip·menu·info·sticky_cta), boutique-fitness는 15개 항목 중 7개 필수(같은 6개 + `professionals`). **일반적인 상식으로 블록 구성을 추측하지 말고, 반드시 해당 vertical의 `schema-summary.md`를 그대로 따른다.**
+**이것도 vertical마다 다르다 — 아래에 표를 고정해두지 않는다.** 각 vertical의 `schema-summary.md` 3장(blocks 필드)이 그 vertical의 블록 목록·순서를 항목별로 이미 담고 있고(어떤 조건에서 켜지는지도 각 항목에 명시), 그게 유일한 원본이다. 예: general은 13개 항목 중 6개 필수(topbar·hero·trust_strip·menu·info·sticky_cta), boutique-fitness는 14개 항목 중 7개 필수(같은 6개 + `professionals`). **일반적인 상식으로 블록 구성을 추측하지 말고, 반드시 해당 vertical의 `schema-summary.md`를 그대로 따른다.**
 
 **Null = 블록 온·오프 스위치:** 선택 블록에 데이터가 없으면 해당 필드를 `null`로 출력한다. 렌더러가 `null`인 블록을 그리지 않는다. 빈 블록을 억지로 채우지 않는 것이 신뢰의 핵심.
 

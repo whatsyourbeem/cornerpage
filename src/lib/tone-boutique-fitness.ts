@@ -47,7 +47,8 @@ function evidenceClusterOrder(leadEmphasis: LeadEmphasis): EvidenceKey[] {
 /**
  * topbar/sticky_cta는 항상 고정 위치라 제외, 스크롤 본문 블록 순서만 정의한다.
  * design-guide.md 5장: facility가 lead_emphasis로 선택된 경우에만 예외적으로 4번
- * 클러스터(atmosphere+gallery+facility)에서 분리되어 증거 클러스터 맨 앞(3번 자리)으로 이동한다.
+ * 클러스터(gallery+facility)에서 분리되어 증거 클러스터 맨 앞(3번 자리)으로 이동한다.
+ * atmosphere는 2026-07-17부터 별도 블록이 아니라 facility.atmosphere_text로 흡수됨.
  */
 export function buildLayoutOrder(leadEmphasis: LeadEmphasis): string[] {
   const facilityFirst = leadEmphasis === "facility";
@@ -57,7 +58,6 @@ export function buildLayoutOrder(leadEmphasis: LeadEmphasis): string[] {
     ...(facilityFirst ? ["facility"] : []),
     ...evidenceClusterOrder(leadEmphasis),
     "philosophy",
-    "atmosphere",
     "gallery",
     ...(facilityFirst ? [] : ["facility"]),
     "menu",

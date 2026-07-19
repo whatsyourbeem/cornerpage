@@ -5,8 +5,11 @@
 > **general과의 구조적 차이**(배경 논리는 `../../for-context/boutique-fitness/definition.md`, 블록별 상세 근거는 `blocks.md` 참고):
 > - `axis_a_tone`·`axis_b_layout` 없음 — 이 vertical은 톤·레이아웃·블록 순서가 고정. 대신 `meta.lead_emphasis`로 증거 클러스터 순서만 조정.
 > - `about` 블록 없음 — `professionals`가 그 역할을 흡수.
-> - 신규 블록 3개: `transformations`(비포/애프터) · `professionals`(전문가 프로필, **이 vertical의 필수 블록**) · `facility`(시설 스펙).
+> - `atmosphere` 독립 블록 없음(2026-07-17) — `facility.atmosphere_text`로 흡수됨. general은 여전히 독립 블록.
+> - 신규 블록 2개: `transformations`(비포/애프터) · `professionals`(전문가 프로필, **이 vertical의 필수 블록**). `facility`(시설 스펙)도 신규.
 > - `reviews.items`에 `trainer_tag` 필드 추가.
+> - `info.landmark_distance`(랜드마크 기반 도보 거리, 2026-07-17 신규) — general엔 없음.
+> - `info.external_links` 없음(2026-07-17) — `meta.browse_channels`로 통합.
 > - 블록 순서 자체가 general과 다름(아래 목차가 실제 페이지 순서).
 
 ## 이 vertical의 카피 톤 — "차분한 확신" (모든 블록에 적용, 개별 규칙 없는 필드도 포함)
@@ -15,7 +18,7 @@
 
 - **느낌표·감탄사를 절제한다.** "환상적인 공간에서 시작하세요!" 대신 "큰 창으로 오후 햇살이 들어오는 공간입니다"처럼, 사실을 담담하게 서술한다.
 - **증거(수치·사실)가 스스로 말하게 하고, 문장이 대신 흥분하지 않는다.** "체지방률 6%p 감소, 놀랍지 않나요?" 대신 그냥 "체지방률 6%p 감소".
-- **이 원칙은 개별 규칙이 없는 필드(`atmosphere`·`philosophy`·`facility`·FAQ 답변 등)에도 똑같이 적용된다** — 아래에 각 블록마다 별도로 "절제하라"고 반복해서 적어두지 않았다고 해서 예외인 게 아니다.
+- **이 원칙은 개별 규칙이 없는 필드(`facility.atmosphere_text`·`philosophy`·FAQ 답변 등)에도 똑같이 적용된다** — 아래에 각 블록마다 별도로 "절제하라"고 반복해서 적어두지 않았다고 해서 예외인 게 아니다.
 - 목표는 "차분하지만 확신에 찬" 어조다 — 위축되거나 소극적인 것과는 다르다. 자신감은 담되(전문가 경력·구체적 성과), 그걸 표현하는 방식이 절제돼 있다.
 
 ---
@@ -174,15 +177,7 @@
 ```
 **general과 위치가 다름** — hero 직후가 아니라 여기(증거 클러스터 뒤). 스튜디오 차원의 창립 계기로 한정(개인 지도 철학은 `professionals.bio_quote`).
 
-### 4. atmosphere (선택)
-```json
-"atmosphere": {
-  "text": "string"
-} | null
-```
-감각적 디테일 위주(공간·소리·조용함 등). 갤러리 인접 배치.
-
-### 4-1. gallery (선택)
+### 4. gallery (선택)
 ```json
 "gallery": {
   "images": ["url"],
@@ -191,7 +186,7 @@
 ```
 1~4장(general의 4~8장보다 하향). `professionals`·`facility`·`transformations` 사진과 중복 배치 금지 — 순수 분위기 사진만.
 
-### 4-2. facility (선택)
+### 4-1. facility (선택)
 ```json
 "facility": {
   "size_pyeong": "number | null",
@@ -199,10 +194,16 @@
   "has_locker": "boolean | null",
   "has_parking": "boolean | null",
   "equipment_list": ["string"] | null,
-  "photos": ["url"] | null
+  "photos": ["url"] | null,
+  "atmosphere_text": "string | null (감각적 디테일 위주 — 공간·소리·조용함 등)"
 } | null
 ```
 `equipment_list`는 구체적 수량과 함께(예: "리포머 5대"). `photos`는 갤러리와 중복 금지.
+
+**`atmosphere_text`는 옛 `atmosphere` 독립 블록을 흡수한 필드다(2026-07-17)** — `facility`와 항상 같은 "공간 클러스터"로 붙어 다니고 독립적으로 위치가 바뀔 일이 없어, 별도 top-level 블록으로 둘 이유가 없어졌다(general은 여전히 독립 블록 유지 — 이 vertical만의 변경). 감각적 디테일(채광·소리·조용함 등)을 담되, 과장 없이(이 vertical의 "차분한 확신" 톤 원칙 적용).
+
+**좋은 예:** `"atmosphere_text": "큰 창으로 오후 햇살이 들어오는 리포머룸, 은은한 음악, 1:1 수업이라 다른 회원 눈치 볼 일이 없는 조용함."`
+**나쁜 예:** `"atmosphere_text": "환상적인 공간에서 시작하세요!"` — 느낌표·과장, "차분한 확신" 톤 위반.
 
 ### 5. menu (필수, mode에 따라 구조 분기)
 ```json
@@ -236,10 +237,13 @@
     ]
   },
   "phone": "string, required",
-  "business_info": { "registered_name": "string", "ceo_name": "string", "registration_number": "string" } | null
+  "business_info": { "registered_name": "string", "ceo_name": "string", "registration_number": "string" } | null,
+  "landmark_distance": "string | null (지하철역에 한정하지 않는 랜드마크 기반 도보 거리, 예: '시청 사거리에서 도보 5분')"
 }
 ```
 예약제 운영이면 "영업시간"을 "상담·수업 가능 시간대"로 이해. **`external_links` 필드는 없다(2026-07-17 제거)** — `meta.browse_channels`와 완전히 중복이었다. 정보 블록 하단 링크는 렌더러가 `meta.browse_channels`를 재사용해서 그린다, 스킬이 신경 쓸 부분 아님.
+
+**`landmark_distance`는 접근성이 핵심 신뢰 요소인 이 vertical에서 특히 중요하다.** 지하철역이 아니어도 괜찮다 — 사장님이 준 실제 랜드마크(사거리·도서관·큰 건물 등) 기준 도보 시간만 있으면 된다. 없으면 `null`(지어내지 않는다).
 
 ### 7. sticky_cta (필수)
 ```json

@@ -172,13 +172,7 @@ export interface Philosophy {
   text: string;
 }
 
-// ---------- 블록 4-1: atmosphere (선택) ----------
-
-export interface Atmosphere {
-  text: string;
-}
-
-// ---------- 블록 4-2: gallery (선택, 역할 축소) ----------
+// ---------- 블록 4-1: gallery (선택, 역할 축소) ----------
 
 export interface Gallery {
   /** professionals·facility·transformations 사진과 중복 배치 금지 — 순수 분위기 사진만 */
@@ -186,7 +180,7 @@ export interface Gallery {
   more_link_url: string | null;
 }
 
-// ---------- 블록 4-3: facility (신규, 선택) ----------
+// ---------- 블록 4-2: facility (선택) ----------
 
 export interface Facility {
   size_pyeong: number | null;
@@ -197,6 +191,11 @@ export interface Facility {
   equipment_list: string[] | null;
   /** gallery와 중복 배치 금지 — 이 스펙을 보여주는 용도로만 */
   photos: string[] | null;
+  /** 감각적 디테일 위주(공간·소리·조용함 등) 분위기 서술.
+   *  2026-07-17부터 별도 atmosphere 블록 대신 여기로 통합됨 — 항상 같은 "공간 클러스터"에
+   *  붙어 다니고 독립적으로 위치가 바뀔 일이 없어, 별도 top-level 블록으로 쪼갤 이유가 general만큼
+   *  강하지 않았다(general은 atmosphere를 계속 독립 블록으로 유지 — 이 vertical만의 변경). */
+  atmosphere_text: string | null;
 }
 
 // ---------- 블록 5: menu (모드에 따라 분기, item_consult가 사실상 기본) ----------
@@ -271,6 +270,12 @@ export interface Info {
   hours: Hours;
   phone: string;
   business_info: BusinessInfo | null;
+  /**
+   * 지하철역에 한정하지 않는 랜드마크 기반 도보 거리(2026-07-17 신규).
+   * 예: "시청 사거리에서 도보 5분", "OO도서관 도보 3분". 접근성이 이 vertical의 핵심 신뢰
+   * 요소 중 하나라 별도 강조 필드로 둔다 — 주소 문자열 안에 섞어 쓰지 않는다.
+   */
+  landmark_distance: string | null;
 }
 /**
  * `external_links` 필드는 2026-07-17 제거됨 — `meta.browse_channels`(둘러보기 채널)와 완전히 중복이었다.
@@ -321,8 +326,8 @@ export interface Blocks {
   transformations: Transformations | null;
   reviews: Reviews | null;
   philosophy: Philosophy | null;
-  atmosphere: Atmosphere | null;
   gallery: Gallery | null;
+  /** atmosphere_text 필드로 옛 atmosphere 블록을 흡수함(2026-07-17) */
   facility: Facility | null;
   menu: Menu;
   info: Info;

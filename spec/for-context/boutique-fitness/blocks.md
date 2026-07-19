@@ -16,6 +16,8 @@
 
 ## 확정된 블록 순서 (Step 2 최종)
 
+> ⚠️ **2026-07-17 개정**: "분위기(atmosphere)"가 독립 블록에서 `facility.atmosphere_text` 필드로 흡수됐다 — 항상 같은 "공간 클러스터"로 붙어 다니고 독립적으로 위치가 바뀔 일이 없어, 별도 top-level 블록으로 둘 이유가 general만큼 강하지 않았다(general은 계속 독립 블록 유지 — 이 vertical만의 변경, general도 나중에 같은 논리로 정리할지는 별도 검토 예정).
+
 ```
 0. 상단 고정바
 1. 히어로
@@ -24,7 +26,7 @@
 3-1. 리뷰 (reviews)
 3-2. 전문가 프로필 (professionals)        ← 신규
 3-3. 철학 (philosophy)
-4. 분위기(atmosphere) + 갤러리 + 시설 스펙(facility) ← facility 신규
+4. 갤러리 + 시설 스펙(facility, 분위기 서술 포함) ← facility 신규, atmosphere 흡수
 5. 메뉴/서비스 (item_consult)
 6. 위치/정보
 7. 하단 고정 CTA바
@@ -255,19 +257,23 @@ general과 동일, 변경 없음:
 
 ---
 
-## 블록 4. 공간 클러스터 (분위기 + 갤러리 + 시설 스펙)
+## 블록 4. 공간 클러스터 (갤러리 + 시설 스펙)
 
-세 블록은 "공간을 보여준다"는 공통 목적으로 인접 배치된다. `meta.lead_emphasis`가 `facility`로 선택된 경우에만 시설 스펙이 이 클러스터에서 분리돼 증거 클러스터 자리(3번)로 올라간다 — 나머지 세 경우는 그대로 여기 유지.
+> ⚠️ **2026-07-17 개정**: 원래 세 블록(분위기+갤러리+시설)이었으나, "분위기"가 `facility.atmosphere_text` 필드로 흡수되면서 두 블록으로 줄었다. 아래 "블록 4-1. 분위기"는 구버전 기록으로 남겨둔다(그 안의 층2.5 예시는 여전히 `atmosphere_text` 필드 작성 시 참고 가치가 있음).
 
-### 블록 4-1. 분위기 (`atmosphere`)
+세 블록은(현재는 두 블록) "공간을 보여준다"는 공통 목적으로 인접 배치된다. `meta.lead_emphasis`가 `facility`로 선택된 경우에만 시설 스펙이 이 클러스터에서 분리돼 증거 클러스터 자리(3번)로 올라간다 — 나머지 세 경우는 그대로 여기 유지.
+
+### 블록 4-1. 분위기 (`atmosphere`) — 구버전, 현재는 `facility.atmosphere_text`로 흡수됨
 
 **대조 체크**: STEP3 답변 있을 때만/없으면 null(유지) · about·philosophy와 독립, 감각적 디테일 위주(유지 — `about` 자체가 없고 `philosophy`도 "스튜디오 계기"로 범위를 좁혀둬서 겹칠 일이 더 적음) · 위치는 갤러리 인접(유지) · 2~3문장(유지).
 
-**층1**: general과 동일, 변경 없음. `"atmosphere": { "text": "string" } | null`
+~~**층1**: general과 동일, 변경 없음. `"atmosphere": { "text": "string" } | null`~~ *(구버전 — 이제 `facility.atmosphere_text`)*
 
-**층2.5 (좋은/나쁜 예)**
+**층2.5 (좋은/나쁜 예, 여전히 유효 — `atmosphere_text` 필드에 그대로 적용)**
 좋은 예: "큰 창으로 오후 햇살이 들어오는 리포머룸, 은은한 로파이 음악, 1:1 수업이라 다른 회원 눈치 볼 일이 없는 조용함." — 감각적 디테일 + "눈치 안 봐도 됨"(초보자 불안과 자연스럽게 연결).
 나쁜 예: "쾌적하고 좋은 시설을 자랑합니다" — 감각 디테일 없는 수식.
+
+**왜 흡수했는가**: `atmosphere`를 독립 top-level 블록으로 뒀던 이유(general 설계 당시)는 "렌더러가 시각적으로 다르게 취급할 수 있어야 하고, 페이지 내 위치도 독립적으로 정할 수 있어야 한다"는 것이었다. 그런데 이 vertical에서는 `atmosphere`와 `facility`가 처음부터 항상 같은 공간 클러스터에 붙어 다니고 독립적으로 위치가 바뀔 일이 없었다 — 즉 분리해야 했던 이유(독립적 배치 유연성) 자체가 이 둘 사이엔 적용이 안 됐다. general은 계속 독립 블록을 유지한다(같은 논리로 정리할지는 별도 검토 대상 — README 7장 참고).
 
 ### 블록 4-2. 갤러리
 
@@ -281,7 +287,7 @@ general과 동일, 변경 없음:
 좋은 예: 그룹 수업 진행 중 현장샷, 저녁 조명의 스튜디오 외관 — 특정 사실을 증명하지 않는 순수 분위기.
 나쁜 예: 트레이너 얼굴이 크게 나온 프로필성 사진을 갤러리에도 중복 배치 — `professionals`와 겹침.
 
-### 블록 4-3. 시설 스펙 (`facility`, 신규)
+### 블록 4-3. 시설 스펙 (`facility`)
 
 **층1 (슬롯 구조)**
 ```json
@@ -291,21 +297,27 @@ general과 동일, 변경 없음:
   "has_locker": "boolean | null",
   "has_parking": "boolean | null",
   "equipment_list": ["string"] | null,
-  "photos": ["url"] | null
+  "photos": ["url"] | null,
+  "atmosphere_text": "string | null"
 }
 ```
-전체 항목이 다 비었으면 `facility: null`. 개별 항목은 모르면 각각 `null`(렌더러가 해당 항목만 숨김).
+`atmosphere_text`는 2026-07-17 신규 — 옛 `atmosphere` 블록 흡수(위 4-1 참고). 전체 항목이 다 비었으면 `facility: null`. 개별 항목은 모르면 각각 `null`(렌더러가 해당 항목만 숨김).
+
+**시설 체크박스 항목, 왜 3개(샤워실·라커·주차)로 유지했는가**: 프라이빗룸·수건 제공·음료 제공·엘리베이터 유무 등도 후보로 검토했으나, "이 스튜디오를 고를지 말지에 진짜 영향을 주는 정보"가 아니라 부가 편의시설이라 제외했다. 대신 아래 2개를 향후 추가 후보로 남겨둔다(이번엔 미채택, 스키마 변경 없음):
+- 그룹 수업 정원(최대 인원) — "소수정예"라는 vertical 정체성을 숫자로 증명하는 사실이 될 수 있음
+- 거울 벽 유무 — 자세 교정이 핵심 가치인 이 업종에서 편의시설이 아니라 운동 효과와 직결되는 기능적 사실
 
 **층2 (작성 원칙)**
 - **신뢰 스트립에 넣지 않기로 한 시설 지표(평수·운영시간 등)가 최종적으로 자리 잡는 블록**이다(블록 2 절 참고).
 - `equipment_list`는 실제 보유 기구를 구체적 수량과 함께("리포머 5대", "캐딜락 2대") — general 메뉴 블록의 "재료·특징 구체적으로" 원칙과 같은 패턴.
 - `photos`는 갤러리와 절대 안 겹치게 — 이 필드의 사진은 반드시 "이 스펙을 보여주는" 용도로만(기구 사진, 샤워실 사진 등).
+- `atmosphere_text`는 위 4-1의 원칙·예시를 그대로 따른다.
 
 **층2.5 (좋은/나쁜 예)**
-좋은 예: `{ "size_pyeong": 45, "has_shower": true, "equipment_list": ["리포머 5대", "타워 2대"] }`
+좋은 예: `{ "size_pyeong": 45, "has_shower": true, "equipment_list": ["리포머 5대", "타워 2대"], "atmosphere_text": "큰 창으로 오후 햇살이 들어오는 리포머룸, 조용함." }`
 나쁜 예: `equipment_list: ["최신식 고급 장비들"]` — 구체성 없음, `copywriting.md`의 "구체성 없음=AI 티" 원칙 위반.
 
-(디자인: `../../for-frontend/boutique-fitness/design-guide.md` 4-1절 — 시설 스펙 아이콘 그리드는 이미 정의됨. 분위기·갤러리는 general 스타일 재사용, 팔레트만 이 vertical 톤 적용)
+(디자인: `../../for-frontend/boutique-fitness/design-guide.md` 4-1절 — 시설 스펙 아이콘 그리드는 이미 정의됨. 갤러리는 general 스타일 재사용, 팔레트만 이 vertical 톤 적용)
 
 ---
 
@@ -329,21 +341,28 @@ general과 동일, 변경 없음 — `label` 필드가 이미 자유 텍스트�
 
 ## 블록 6. 위치/정보 (`info`)
 
-> ⚠️ **2026-07-17 개정**: `external_links` 필드가 완전히 제거됐다 — `meta.browse_channels`(2026-07-17 CTA 재설계로 신설)와 하는 일이 완전히 겹쳤다(둘 다 "카카오·인스타·블로그 등 채널 링크 목록"). 사장님이 같은 링크를 두 번 입력해야 하는 번거로움도 있었고, 스킬이 같은 정보를 두 필드에 각각 판단해 넣어야 하는 중복 부담도 있었다. 정보 블록 하단 링크는 이제 렌더러가 `meta.browse_channels`를 재사용해서 그린다. 아래 층2·층2.5는 구버전 — 현재 구조는 `schema-summary.md` 참고.
+> ⚠️ **2026-07-17 개정 1**: `external_links` 필드가 완전히 제거됐다 — `meta.browse_channels`(2026-07-17 CTA 재설계로 신설)와 하는 일이 완전히 겹쳤다(둘 다 "카카오·인스타·블로그 등 채널 링크 목록"). 사장님이 같은 링크를 두 번 입력해야 하는 번거로움도 있었고, 스킬이 같은 정보를 두 필드에 각각 판단해 넣어야 하는 중복 부담도 있었다. 정보 블록 하단 링크는 이제 렌더러가 `meta.browse_channels`를 재사용해서 그린다. 아래 층2·층2.5는 구버전 — 현재 구조는 `schema-summary.md` 참고.
+>
+> ⚠️ **2026-07-17 개정 2**: `landmark_distance` 필드 신규 추가(랜드마크 기반 도보 거리, 예: "시청 사거리에서 도보 5분"). 접근성이 이 vertical의 핵심 신뢰 요소 중 하나라는 판단(`definition.md` 참고)에 따라, 지하철역에 한정하지 않고 사장님이 준 실제 랜드마크 기준으로 받는다. 질문은 STEP5(시설 체크박스)에서 같이 묻지만, JSON 필드는 주소·좌표와 의미적으로 같이 있는 게 맞아 `info`에 둔다.
+>
+> ⚠️ **2026-07-17 개정 3(디자인 전용, 스키마 변경 없음)**: `info.map_coordinates`(기존 필드)를 지도 임베드에 핀 마커로 표시하도록 렌더링 의도를 `design-guide.md`에 명세했다. 접근성 강조 원칙과 연결.
 
-### 층1 (슬롯 구조, 구버전)
+### 층1 (슬롯 구조, 구버전 — `landmark_distance` 필드 빠짐, `schema-summary.md` 참고)
 general과 동일, 변경 없음.
 
 ### 층2 (작성 원칙, 구버전 — 아래 내용은 이제 적용 안 됨)
 - **영업시간 뉘앙스**: 예약제 운영이면 "영업시간"을 "상담·수업 가능 시간대"로 이해하고 채운다 — 필드 구조는 그대로(`hours.structured`), 다만 이 시간대가 "워크인 가능 시간"이 아니라 "예약 가능 창구"라는 걸 염두에 두고 사장님이 준 시간 정보를 왜곡 없이 넣는다. *(이 원칙은 여전히 유효 — 구버전 아님)*
 - ~~**외부 링크 우선순위**: 이 vertical은 카카오톡 채널·인스타그램 DM이 실제 1차 상담 창구인 경우가 많다(상단고정바·CTA에서 이미 `guided` 모드로 정한 것과 같은 맥락) — 있으면 `external_links`에 반드시 포함해 상담 창구를 명확히 한다.~~ *(구버전 — `external_links` 필드 자체가 없어짐, `guided` 모드 개념도 boutique-fitness에서 이미 폐기됨)*
 - **NAP·사업자정보는 general과 동일.**
+- **`landmark_distance`는 지어내지 않는다.** 사장님이 준 랜드마크가 없으면 `null` — "역에서 가깝습니다" 같은 모호한 문구로 대체하지 않는다.
 
-### 층2.5 (좋은/나쁜 예, 구버전)
+### 층2.5 (좋은/나쁜 예)
 ~~**좋은 예:** `external_links: [{ "platform": "kakao", "url": "..." }]` — 실제 상담 창구를 명확히 노출.~~ *(구버전)*
 **나쁜 예:** 시간 정보를 "24시간 언제든 방문 가능"처럼 예약제 사실과 다르게 표현 — `copywriting.md`의 사실 기반 원칙 위반. *(이 예시는 여전히 유효)*
+**좋은 예 (`landmark_distance`):** `"시청 사거리에서 도보 5분"` — 지하철역이 아니어도 됨.
+**나쁜 예 (`landmark_distance`):** `"역 근처"` — 구체성 없음, AI 티.
 
-(디자인: `../../for-frontend/boutique-fitness/design-guide.md` — 별도 신규 컴포넌트 없음, general 스타일 그대로 팔레트만 적용)
+(디자인: `../../for-frontend/boutique-fitness/design-guide.md` — 지도 핀 마커·`landmark_distance` 강조 표시 명세 추가됨, 10-5절 참고)
 
 ---
 
@@ -415,4 +434,4 @@ topbar · hero · trust_strip · professionals · menu · info · sticky_cta
 
 `transformations`·`reviews`는 스키마상 선택(null 허용)이지만, `definition.md` 4장의 증거 위계상 **사실상 필수급**으로 취급한다(`industry-data.md`·`input-questions.md`에서 적극 확보 유도 — 작성 예정). 나머지(`philosophy`·`atmosphere`·갤러리·`facility`·`how_it_works`·FAQ)는 순수 선택.
 
-**이로써 11개 블록(신규 3개: transformations·professionals·facility 포함) 전체의 층1·층2·층2.5가 완성되었다.** 다음 단계는 이 문서를 근거로 `schema-summary.md`·`content.schema.json`·`content.types.ts`를 general 복사본에서 실제로 분기하는 것(README.md 7장 참고).
+**이로써 (당시 기준) 11개 블록(신규 3개: transformations·professionals·facility 포함) 전체의 층1·층2·층2.5가 완성되었다** — 이후 CTA 재설계(2026-07-17)로 topbar/hero/sticky_cta 구조가 바뀌고, atmosphere가 facility로 흡수되면서 현재는 14개 블록이다(정확한 현재 목록은 `schema-summary.md` 3장이 유일한 원본). 다음 단계는 이 문서를 근거로 `schema-summary.md`·`content.schema.json`·`content.types.ts`를 general 복사본에서 실제로 분기하는 것(README.md 7장 참고, 이 작업은 이후 완료됨).

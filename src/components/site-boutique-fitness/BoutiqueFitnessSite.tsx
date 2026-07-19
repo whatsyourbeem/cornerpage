@@ -9,7 +9,6 @@ import { Transformations } from "./blocks/Transformations";
 import { Reviews } from "./blocks/Reviews";
 import { Professionals } from "./blocks/Professionals";
 import { Philosophy } from "./blocks/Philosophy";
-import { Atmosphere } from "./blocks/Atmosphere";
 import { Gallery } from "./blocks/Gallery";
 import { Facility } from "./blocks/Facility";
 import { Menu } from "./blocks/Menu";
@@ -39,8 +38,6 @@ export function BoutiqueFitnessSite({ content }: { content: MiniHomepageContent 
         return <Professionals professionals={blocks.professionals} key={key} />;
       case "philosophy":
         return blocks.philosophy ? <Philosophy philosophy={blocks.philosophy} key={key} /> : null;
-      case "atmosphere":
-        return blocks.atmosphere ? <Atmosphere atmosphere={blocks.atmosphere} key={key} /> : null;
       case "gallery":
         return blocks.gallery ? <Gallery gallery={blocks.gallery} key={key} /> : null;
       case "facility":

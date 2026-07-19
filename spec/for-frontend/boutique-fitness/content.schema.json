@@ -750,28 +750,6 @@
       ],
       "additionalProperties": false
     },
-    "ExternalLink": {
-      "type": "object",
-      "required": [
-        "platform",
-        "url"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "platform": {
-          "enum": [
-            "instagram",
-            "kakao",
-            "naver_reservation",
-            "blog"
-          ]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        }
-      }
-    },
     "BusinessInfo": {
       "type": [
         "object",
@@ -797,7 +775,6 @@
         "map_coordinates",
         "hours",
         "phone",
-        "external_links",
         "business_info"
       ],
       "additionalProperties": false,
@@ -828,12 +805,6 @@
         "phone": {
           "type": "string",
           "minLength": 1
-        },
-        "external_links": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ExternalLink"
-          }
         },
         "business_info": {
           "$ref": "#/$defs/BusinessInfo"

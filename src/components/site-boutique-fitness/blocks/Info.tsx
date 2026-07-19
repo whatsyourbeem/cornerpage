@@ -1,16 +1,16 @@
-import type { ExternalLinkPlatform, Info as InfoType } from "@/lib/content-types-boutique-fitness";
+import type { BrowseChannel, Info as InfoType } from "@/lib/content-types-boutique-fitness";
+import { browseChannelHref, browseChannelLabel } from "@/lib/channels-boutique-fitness";
 import { naverMapHref, telHref } from "@/lib/info-links-boutique-fitness";
 import { dayLabel, formatHoursLine, sortStructuredHours } from "@/lib/hours-boutique-fitness";
 import styles from "./Info.module.css";
 
-const PLATFORM_LABEL: Record<ExternalLinkPlatform, string> = {
-  instagram: "인스타그램",
-  kakao: "카카오",
-  naver_reservation: "네이버예약",
-  blog: "블로그",
-};
-
-export function Info({ info }: { info: InfoType }) {
+export function Info({
+  info,
+  browseChannels,
+}: {
+  info: InfoType;
+  browseChannels: BrowseChannel[] | null;
+}) {
   return (
     <div className="mhp-band mhp-band-dark mhp-section" id="info">
       <div className="mhp-container">
@@ -61,19 +61,19 @@ export function Info({ info }: { info: InfoType }) {
           </span>
         </div>
 
-        {info.external_links.length > 0 && (
+        {browseChannels && browseChannels.length > 0 && (
           <div className={styles.row}>
             <span className={styles.rowLabel}>링크</span>
             <span className={styles.externalLinks}>
-              {info.external_links.map((link) => (
+              {browseChannels.map((channel, i) => (
                 <a
-                  key={link.platform}
-                  href={link.url}
+                  key={channel.type + i}
+                  href={browseChannelHref(channel)}
                   className={styles.externalLink}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {PLATFORM_LABEL[link.platform]}
+                  {browseChannelLabel(channel)}
                 </a>
               ))}
             </span>

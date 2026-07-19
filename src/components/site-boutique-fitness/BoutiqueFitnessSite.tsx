@@ -46,9 +46,16 @@ export function BoutiqueFitnessSite({ content }: { content: MiniHomepageContent 
       case "facility":
         return blocks.facility ? <Facility facility={blocks.facility} key={key} /> : null;
       case "menu":
-        return <Menu menu={blocks.menu} info={blocks.info} key={key} />;
+        return (
+          <Menu
+            menu={blocks.menu}
+            info={blocks.info}
+            browseChannels={meta.browse_channels}
+            key={key}
+          />
+        );
       case "info":
-        return <Info info={blocks.info} key={key} />;
+        return <Info info={blocks.info} browseChannels={meta.browse_channels} key={key} />;
       case "how_it_works":
         return blocks.how_it_works ? <HowItWorks howItWorks={blocks.how_it_works} key={key} /> : null;
       case "faq":

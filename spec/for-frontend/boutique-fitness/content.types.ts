@@ -258,13 +258,6 @@ export type Hours =
   | { type: "24h"; structured: null }
   | { type: "structured"; structured: HoursStructuredEntry[] };
 
-export type ExternalLinkPlatform = "instagram" | "kakao" | "naver_reservation" | "blog";
-
-export interface ExternalLink {
-  platform: ExternalLinkPlatform;
-  url: string;
-}
-
 export interface BusinessInfo {
   registered_name: string;
   ceo_name: string;
@@ -277,10 +270,12 @@ export interface Info {
   /** 예약제 운영이면 "워크인 가능 시간"이 아니라 "상담·수업 가능 시간대"로 이해 */
   hours: Hours;
   phone: string;
-  /** 카카오톡 채널·인스타그램 DM이 실제 1차 상담 창구인 경우가 많음 — 있으면 반드시 포함 */
-  external_links: ExternalLink[];
   business_info: BusinessInfo | null;
 }
+/**
+ * `external_links` 필드는 2026-07-17 제거됨 — `meta.browse_channels`(둘러보기 채널)와 완전히 중복이었다.
+ * 정보 블록 하단에 링크를 보여줄 땐 렌더러가 `meta.browse_channels`를 재사용한다(스킬이 두 번 판단할 이유가 없어짐).
+ */
 
 // ---------- 블록 7: sticky_cta ----------
 

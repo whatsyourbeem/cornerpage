@@ -109,12 +109,6 @@
         ]
       },
       "phone": "010-1234-5678",
-      "external_links": [
-        {
-          "platform": "kakao",
-          "url": "https://pf.kakao.com/example"
-        }
-      ],
       "business_info": null
     },
     "sticky_cta": {

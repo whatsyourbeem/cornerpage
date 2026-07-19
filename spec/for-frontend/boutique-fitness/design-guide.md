@@ -151,6 +151,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - **히어로**: 배경 이미지 위 오버레이 `--brand-deep` 반투명(가독성), CTA는 `button-primary`(클릭 시 `inquiry-dialog` 오픈), 그 아래 `browse_channels` 버튼 행(있는 경우)
 - **신뢰 스트립**: 숫자는 `number-40`/`--accent`, 라벨은 `caption-13`/`--ink-muted`
 - **메뉴/서비스**: 카드 스타일은 `card-evidence`와 동일 톤이나 강조색 없이 중립적으로(가격 정보는 차분하게 — 강매 인상 방지)
+- **위치/정보**: general 스타일 그대로(주소·시간·전화). 하단 링크 목록은 `meta.browse_channels`를 `channel-button` 스타일로 재사용해서 그린다(2026-07-17 — `info.external_links` 필드가 없어지고 `browse_channels`로 통합됨, 별도 필드 없음)
 - **리뷰**: `card-evidence` 재사용, 별점은 `--star`. `trainer_tag`가 있으면 작성자명 옆에 `tag-cert` 스타일의 작은 칩으로 표시(자격증 칩과 같은 스타일 재사용 — 배경 `--brand-light`, 텍스트 `--brand`)
 - **하단 고정 CTA바**: 배경 `--brand-deep`, `cta_label` 버튼은 `accent-on-dark` 사용(어두운 배경 대비 확보, 클릭 시 `inquiry-dialog` 오픈 — 상단바·히어로와 동일한 다이얼로그)
 

@@ -236,11 +236,10 @@
     ]
   },
   "phone": "string, required",
-  "external_links": [ { "platform": "instagram|kakao|naver_reservation|blog", "url": "string" } ],
   "business_info": { "registered_name": "string", "ceo_name": "string", "registration_number": "string" } | null
 }
 ```
-예약제 운영이면 "영업시간"을 "상담·수업 가능 시간대"로 이해. 카카오·인스타 DM 있으면 `external_links`에 반드시 포함.
+예약제 운영이면 "영업시간"을 "상담·수업 가능 시간대"로 이해. **`external_links` 필드는 없다(2026-07-17 제거)** — `meta.browse_channels`와 완전히 중복이었다. 정보 블록 하단 링크는 렌더러가 `meta.browse_channels`를 재사용해서 그린다, 스킬이 신경 쓸 부분 아님.
 
 ### 7. sticky_cta (필수)
 ```json

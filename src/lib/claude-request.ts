@@ -6,7 +6,7 @@ export interface ClaudeRequestBody {
   model: "claude-sonnet-5";
   max_tokens: number;
   system: string;
-  messages: { role: "user"; content: string }[];
+  messages: { role: "user" | "assistant"; content: string }[];
 }
 
 /**

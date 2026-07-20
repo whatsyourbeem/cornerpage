@@ -27,6 +27,8 @@
 
 이 스킬의 유일한 출력물은 이 스키마를 따르는 JSON이다. HTML/CSS를 생성하지 않는다.
 
+> ⚠️ **전역 규칙(2026-07-18 추가, 실제 검증 실패 사고로 발견) — 반드시 먼저 읽는다**: 이 스키마의 모든 객체는 `additionalProperties: false`다. **블록 내부 필드는(예: `facility.has_parking`, `hero.background_images`) 명시적으로 "선택"이라고 적힌 경우를 빼면 전부 키 자체가 필수(required)다 — 값이 `null`이어도 키는 반드시 있어야 한다.** "값이 없으니 키도 생략하자"는 판단은 스키마 검증 실패로 직결된다. 예: `facility.has_parking`을 모르면 `"has_parking": null`로 쓰고, `"has_parking"` 키 자체를 통째로 빼면 안 된다. **`blocks` 최상위(예: `philosophy`·`gallery`·`facility` 등 선택 블록)도 같은 관례를 따른다** — 스키마 규격상으론 키 생략도 허용되지만, "필드 자체가 `null`"이라는 기존 표현대로 **항상 키를 포함하고 값만 `null`로 쓴다**(생략하지 않는다) — 이렇게 하면 예외를 따로 기억할 필요가 없다. 개별 필드마다 "required"라고 매번 적지 않은 곳도 있는데(문서 분량상 생략), **이 전역 규칙이 기본값이다 — "required"가 안 적혀 있다고 필드 생략을 허용하는 뜻이 아니다.** 정확히 어떤 값(문자열/숫자/객체/배열)이 필수인지는 각 블록의 스키마 설명을, 어느 블록 전체가 선택인지는 4장의 "필수 블록 목록"을 근거로 삼는다.
+
 ## 목차
 1. 전체 구조
 2. meta 필드
@@ -51,10 +53,10 @@
   "meta": {
     "business_name": "string, required",
     "industry_category": "string, required (PT·필라테스·요가 등)",
-    "lead_emphasis": "transformations | reviews | professionals | facility | null (사장님이 고른 최우선 어필 포인트, 무응답이면 null → transformations 기본값)",
-    "inquiry_channels": [ { "type": "call | naver_reservation | kakao | instagram_dm | other", "action_value": "string(전화번호 또는 URL)", "other_label": "string | null" } ],
-    "browse_channels": [ { "type": "kakao | naver_blog | instagram | youtube | naver_map | other", "action_value": "string(URL)", "other_label": "string | null" } ] ,
-    "logo_url": "url | null", "brand_color": null
+    "lead_emphasis": "transformations | reviews | professionals | facility | null, required key (사장님이 고른 최우선 어필 포인트, 무응답이면 null → transformations 기본값)",
+    "inquiry_channels": [ { "type": "call | naver_reservation | kakao | instagram_dm | other", "action_value": "string(전화번호 또는 URL)", "other_label": "string | null, required key(type이 other일 때만 값, 그 외엔 반드시 null)" } ],
+    "browse_channels": "array | null, required key — [ { \"type\": \"kakao | naver_blog | instagram | youtube | naver_map | other\", \"action_value\": \"string(URL)\", \"other_label\": \"string | null, required key(type이 other일 때만 값, 그 외엔 반드시 null)\" } ]",
+    "logo_url": "url | null, required key", "brand_color": "string | null, required key (사장님이 지정한 hex 코드 그대로 통과, 스킬이 생성하지 않음)"
   }
 }
 ```
@@ -83,7 +85,7 @@
   "badge": "string, required (지역 + 구체적 전문분야, 예: '수내동 · 필라테스 스튜디오')",
   "headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지 — 증거는 뒤 블록이 담당. 줄바꿈은 \\n으로 직접 지정 — 최대 2줄, 각 줄 4~20자. 20자 넘는 문장을 \\n 없이 한 줄로 넣으면 스키마가 거부한다)",
   "tagline": "string, required ('나도 할 수 있을까' 불안을 사실 기반으로 완화하는 자리)",
-  "background_images": "url[] | null (최대 5장. 여러 장이면 렌더러가 순서대로 전환하며 줌 애니메이션 적용 — 이미 구현됨, 스킬은 URL 순서만 그대로 전달)",
+  "background_images": "url[] | null, required key (최대 5장. 여러 장이면 렌더러가 순서대로 전환하며 줌 애니메이션 적용 — 이미 구현됨, 스킬은 URL 순서만 그대로 전달)",
   "cta_label": "string, required (저부담)"
 }
 ```
@@ -127,7 +129,7 @@
       "duration_label": "string, required (예: '12주')",
       "result_highlight": "string, required (예: '-8kg')",
       "member_label": "string (익명 처리, 예: '김○영님')",
-      "trainer_tag": "string | null (원문에 이름이 있을 때만 — 추론 금지)"
+      "trainer_tag": "string | null, required key (원문에 이름이 있을 때만 값 채움 — 추론 금지, 없어도 키는 포함하고 null)"
     }
   ]
 } | null
@@ -140,10 +142,10 @@
   "items": [
     {
       "body": "string, required (원문 그대로, 가공 금지)",
-      "rating": "number | null",
+      "rating": "number | null, required key",
       "author": "string (익명 처리)",
-      "source": "string | null",
-      "trainer_tag": "string | null (원문에 이름이 있을 때만 — 추론 금지)"
+      "source": "string | null, required key",
+      "trainer_tag": "string | null, required key (원문에 이름이 있을 때만 값 채움 — 추론 금지, 없어도 키는 포함하고 null)"
     }
   ]
 } | null
@@ -158,10 +160,10 @@
     {
       "name": "string, required",
       "title": "string, required",
-      "photo_url": "url | null",
+      "photo_url": "url | null, required key",
       "certifications": ["string"],
       "specialty": "string, required",
-      "years_experience": "number | null",
+      "years_experience": "number | null, required key",
       "bio_quote": "string, required (과장 없이, 전문성 전달 목적)"
     }
   ]
@@ -181,21 +183,21 @@
 ```json
 "gallery": {
   "images": ["url"],
-  "more_link_url": "url | null"
+  "more_link_url": "url | null, required key"
 } | null
 ```
 1~4장(general의 4~8장보다 하향). `professionals`·`facility`·`transformations` 사진과 중복 배치 금지 — 순수 분위기 사진만.
 
-### 4-1. facility (선택)
+### 4-1. facility (선택 — 블록 전체가 `null`일 수 있음. 단, 블록이 있으면 아래 7개 키 전부 필수, 값은 각각 nullable)
 ```json
 "facility": {
-  "size_pyeong": "number | null",
-  "has_shower": "boolean | null",
-  "has_locker": "boolean | null",
-  "has_parking": "boolean | null",
-  "equipment_list": ["string"] | null,
-  "photos": ["url"] | null,
-  "atmosphere_text": "string | null (감각적 디테일 위주 — 공간·소리·조용함 등)"
+  "size_pyeong": "number | null, required key",
+  "has_shower": "boolean | null, required key",
+  "has_locker": "boolean | null, required key",
+  "has_parking": "boolean | null, required key",
+  "equipment_list": "[\"string\"] | null, required key",
+  "photos": "[\"url\"] | null, required key",
+  "atmosphere_text": "string | null, required key (감각적 디테일 위주 — 공간·소리·조용함 등)"
 } | null
 ```
 `equipment_list`는 구체적 수량과 함께(예: "리포머 5대"). `photos`는 갤러리와 중복 금지.
@@ -212,7 +214,7 @@
   "mode": "item_price | item_consult | package_table (이 vertical은 item_consult가 강한 기본값)",
 
   // mode == item_price | item_consult:
-  "items": [ { "name": "string, required", "price": "string | null (item_consult면 항상 null → '상담 문의' 렌더)", "description": "string | null", "image_url": "url | null", "badge": "string | null" } ],
+  "items": [ { "name": "string, required", "price": "string | null, required key (item_consult면 항상 null → '상담 문의' 렌더)", "description": "string | null, required key", "image_url": "url | null, required key", "badge": "string | null, required key" } ],
   // 대표 1~3개만. 하한 강제 금지(있는 만큼만, 최소 1개). 1개뿐이면 full_list_link_enabled: false.
 
   // mode == package_table (코치 등급제 등 계층 요금제):
@@ -230,15 +232,17 @@
   "map_coordinates": { "lat": "number", "lng": "number" },
   "hours": {
     "type": "24h | structured",
-    "structured": "type이 24h면 반드시 null. type이 structured면 반드시 비어있지 않은 배열(최소 1개 요일)이어야 함 — 둘 다 아닌 조합(예: type=structured인데 structured=null)은 렌더러 크래시를 유발하므로 절대 금지:",
+    "structured": "required key, type이 24h면 반드시 null(키 생략 금지). type이 structured면 반드시 비어있지 않은 배열(최소 1개 요일)이어야 함 — 둘 다 아닌 조합(예: type=structured인데 structured=null)은 렌더러 크래시를 유발하므로 절대 금지:",
     "structured_array_shape": [
-      { "day": "mon|tue|wed|thu|fri|sat|sun", "open": "HH:mm", "close": "HH:mm",
-        "break": ["HH:mm","HH:mm"], "last_order": "HH:mm", "closed": "boolean" }
+      { "day": "mon|tue|wed|thu|fri|sat|sun, required", "open": "HH:mm | null, required key", "close": "HH:mm | null, required key",
+        "break": "[\"HH:mm\",\"HH:mm\"] | null, required key — 휴게시간 없으면 null, 키는 반드시 포함",
+        "last_order": "HH:mm | null, required key — 라스트오더 없으면 null, 키는 반드시 포함",
+        "closed": "boolean, required" }
     ]
   },
   "phone": "string, required",
-  "business_info": { "registered_name": "string", "ceo_name": "string", "registration_number": "string" } | null,
-  "landmark_distance": "string | null (지하철역에 한정하지 않는 랜드마크 기반 도보 거리, 예: '시청 사거리에서 도보 5분')"
+  "business_info": "{ \"registered_name\": \"string\", \"ceo_name\": \"string\", \"registration_number\": \"string\" } | null, required key",
+  "landmark_distance": "string | null, required key (지하철역에 한정하지 않는 랜드마크 기반 도보 거리, 예: '시청 사거리에서 도보 5분')"
 }
 ```
 예약제 운영이면 "영업시간"을 "상담·수업 가능 시간대"로 이해. **`external_links` 필드는 없다(2026-07-17 제거)** — `meta.browse_channels`와 완전히 중복이었다. 정보 블록 하단 링크는 렌더러가 `meta.browse_channels`를 재사용해서 그린다, 스킬이 신경 쓸 부분 아님.

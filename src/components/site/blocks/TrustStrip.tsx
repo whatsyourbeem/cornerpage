@@ -36,8 +36,10 @@ function CountUpValue({ value, animate }: { value: string; animate: boolean }) {
       "(prefers-reduced-motion: reduce)"
     ).matches;
     if (prefersReduced) {
-      setDisplay(value);
-      return;
+      // 이펙트 본문에서 곧장 setState하지 않고 다음 프레임으로 미룬다
+      // (react-hooks/set-state-in-effect) — 동작(거의 즉시 최종값 표시)은 동일하다.
+      const raf = requestAnimationFrame(() => setDisplay(value));
+      return () => cancelAnimationFrame(raf);
     }
 
     const el = ref.current;

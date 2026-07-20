@@ -10,6 +10,8 @@
 
 이 스킬의 유일한 출력물은 이 스키마를 따르는 JSON이다. HTML/CSS를 생성하지 않는다.
 
+> ⚠️ **전역 규칙(2026-07-18 추가, 실제 검증 실패 사고로 발견) — 반드시 먼저 읽는다**: 이 스키마의 모든 객체는 `additionalProperties: false`다. **블록 내부 필드는 명시적으로 "선택"이라고 적힌 경우를 빼면 전부 키 자체가 필수(required)다 — 값이 `null`이어도 키는 반드시 있어야 한다.** "값이 없으니 키도 생략하자"는 판단은 스키마 검증 실패로 직결된다. 예: `hero.background_image_url`을 모르면 `"background_image_url": null`로 쓰고, 키 자체를 빼면 안 된다. **`blocks` 최상위(예: `about`·`philosophy`·`gallery` 등 선택 블록)도 같은 관례를 따른다** — 스키마 규격상 키 생략도 허용되지만, "필드 자체가 `null`"이라는 기존 표현대로 **항상 키를 포함하고 값만 `null`로 쓴다**. 개별 필드마다 "required"라고 매번 적지 않은 곳도 있는데, **이 전역 규칙이 기본값이다.**
+
 ## 목차
 1. 전체 구조
 2. meta 필드
@@ -39,7 +41,7 @@
     "axis_b_layout": "갤러리우선 | 메뉴우선 | 해당없음",
     "cta_primary_action": "reservation | call | direction",
     "cta_interaction_mode": "functional | guided",
-    "logo_url": "url | null (없으면 텍스트 로고타입 폴백)", "brand_color": null
+    "logo_url": "url | null, required key (없으면 텍스트 로고타입 폴백)", "brand_color": "string | null, required key (사장님 지정 hex, 스킬은 통과만 시킴)"
   }
 }
 ```
@@ -80,7 +82,7 @@
   "badge": "string, required (지역·업종, 예: '망원동 · 브런치 카페')",
   "headline": "string, required (감정 형용사 금지, 사실 기반)",
   "tagline": "string, required",
-  "background_image_url": "url | null (null이면 단색+타이포 폴백)",
+  "background_image_url": "url | null, required key (null이면 단색+타이포 폴백)",
   "cta": { "type": "call | reservation | direction", "label": "string" }
 }
 ```
@@ -96,9 +98,9 @@
 ### 3. about (선택)
 ```json
 "about": {
-  "body": "string | null (2~3문장, 기본 소개)",
-  "signature_quote": "string | null",
-  "supporting_image_url": "url | null"
+  "body": "string | null, required key (2~3문장, 기본 소개)",
+  "signature_quote": "string | null, required key",
+  "supporting_image_url": "url | null, required key"
 }
 ```
 body가 null이면 블록 전체 생략(about: null로).
@@ -129,10 +131,10 @@ body가 null이면 블록 전체 생략(about: null로).
   "items": [
     {
       "name": "string, required",
-      "price": "string | null (item_consult면 항상 null → '상담 문의' 렌더)",
-      "description": "string | null",
-      "image_url": "url | null",
-      "badge": "string | null (인기/시그니처, 최대 1~2개 항목에만)"
+      "price": "string | null, required key (item_consult면 항상 null → '상담 문의' 렌더)",
+      "description": "string | null, required key",
+      "image_url": "url | null, required key",
+      "badge": "string | null, required key (인기/시그니처, 최대 1~2개 항목에만)"
     }
   ],
   // 대표 1~3개만. 하한 강제 금지(있는 만큼만, 최소 1개). 1개뿐이면 full_list_link_enabled: false.
@@ -155,7 +157,7 @@ mode가 package_table이면 items는 null, item_*이면 categories는 null (상�
 ```json
 "gallery": {
   "images": ["url"],           // 4~8장 권장
-  "more_link_url": "url | null" // 사진 많으면 인스타 등 외부
+  "more_link_url": "url | null, required key" // 사진 많으면 인스타 등 외부
 }
 ```
 images가 비었으면 gallery: null.
@@ -166,9 +168,9 @@ images가 비었으면 gallery: null.
   "items": [
     {
       "body": "string, required (유저 입력 원문 그대로, 가공 금지)",
-      "rating": "number | null",
+      "rating": "number | null, required key",
       "author": "string (익명 처리, 예: '김○영')",
-      "source": "string | null (예: '네이버 리뷰')"
+      "source": "string | null, required key (예: '네이버 리뷰')"
     }
   ]
 }
@@ -182,10 +184,10 @@ images가 비었으면 gallery: null.
   "map_coordinates": { "lat": "number", "lng": "number" },
   "hours": {
     "type": "24h | structured",
-    "structured": "type이 24h면 반드시 null. type이 structured면 반드시 비어있지 않은 배열(최소 1개 요일)이어야 함 — 둘 다 아닌 조합(예: type=structured인데 structured=null)은 렌더러 크래시를 유발하므로 절대 금지:",
+    "structured": "required key, type이 24h면 반드시 null(키 생략 금지). type이 structured면 반드시 비어있지 않은 배열(최소 1개 요일)이어야 함 — 둘 다 아닌 조합(예: type=structured인데 structured=null)은 렌더러 크래시를 유발하므로 절대 금지:",
     "structured_array_shape": [
-      { "day": "mon|tue|wed|thu|fri|sat|sun", "open": "HH:mm", "close": "HH:mm",
-        "break": ["HH:mm","HH:mm"], "last_order": "HH:mm", "closed": "boolean" }
+      { "day": "mon|tue|wed|thu|fri|sat|sun, required", "open": "HH:mm | null, required key", "close": "HH:mm | null, required key",
+        "break": "[\"HH:mm\",\"HH:mm\"] | null, required key — 휴게시간 없으면 null, 키는 반드시 포함", "last_order": "HH:mm | null, required key — 라스트오더 없으면 null, 키는 반드시 포함", "closed": "boolean, required" }
     ]
   },
   "phone": "string, required",

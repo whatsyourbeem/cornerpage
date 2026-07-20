@@ -4,8 +4,9 @@ import Ajv2020 from "ajv/dist/2020";
 import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema.json";
 import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
-import { buildClaudeRequestBody } from "./claude-request";
+import { buildClaudeRequestBody, type ClaudeRequestBody } from "./claude-request";
 import { determineVertical, RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
+import { notifyAdminOfGenerationFailure } from "./admin-notify";
 import type {
   CtaPrimaryAction,
   CtaInteractionMode,
@@ -111,6 +112,26 @@ export class VerticalNotReadyError extends Error {
   }
 }
 
+/**
+ * 3층 repair loop(spec/README.md 7장)가 최대 횟수까지 스스로 고쳐봤는데도 ajv
+ * 검증을 통과하지 못했을 때만 던진다. 호출부(API 라우트)는 이 에러를 사장님에게
+ * 원인 그대로 보여주지 않고 일반화된 메시지로 대체해야 한다 — 검증 오류 원문은
+ * admin-notify.ts를 통해 관리자에게만 전달된다.
+ */
+export class ContentGenerationFailedError extends Error {
+  constructor(
+    public readonly vertical: Vertical,
+    public readonly lastError: unknown
+  ) {
+    super(
+      `${vertical} 콘텐츠 생성이 반복 수정 후에도 검증을 통과하지 못함: ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`
+    );
+    this.name = "ContentGenerationFailedError";
+  }
+}
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // vertical마다 독립된 Ajv 인스턴스를 쓴다 — 두 스키마의 $id가 같아서(현재 동일
@@ -202,23 +223,61 @@ export function processGeneratedContent(
   return content;
 }
 
-async function attemptGenerate(
+// 초기 호출 1회 + 검증 실패 시 수정 요청 최대 2회 = 총 최대 3회 API 호출.
+const MAX_REPAIR_ATTEMPTS = 2;
+
+/**
+ * 3층(런타임 repair loop, spec/README.md 7장): 첫 응답이 ajv 검증에 실패하면
+ * 같은 대화(멀티턴)에 방금 받은(깨진) 응답과 ajv 에러 메시지를 이어붙여 "이 오류를
+ * 고쳐서 JSON만 다시 응답해"라고 재요청한다 — 매번 처음부터 새로 생성시키는
+ * 것보다, 무엇이 왜 틀렸는지 알려주고 고치게 하는 쪽이 같은 실수를 반복할
+ * 확률이 낮다. 최대 횟수까지 실패하면 ContentGenerationFailedError를 던진다.
+ */
+async function generateWithRepairLoop(
   answers: DraftAnswers,
   coordinates: { lat: number; lng: number },
   vertical: Vertical
 ): Promise<MiniHomepageContent> {
-  const response = await client.messages.create(buildClaudeRequestBody(vertical, answers));
-  const content = processGeneratedContent(extractText(response), vertical, coordinates);
-  return content as MiniHomepageContent;
+  const requestBody = buildClaudeRequestBody(vertical, answers);
+  const messages: ClaudeRequestBody["messages"] = [...requestBody.messages];
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
+    const response = await client.messages.create({ ...requestBody, messages });
+    const rawText = extractText(response);
+
+    try {
+      const content = processGeneratedContent(rawText, vertical, coordinates);
+      return content as MiniHomepageContent;
+    } catch (err) {
+      lastError = err;
+      if (attempt === MAX_REPAIR_ATTEMPTS) break;
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error(`콘텐츠 검증 실패, 수정 요청 ${attempt + 1}/${MAX_REPAIR_ATTEMPTS}회:`, errorMessage);
+      messages.push({ role: "assistant", content: rawText });
+      messages.push({
+        role: "user",
+        content: `아래 검증 오류를 수정해서 JSON만 다시 응답해:\n${errorMessage}`,
+      });
+    }
+  }
+
+  throw new ContentGenerationFailedError(vertical, lastError);
 }
 
 /**
- * 네트워크 오류·레이트리밋·스키마 검증 실패 모두 1회 재시도 후 포기한다(데이터
- * 지어내기 금지). vertical을 content와 함께 반환하는 이유: 호출부(POST
- * /api/sites)가 sites.vertical 컬럼에 저장할 값이 필요한데, determineVertical()을
- * 호출부에서 따로 한 번 더 부르면 이 함수 내부 판단과 어긋날 여지가 생긴다 — 이
- * 함수가 실제로 쓴 값을 그대로 돌려줘서 content_json과 vertical이 항상 같은
- * 판단 결과를 가리키도록 보장한다.
+ * vertical을 content와 함께 반환하는 이유: 호출부(POST /api/sites)가
+ * sites.vertical 컬럼에 저장할 값이 필요한데, determineVertical()을 호출부에서
+ * 따로 한 번 더 부르면 이 함수 내부 판단과 어긋날 여지가 생긴다 — 이 함수가
+ * 실제로 쓴 값을 그대로 돌려줘서 content_json과 vertical이 항상 같은 판단
+ * 결과를 가리키도록 보장한다.
+ *
+ * repair loop(검증 실패 자체 수정)와 별개로, 네트워크 오류·레이트리밋처럼
+ * 검증과 무관한 오류만 여기서 1회 추가 재시도한다. repair loop이 최대
+ * 횟수까지 스스로 고쳐봤는데도 실패한 경우(ContentGenerationFailedError)는
+ * 같은 입력으로 다시 시도해도 반복될 가능성이 높으므로 재시도하지 않고 바로
+ * 관리자에게 알린 뒤 그대로 던진다 — 사장님에게는 호출부가 일반화된 메시지로
+ * 대체한다.
  */
 export async function generateContent(
   answers: DraftAnswers
@@ -229,12 +288,33 @@ export async function generateContent(
     throw new VerticalNotReadyError(vertical);
   }
   const coordinates = await geocodeAddress(answers.address);
+
   try {
-    const content = await attemptGenerate(answers, coordinates, vertical);
+    const content = await generateWithRepairLoop(answers, coordinates, vertical);
     return { content, vertical };
   } catch (err) {
-    console.error("콘텐츠 생성 실패, 1회 재시도:", err);
-    const content = await attemptGenerate(answers, coordinates, vertical);
-    return { content, vertical };
+    if (err instanceof ContentGenerationFailedError) {
+      await notifyAdminOfGenerationFailure({
+        vertical,
+        businessName: answers.business_name,
+        error: err,
+      });
+      throw err;
+    }
+
+    console.error("콘텐츠 생성 실패(네트워크/API), 1회 재시도:", err);
+    try {
+      const content = await generateWithRepairLoop(answers, coordinates, vertical);
+      return { content, vertical };
+    } catch (retryErr) {
+      if (retryErr instanceof ContentGenerationFailedError) {
+        await notifyAdminOfGenerationFailure({
+          vertical,
+          businessName: answers.business_name,
+          error: retryErr,
+        });
+      }
+      throw retryErr;
+    }
   }
 }

@@ -1,6 +1,24 @@
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { VERTICALS } from "../src/lib/verticals";
+import { findUnlabeledFields } from "./audit-required-nullable";
+
+// 2층(빌드 타임 lint, spec/README.md 7장 "Claude Code 요청사항"): required-but-nullable
+// 필드가 schema-summary.md에 "required key"로 라벨 안 돼 있으면 빌드를 막는다 — 이 라벨이
+// 빠지면 LLM이 "값이 없으니 키도 생략해도 되겠지"로 착각해 ajv 검증 실패로 이어진다
+// (실제 발생 사례: 2026-07-18, boutique-fitness의 info.hours.structured[].break·last_order 누락).
+// 원본 감사 로직은 spec/tools/audit_required_nullable.py, 이건 그 Node 포팅.
+for (const vertical of VERTICALS) {
+  const schemaPath = join(process.cwd(), `spec/for-frontend/${vertical}/content.schema.json`);
+  const summaryPath = join(process.cwd(), `spec/for-claude-api/${vertical}/schema-summary.md`);
+  const unlabeled = findUnlabeledFields(schemaPath, summaryPath);
+  if (unlabeled.length > 0) {
+    console.error(`\n[audit-required-nullable] ${vertical}: schema-summary.md에 "required key" 라벨이 빠진 필드 ${unlabeled.length}개:`);
+    for (const field of unlabeled) console.error(`  - ${field}`);
+    console.error(`\nspec/for-claude-api/${vertical}/schema-summary.md에서 해당 필드 옆에 "required key"를 추가하세요.\n`);
+    process.exit(1);
+  }
+}
 
 // Structured Outputs가 content.schema.json의 규모/if-then을 처리하지 못해
 // 포기했기 때문에(generate-content.ts 주석 참고), 프롬프트 텍스트가 Claude에게

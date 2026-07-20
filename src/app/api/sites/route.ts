@@ -9,11 +9,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // 플랜별 한도로 바꾼다.
 const MAX_SITES_PER_ACCOUNT = 3;
 
-// Claude 콘텐츠 생성은 재시도 없이도 70초 넘게 걸리는 경우가 실측됐다(1회
-// 재시도까지 겹치면 더 길어질 수 있음) — Vercel 기본 10초 제한을 넉넉히 늘려둔다.
-// Vercel Hobby 플랜은 이 값과 무관하게 60초로 강제 제한되니, 실제 운영 중
-// 타임아웃이 잦으면 플랜 업그레이드가 필요할 수 있다.
-export const maxDuration = 120;
+// Claude 콘텐츠 생성은 단일 호출도 70초 넘게 걸리는 경우가 실측됐다. 3층
+// repair loop(generate-content.ts) 도입으로 검증 실패 시 최대 3회, 네트워크
+// 오류 재시도까지 겹치면 최악의 경우 최대 6회까지 순차 호출될 수 있어 넉넉히
+// 늘려둔다. Vercel Hobby 플랜은 이 값과 무관하게 60초로 강제 제한되니, 실제
+// 운영 중 타임아웃이 잦으면 플랜 업그레이드가 필요할 수 있다.
+export const maxDuration = 300;
 
 /**
  * 최종 제출. /api/sites/draft에서 발급한 id를 그대로 DB row id로 쓴다

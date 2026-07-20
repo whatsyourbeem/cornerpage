@@ -77,7 +77,7 @@ general과 동일, 신규 필드 없음.
   "badge": "string, required",
   "headline": "string, required",
   "tagline": "string, required",
-  "background_image_url": "url | null",
+  "background_image_url": "url | null",  ⚠️ 구버전(2026-07-17) — 현재는 "background_images": "url[] | null"(최대 5장). schema-summary.md 참고.
   "cta": { "type": "call | reservation | direction", "label": "string" }
 }
 ```

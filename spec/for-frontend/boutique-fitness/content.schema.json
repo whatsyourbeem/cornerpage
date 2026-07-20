@@ -222,7 +222,7 @@
         "badge",
         "headline",
         "tagline",
-        "background_image_url",
+        "background_images",
         "cta_label"
       ],
       "additionalProperties": false,
@@ -240,16 +240,26 @@
           "type": "string",
           "minLength": 1
         },
-        "background_image_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri"
-        },
         "cta_label": {
           "type": "string",
           "minLength": 1
+        },
+        "background_images": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 5,
+              "items": {
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "여러 장이면 렌더러가 순서대로 전환하며 줌 애니메이션을 적용한다(이미 구현됨 — 스킬은 URL만 순서대로 전달, 애니메이션 판단 안 함). 없으면 null → 단색 폴백."
         }
       }
     },

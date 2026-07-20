@@ -78,8 +78,8 @@ export interface Hero {
   headline: string;
   /** "나도 할 수 있을까" 불안을 첫 노출로 완화하는 자리(사실 기반일 때만) */
   tagline: string;
-  /** 없으면 null → 렌더러가 단색+타이포 폴백 */
-  background_image_url: string | null;
+  /** 없으면 null → 렌더러가 단색+타이포 폴백. 여러 장이면 순서대로 전환하며 줌 애니메이션 적용(이미 구현됨) — 최대 5장, 스킬은 URL만 순서대로 전달 */
+  background_images: string[] | null;
   /** 저부담 문구만. 클릭 시 meta.inquiry_channels 다이얼로그가 열린다. meta.browse_channels는
    *  히어로에 별도 버튼 목록으로 렌더러가 직접 그린다(이 필드와 무관, hero 스키마에 없음) */
   cta_label: string;

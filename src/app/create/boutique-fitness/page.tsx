@@ -112,8 +112,11 @@ export default function BoutiqueFitnessCreatePage() {
   const [otherLinks, setOtherLinks] = useState<OtherLinkDraft[]>([
     { url: "", label: "", forInquiry: false, forBrowse: false },
   ]);
-  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [heroFiles, setHeroFiles] = useState<File[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [registeredName, setRegisteredName] = useState("");
+  const [ceoName, setCeoName] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [leadEmphasis, setLeadEmphasis] = useState<
     "" | "transformations" | "reviews" | "professionals" | "facility"
   >("");
@@ -215,7 +218,7 @@ export default function BoutiqueFitnessCreatePage() {
   );
 
   const pendingUploads: PendingUpload[] = [
-    ...(heroFile ? [{ slot: "hero", file: heroFile }] : []),
+    ...heroFiles.map((file, i) => ({ slot: `hero-${i}`, file })),
     ...(logoFile ? [{ slot: "logo", file: logoFile }] : []),
     ...finalProfessionalsList.flatMap((p, i) => (p.photo ? [{ slot: `professional-${i}-photo`, file: p.photo }] : [])),
     ...finalTransformationsList.flatMap((t, i) => [
@@ -295,8 +298,16 @@ export default function BoutiqueFitnessCreatePage() {
       },
       inquiry_channels: buildInquiryChannels(),
       browse_channels: buildBrowseChannels(),
-      hero_image_url: urls["hero"] ?? null,
+      hero_image_urls: heroFiles.map((_, i) => urls[`hero-${i}`]).filter((u): u is string => !!u),
       logo_url: urls["logo"] ?? null,
+      business_info:
+        registeredName.trim() && ceoName.trim() && registrationNumber.trim()
+          ? {
+              registered_name: registeredName.trim(),
+              ceo_name: ceoName.trim(),
+              registration_number: registrationNumber.trim(),
+            }
+          : null,
       lead_emphasis: leadEmphasis || null,
       professionals: finalProfessionals,
       transformations: finalTransformations,
@@ -509,14 +520,15 @@ export default function BoutiqueFitnessCreatePage() {
             </div>
           </fieldset>
 
-          <Field label="대표 사진">
+          <Field label="대표 사진 (여러 장이면 히어로 배경에서 순서대로 넘어가요, 최대 5장)">
             <input
               type="file"
               accept="image/*"
+              multiple
               style={fileInputStyle}
-              onChange={(e) => setHeroFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => setHeroFiles(Array.from(e.target.files ?? []).slice(0, 5))}
             />
-            {heroFile && <p style={fileNameStyle}>선택됨: {heroFile.name}</p>}
+            {heroFiles.length > 0 && <p style={fileNameStyle}>{heroFiles.length}장 선택됨</p>}
           </Field>
           <Field label="로고">
             <input
@@ -526,6 +538,25 @@ export default function BoutiqueFitnessCreatePage() {
               onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
             />
             {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
+          </Field>
+
+          <Field
+            label="사업자정보 (선택)"
+            hint="페이지 하단에 작게 표시돼요. 법적으로 필수는 아니지만, 있으면 신뢰도에 도움이 됩니다."
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <input
+                placeholder="등록 상호명"
+                value={registeredName}
+                onChange={(e) => setRegisteredName(e.target.value)}
+              />
+              <input placeholder="대표자명" value={ceoName} onChange={(e) => setCeoName(e.target.value)} />
+              <input
+                placeholder="사업자등록번호"
+                value={registrationNumber}
+                onChange={(e) => setRegistrationNumber(e.target.value)}
+              />
+            </div>
           </Field>
 
           <Field

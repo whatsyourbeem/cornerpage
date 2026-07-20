@@ -1,0 +1,54 @@
+.page {
+  background: var(--paper, #faf8f5);
+  color: var(--ink, #26241f);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 48px 20px 80px;
+}
+
+.section {
+  margin-bottom: 48px;
+  scroll-margin-top: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 20px;
+}
+
+.intro {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-body, #57534a);
+  margin: 0 0 24px;
+}
+
+.clause {
+  margin-bottom: 20px;
+}
+
+.heading {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-body, #57534a);
+  margin: 0;
+  white-space: pre-line;
+}
+
+.disclaimer {
+  font-size: 12px;
+  color: var(--ink-muted, #8b857a);
+  border-top: 1px solid var(--border, #e3ded4);
+  padding-top: 20px;
+}

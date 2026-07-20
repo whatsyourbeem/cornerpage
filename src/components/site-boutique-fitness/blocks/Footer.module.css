@@ -1,0 +1,67 @@
+.inner {
+  padding-block: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.logoImg {
+  height: 24px;
+  width: auto;
+  display: block;
+}
+
+.logotype {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.contact {
+  font-size: 13px;
+  color: color-mix(in srgb, white 70%, transparent);
+  margin: 0;
+}
+
+.businessInfo {
+  font-size: 13px;
+  color: color-mix(in srgb, white 50%, transparent);
+  margin: 0;
+}
+
+.socialRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: color-mix(in srgb, white 70%, transparent);
+  border: 1px solid color-mix(in srgb, white 25%, transparent);
+}
+
+.socialIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.legalRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.legalLink {
+  font-size: 12px;
+  color: color-mix(in srgb, white 50%, transparent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

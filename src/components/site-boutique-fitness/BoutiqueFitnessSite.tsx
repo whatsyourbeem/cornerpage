@@ -16,6 +16,7 @@ import { Info } from "./blocks/Info";
 import { StickyCta } from "./blocks/StickyCta";
 import { HowItWorks } from "./blocks/HowItWorks";
 import { Faq } from "./blocks/Faq";
+import { Footer } from "./blocks/Footer";
 
 export function BoutiqueFitnessSite({ content }: { content: MiniHomepageContent }) {
   const { meta, blocks } = content;
@@ -67,6 +68,7 @@ export function BoutiqueFitnessSite({ content }: { content: MiniHomepageContent 
       <div className="mhp-page" data-tone="grounded" style={brandCssVars as React.CSSProperties}>
         <Topbar topbar={blocks.topbar} logoUrl={meta.logo_url} />
         <main>{order.map(renderBlock)}</main>
+        <Footer meta={meta} info={blocks.info} browseChannels={meta.browse_channels} />
         <StickyCta stickyCta={blocks.sticky_cta} />
         <InquiryDialog channels={meta.inquiry_channels} />
       </div>

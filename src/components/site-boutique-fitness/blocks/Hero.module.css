@@ -21,6 +21,7 @@
   object-fit: cover;
   transform-origin: center;
   animation: bgDrift 30s ease-in-out infinite;
+  transition: opacity 1.2s ease;
 }
 
 @keyframes bgDrift {

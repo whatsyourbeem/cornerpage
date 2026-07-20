@@ -52,7 +52,8 @@ tokens:
     card-professional: { type: card, bg: "#FFFFFF", border: "1px solid #E3DED4", radius: 24, padding: "24px", use: "전문가 프로필 카드" }
     facility-item:     { type: list-item, icon_color: "#1F3A35", label_font: "15px/400", use: "시설 스펙 아이콘+라벨 행" }
     before-after-slider: { type: interactive, handle_color: "#E8663D", transition: "150ms ease-out", use: "비포/애프터 드래그 비교 — 이 vertical의 시그니처 인터랙션" }
-    inquiry-dialog:    { type: modal, bg: "#FFFFFF", radius: 24, padding: "24px", overlay: "rgba(18,33,29,0.5)", use: "topbar·hero·sticky_cta의 cta_label 버튼 클릭 시 열리는 채널 목록 다이얼로그(2026-07-17 신규)" }
+    inquiry-dialog:    { type: modal, bg: "#FFFFFF", radius: 24, padding: "24px", overlay: "rgba(18,33,29,0.5)", use: "topbar·hero·하단 FAB의 cta_label 버튼 클릭 시 열리는 채널 목록 다이얼로그(2026-07-17 신규)" }
+    fab-button:        { type: button, shape: pill, bg: "#E8663D", fg: "#FFFFFF", shadow: floating, position: "fixed bottom-right", use: "하단 CTA(2026-07-17, 바에서 플로팅 버튼으로 전환) — 히어로 통과 후 페이드인 등장" }
     channel-button:    { type: button, bg: "#FAF8F5", border: "1px solid #E3DED4", radius: 12, padding: "14px 16px", font: "16px/600", icon_color: "#1F3A35", use: "다이얼로그 안의 개별 채널 버튼(전화·카카오톡 등), 히어로의 browse_channels 버튼도 동일 스타일 재사용" }
   components_harvested: false
 ---
@@ -154,7 +155,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - **메뉴/서비스**: 카드 스타일은 `card-evidence`와 동일 톤이나 강조색 없이 중립적으로(가격 정보는 차분하게 — 강매 인상 방지)
 - **위치/정보**: general 스타일 그대로(주소·시간·전화). 하단 링크 목록은 `meta.browse_channels`를 `channel-button` 스타일로 재사용해서 그린다(2026-07-17 — `info.external_links` 필드가 없어지고 `browse_channels`로 통합됨, 별도 필드 없음)
 - **리뷰**: `card-evidence` 재사용, 별점은 `--star`. `trainer_tag`가 있으면 작성자명 옆에 `tag-cert` 스타일의 작은 칩으로 표시(자격증 칩과 같은 스타일 재사용 — 배경 `--brand-light`, 텍스트 `--brand`)
-- **하단 고정 CTA바**: 배경 `--brand-deep`, `cta_label` 버튼은 `accent-on-dark` 사용(어두운 배경 대비 확보, 클릭 시 `inquiry-dialog` 오픈 — 상단바·히어로와 동일한 다이얼로그)
+- **하단 CTA(플로팅 액션 버튼)**: `--accent` 배경, 흰 텍스트(2026-07-17 — 바 형태에서 FAB로 전환, 상세는 10-4절) — 클릭 시 `inquiry-dialog` 오픈(상단바·히어로와 동일한 다이얼로그, 별도 상태 없음)
 
 ## 5. Layout Principles
 
@@ -173,7 +174,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
   4. 갤러리 + 시설 스펙(facility, 분위기 서술 포함)
   5. 메뉴/서비스 (item_consult)
   6. 위치/정보
-  7. 하단 고정 CTA바
+  7. 하단 CTA (플로팅 액션 버튼)
   8. 이용방법
   9. FAQ
   ```
@@ -186,7 +187,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - **Level 0 — 페이지 배경**: `--paper`, 그림자 없음
 - **Level 1 — 기본 카드**: `#FFFFFF` 또는 `--paper` + 1px `--border` — 그림자 대신 테두리로 구분(닥터나우와 동일한 절제 원칙)
 - **Level 2 — 플로팅 요소(비포애프터 슬라이더 핸들, 버튼 hover)**: `shadow.floating`
-- **Level 3 — 하단 고정 CTA바**: `shadow.sticky`(위쪽으로 그림자 — 하단 고정 요소라서 방향이 다름)
+- **Level 3 — 플로팅 액션 버튼(FAB)**: `shadow.floating`(사방으로 — 2026-07-17 이전엔 화면 폭 전체 바였어서 `shadow.sticky`를 썼으나, FAB로 바뀌며 일반 플로팅 요소와 동일한 그림자 방향으로 통일)
 - **Level 4 — 모달/드롭다운(있다면)**: `shadow.modal`
 
 ## 7. Motion & Interaction
@@ -228,7 +229,7 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - 좌: 가게명/로고, 우: `cta_label` 버튼 — 중앙 배치 요소 없음(내비게이션 없음 결정과 일치)
 
 ### 10-2. 히어로
-- 배경: 사진 있으면 전체 배경 + `--brand-deep`(`#12211D`) 반투명 오버레이(약 45% 불투명도)로 가독성 확보. 사진 없으면 `--brand-deep` 단색 폴백.
+- 배경: `background_images`(2026-07-17부터 배열)가 있으면 전체 배경 + `--brand-deep`(`#12211D`) 반투명 오버레이(약 45% 불투명도)로 가독성 확보. **여러 장이면 순서대로 전환하며 줌 애니메이션 적용(렌더러에 이미 구현됨 — 여기선 스펙만 확정)**. 없으면 `--brand-deep` 단색 폴백.
 - 배지: 반투명 흰색 배경의 작은 필(pill), 흰 텍스트, `caption-13/600`
 - 헤드라인: `h-32`(32px/700), 흰색. **줄바꿈은 `\n`을 실제 줄바꿈으로 표시**(`white-space: pre-line` 등 — 렌더러 구현) — 콘텐츠 JSON의 `\n`이 곧 의도된 줄바꿈 위치이므로 CSS가 임의로 재배치하지 않는다.
 - 태그라인: `body-16`, 흰색 80% 불투명도(헤드라인과의 위계 구분)
@@ -236,9 +237,16 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - `browse_channels` 버튼 행: CTA 버튼 바로 아래, `channel-button` 스타일 축소판(있는 경우만 렌더링)
 - 최소 높이: 데스크톱 480px / 모바일 400px. 상단고정바(64px) 아래로 자연스럽게 이어지도록 상단 padding 확보
 
-### 10-4. 하단 고정 CTA바
-- 배경: `--brand-deep`, `cta_label` 버튼: `accent-on-dark`(어두운 배경 대비 확보) — 클릭 시 `inquiry-dialog` 오픈(상단바·히어로와 동일한 다이얼로그, 별도 상태 없음)
-- 예전 "메인+보조 2버튼" 구조는 폐기(2026-07-17) — 둘러보기 채널은 히어로에서 이미 노출되므로 하단바는 문의 버튼 하나로 충분
+### 10-4. 하단 CTA — 플로팅 액션 버튼(FAB)로 전환 (2026-07-17)
+
+> ⚠️ **개정**: 화면 폭을 가로지르는 바(bar) 형태를 폐기하고 플로팅 버튼으로 바꿨다. 버튼이 결국 `cta_label` 하나뿐인데 굳이 전체 폭을 점유할 이유가 없었고, 오히려 스크롤 내내 화면 하단을 계속 차지하는 게 "차분한 확신" 톤·"작고 되돌릴 수 있게"라는 원칙과 미묘하게 어긋났다 — 방문자가 증거 블록을 훑는 내내 뭔가를 계속 요구받는 인상을 줄 수 있었다. 한쪽 구석에 조용히 떠있는 플로팅 버튼이 "필요하면 누르세요" 쪽에 더 가깝다.
+
+- **위치**: 화면 우측 하단(모바일 엄지 도달 영역 기준 표준 위치)
+- **형태**: 완전한 원형이 아니라 **알약형(pill)** — 아이콘 + `cta_label` 텍스트를 그대로 담는다(원형 아이콘 버튼만 쓰면 저부담 카피 문구를 담을 자리가 없어짐)
+- **색상**: `--accent` 배경 + 흰 텍스트(기존 "어두운 바 위의 밝은 버튼" 조합 폐기 — 바 자체가 없어졌으므로)
+- **등장 시점**: 히어로를 스크롤로 지나간 뒤부터 표시(히어로 CTA와 화면에 동시에 겹치지 않게). 등장 애니메이션은 페이드인만 — 바운스 없음(기존 절제된 모션 원칙 유지)
+- **동작**: 클릭 시 `inquiry-dialog` 오픈(상단바·히어로와 동일한 다이얼로그, 별도 상태 없음)
+- **그림자**: `shadow.floating`(사방으로) — 기존 "위쪽으로만"이던 `shadow.sticky`는 바 형태 전용이라 이제 안 맞음, 아래 Depth & Elevation도 같이 수정
 
 ### 10-3. 신뢰 스트립
 - 숫자: `number-40`(40px/700), `--accent` 색으로 강조 — 신뢰 스트립이 증거 클러스터로 들어가는 입구 역할이라, 뒤이어 나올 비포애프터의 강조색과 시각적으로 연결
@@ -254,6 +262,17 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 - **`landmark_distance` 강조 배치**: 주소보다 **먼저**, 아이콘(예: `MapPin` 계열)과 함께 `body-17/600`(일반 본문보다 굵게)으로 표시. 있으면 이 문구가 정보 블록에서 시각적으로 가장 먼저 읽히는 텍스트가 되도록 — 주소는 그 아래 `body-15`/`--ink-muted`로 보조 정보처럼 배치.
 - **`landmark_distance`가 `null`이면** 이 강조 줄 자체를 생략하고 주소만 일반 크기로 표시(빈 자리를 만들지 않음).
 - **하단 링크**: `meta.browse_channels`를 `channel-button` 스타일로 재사용(4-2절 참고, `info.external_links` 폐기에 따른 변경).
+
+### 10-6. 하단 정보 영역(footer, 2026-07-17 신규 명세)
+
+**새 콘텐츠 필드는 없다** — 전부 이미 콘텐츠 JSON에 있는 값을 재조합해서 그린다(`meta.logo_url`·`info.address`·`info.phone`·`info.business_info`·`meta.browse_channels`). 이용약관·개인정보처리방침 링크만 예외로, 콘텐츠 JSON이 아니라 고정 템플릿(아래 참고)에서 온다.
+
+- 배경: `--brand-deep`, 페이지 최하단(`sticky_cta`/FAB보다 아래, 스크롤해야 보임)
+- 로고: `meta.logo_url` 있으면 표시(24px 높이), 없으면 `meta.business_name` 텍스트로 대체
+- 주소·전화: `caption-13`, `--ink-muted`에 준하는 어두운 배경용 톤(흰색 70% 불투명도)
+- 사업자정보(`info.business_info`): 있으면 가장 작은 크기(`caption-13`, 흰색 50% 불투명도)로 한 줄 — 등록상호명·대표자명·사업자등록번호 순. `null`이면 이 줄 자체를 생략(빈 자리 안 만듦)
+- 소셜 링크: `meta.browse_channels`를 아이콘만으로(라벨 없이) 가로 나열, `channel-button`보다 작은 아이콘 전용 버전
+- **이용약관·개인정보처리방침**: 콘텐츠 JSON에 필드 없음 — 고정 템플릿(정적 문서, `{{business_name}}`·`{{phone}}`·`{{address}}`·`{{business_info}}` 변수만 콘텐츠 JSON 값으로 치환, LLM 호출 없음)을 별도 페이지로 렌더링하고 여기서 링크만 건다. 템플릿 초안은 `for-frontend/boutique-fitness/legal-template.md` 참고(신규 파일, 실제 게시 전 법률 검토 권장이라는 주석 포함).
 
 <!-- 다음 블록(비포/애프터)부터 이어서 기록 -->
 

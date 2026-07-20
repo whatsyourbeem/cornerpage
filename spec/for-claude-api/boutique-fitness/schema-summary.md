@@ -83,7 +83,7 @@
   "badge": "string, required (지역 + 구체적 전문분야, 예: '수내동 · 필라테스 스튜디오')",
   "headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지 — 증거는 뒤 블록이 담당. 줄바꿈은 \\n으로 직접 지정 — 최대 2줄, 각 줄 4~20자. 20자 넘는 문장을 \\n 없이 한 줄로 넣으면 스키마가 거부한다)",
   "tagline": "string, required ('나도 할 수 있을까' 불안을 사실 기반으로 완화하는 자리)",
-  "background_image_url": "url | null",
+  "background_images": "url[] | null (최대 5장. 여러 장이면 렌더러가 순서대로 전환하며 줌 애니메이션 적용 — 이미 구현됨, 스킬은 URL 순서만 그대로 전달)",
   "cta_label": "string, required (저부담)"
 }
 ```

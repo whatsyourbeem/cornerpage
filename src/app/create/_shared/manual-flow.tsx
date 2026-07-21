@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Vertical } from "@/lib/verticals";
+import { compressImage } from "@/lib/compress-image";
 import { navButtonStyle, primaryButtonStyle } from "./form-ui";
 
 /** 업로드할 이미지 하나. slot은 /api/upload 저장 경로(site-images/{id}/{slot}.ext)의 이름이 된다. */
@@ -10,15 +11,37 @@ export interface PendingUpload {
   file: File;
 }
 
-async function uploadImage(siteId: string, slot: string, file: File): Promise<string> {
+const UPLOAD_RETRIES = 2;
+
+async function uploadImageOnce(siteId: string, slot: string, file: File): Promise<string> {
   const form = new FormData();
   form.set("site_id", siteId);
   form.set("slot", slot);
   form.set("file", file);
   const res = await fetch("/api/upload", { method: "POST", body: form });
-  if (!res.ok) throw new Error(`이미지 업로드 실패(${slot})`);
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(`이미지 업로드 실패(${slot}): ${detail?.error ?? res.status}`);
+  }
   const data = await res.json();
   return data.url as string;
+}
+
+/**
+ * 배포 환경(리전 간 지연·서버리스 콜드스타트)에서 여러 파일을 한꺼번에 올리면
+ * 매번 다른 파일이 랜덤하게 실패하는 경합이 관찰됐다 — 로컬에서는 안 드러나던
+ * 문제. 재시도 몇 번으로 일시적 실패를 흡수한다.
+ */
+async function uploadImage(siteId: string, slot: string, file: File): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= UPLOAD_RETRIES; attempt++) {
+    try {
+      return await uploadImageOnce(siteId, slot, file);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
 }
 
 type Phase = "preparing" | "ready" | "submitting" | "error" | "done";
@@ -64,9 +87,15 @@ export function ManualGenerationFlow({
       const { id } = (await draftRes.json()) as { id: string };
       setSiteId(id);
 
-      const urlEntries = await Promise.all(
-        pendingUploads.map(async ({ slot, file }) => [slot, await uploadImage(id, slot, file)] as const)
-      );
+      // 한꺼번에 병렬로 쏘면 배포 환경(리전 간 지연·서버리스 콜드스타트)에서
+      // 매번 다른 파일이 랜덤하게 실패하는 경합이 관찰됐다 — 순차 업로드로 바꿔서
+      // 동시 요청 수 자체를 없앤다(느리지만 이 단계는 사이트 생성 시 한 번뿐이라
+      // 안정성이 속도보다 중요하다).
+      const urlEntries: [string, string][] = [];
+      for (const { slot, file } of pendingUploads) {
+        const compressed = await compressImage(file);
+        urlEntries.push([slot, await uploadImage(id, slot, compressed)]);
+      }
       const urls = Object.fromEntries(urlEntries);
 
       const answers = buildAnswers(urls);

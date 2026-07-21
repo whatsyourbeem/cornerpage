@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CtaInteractionMode, CtaPrimaryAction, DayOfWeek, ExternalLinkPlatform } from "@/lib/content-types";
 import {
   DAYS,
@@ -16,6 +16,7 @@ import {
   type FaqPairDraft,
 } from "../_shared/form-ui";
 import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
+import { clearDraft, loadDraft, saveDraft } from "../_shared/draft-storage";
 
 /**
  * general vertical 입력 폼. spec/for-frontend/general/input-questions.md의 STEP
@@ -33,6 +34,33 @@ import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow
  */
 
 const STEPS = ["업종", "기본 정보", "강점·소개", "서비스·사진", "신뢰·링크", "이용방법·FAQ"];
+
+const DRAFT_KEY = "cornerpage-draft:general";
+
+/**
+ * localStorage 임시저장용 스냅샷. File 객체(heroFile·logoFile·menuItems[].image·
+ * galleryFiles)는 제외한다 — 문자열만 저장 가능해서 사진은 복원 시 다시 첨부해야 한다.
+ */
+interface DraftSnapshot {
+  step: number;
+  industry: string;
+  businessName: string;
+  address: string;
+  phone: string;
+  is24h: boolean;
+  hours: Record<DayOfWeek, DayHours>;
+  ctaPrimaryAction: CtaPrimaryAction;
+  intro: string;
+  philosophyText: string;
+  atmosphereText: string;
+  strengthsText: string;
+  menuItems: Omit<MenuItemDraft, "image">[];
+  links: Record<ExternalLinkPlatform, string>;
+  reviews: ReviewDraft[];
+  ctaInteractionMode: CtaInteractionMode;
+  howItWorksNote: string;
+  faqPairs: FaqPairDraft[];
+}
 
 interface MenuItemDraft {
   name: string;
@@ -87,6 +115,81 @@ export default function GeneralCreatePage() {
   const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
   const [showManualFlow, setShowManualFlow] = useState(false);
+
+  // localStorage는 서버에 없어서, 초기값을 여기서 바로 읽으면(lazy initializer) 서버는
+  // 항상 false로 렌더하고 클라이언트만 true가 될 수 있어 하이드레이션 불일치가 난다.
+  // 그래서 항상 false로 시작하고, 마운트 후(rAF로 한 프레임 미뤄 effect 본문에서 곧장
+  // setState하는 걸 피함 — react-hooks/set-state-in-effect, TrustStrip.tsx와 동일 패턴)
+  // 클라이언트에서만 실제로 있는지 확인한다. 실제 복원은 사용자가 버튼을 눌러야 일어난다 —
+  // 조용히 덮어쓰지 않는다.
+  const [hasDraft, setHasDraft] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      setHasDraft(loadDraft<DraftSnapshot>(DRAFT_KEY) !== null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  function applyDraft(draft: DraftSnapshot) {
+    setStep(draft.step);
+    setIndustry(draft.industry);
+    setBusinessName(draft.businessName);
+    setAddress(draft.address);
+    setPhone(draft.phone);
+    setIs24h(draft.is24h);
+    setHours(draft.hours);
+    setCtaPrimaryAction(draft.ctaPrimaryAction);
+    setIntro(draft.intro);
+    setPhilosophyText(draft.philosophyText);
+    setAtmosphereText(draft.atmosphereText);
+    setStrengthsText(draft.strengthsText);
+    setMenuItems(draft.menuItems.map((item) => ({ ...item, image: null })));
+    setLinks(draft.links);
+    setReviews(draft.reviews);
+    setCtaInteractionMode(draft.ctaInteractionMode);
+    setHowItWorksNote(draft.howItWorksNote);
+    setFaqPairs(draft.faqPairs);
+    setHasDraft(false);
+  }
+
+  // 스텝을 넘어갈 때마다(뒤로 가기 포함) 자동저장 — 사진은 제외하고 텍스트 답변만.
+  // 마운트 시(= 첫 렌더) 저장을 건너뛴다 — 안 그러면 페이지를 막 열었을 때의
+  // 빈 초기 상태가 곧바로 저장되어, 기존에 남아있던 draft를 사용자가 "이어서
+  // 작성"을 누르기도 전에 지워버린다.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const snapshot: DraftSnapshot = {
+      step,
+      industry,
+      businessName,
+      address,
+      phone,
+      is24h,
+      hours,
+      ctaPrimaryAction,
+      intro,
+      philosophyText,
+      atmosphereText,
+      strengthsText,
+      menuItems: menuItems.map((item) => ({
+        name: item.name,
+        price: item.price,
+        consult: item.consult,
+        description: item.description,
+      })),
+      links,
+      reviews,
+      ctaInteractionMode,
+      howItWorksNote,
+      faqPairs,
+    };
+    saveDraft(DRAFT_KEY, snapshot);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   function canProceed(): boolean {
     if (step === 0) return industry.trim() !== "";
@@ -180,6 +283,47 @@ export default function GeneralCreatePage() {
 
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
+      {hasDraft && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            background: "#eef6ff",
+            border: "1px solid #bcdcff",
+            borderRadius: 8,
+            padding: "12px 16px",
+            marginBottom: 16,
+            fontSize: 13,
+          }}
+        >
+          <span>이전에 작성하던 내용이 있어요. 이어서 작성할까요? (사진은 다시 첨부해주세요)</span>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
+                if (draft) applyDraft(draft);
+              }}
+              style={{ fontSize: 13, fontWeight: 700 }}
+            >
+              이어서 작성
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                clearDraft(DRAFT_KEY);
+                setHasDraft(false);
+              }}
+              style={{ fontSize: 13, color: "#888" }}
+            >
+              새로 시작
+            </button>
+          </div>
+        </div>
+      )}
+
       <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
 
       {step === 0 && (
@@ -457,7 +601,10 @@ export default function GeneralCreatePage() {
         canProceed={canProceed()}
         onBack={() => setStep((s) => s - 1)}
         onNext={() => setStep((s) => s + 1)}
-        onSubmit={() => setShowManualFlow(true)}
+        onSubmit={() => {
+          clearDraft(DRAFT_KEY);
+          setShowManualFlow(true);
+        }}
       />
     </main>
   );

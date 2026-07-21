@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DayOfWeek } from "@/lib/content-types";
 import {
   DAYS,
@@ -16,6 +16,7 @@ import {
   type FaqPairDraft,
 } from "../_shared/form-ui";
 import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
+import { clearDraft, loadDraft, saveDraft } from "../_shared/draft-storage";
 
 /**
  * boutique-fitness vertical 입력 폼. spec/for-frontend/boutique-fitness/
@@ -41,6 +42,49 @@ import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow
  */
 
 const STEPS = ["기본 정보", "전문가 프로필", "회원 변화·후기", "공간", "프로그램·이용방법"];
+
+const DRAFT_KEY = "cornerpage-draft:boutique-fitness";
+
+/**
+ * localStorage 임시저장용 스냅샷. File 객체(heroFiles·logoFile·facilityPhotos·
+ * professionals[].photo·transformations[].beforeImage/afterImage)는 제외한다 —
+ * 문자열만 저장 가능해서 사진은 복원 시 다시 첨부해야 한다.
+ */
+interface DraftSnapshot {
+  step: number;
+  industryCategory: string;
+  businessName: string;
+  signaturePhrase: string;
+  address: string;
+  phone: string;
+  hours: Record<DayOfWeek, DayHours>;
+  naverReservationLink: string;
+  kakaoLink: DualPurposeLinkDraft;
+  instagramLink: DualPurposeLinkDraft;
+  naverBlogLink: string;
+  youtubeLink: string;
+  naverMapLink: string;
+  otherLinks: OtherLinkDraft[];
+  registeredName: string;
+  ceoName: string;
+  registrationNumber: string;
+  leadEmphasis: "" | "transformations" | "reviews" | "professionals" | "facility";
+  professionals: Omit<ProfessionalDraft, "photo">[];
+  transformations: Omit<TransformationDraft, "beforeImage" | "afterImage">[];
+  reviews: BfReviewDraft[];
+  sizePyeong: string;
+  hasShower: boolean;
+  hasLocker: boolean;
+  hasParking: boolean;
+  equipmentText: string;
+  landmarkDistance: string;
+  atmosphereText: string;
+  philosophyText: string;
+  programs: ProgramDraft[];
+  freeTrialAvailable: boolean;
+  howItWorksNote: string;
+  faqPairs: FaqPairDraft[];
+}
 
 /**
  * 2026-07-19 링크 입력 재설계(spec/for-frontend/boutique-fitness/input-questions.md STEP 2):
@@ -149,6 +193,118 @@ export default function BoutiqueFitnessCreatePage() {
   const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
   const [showManualFlow, setShowManualFlow] = useState(false);
+
+  // localStorage는 서버에 없어서, 초기값을 여기서 바로 읽으면(lazy initializer) 서버는
+  // 항상 false로 렌더하고 클라이언트만 true가 될 수 있어 하이드레이션 불일치가 난다.
+  // 그래서 항상 false로 시작하고, 마운트 후(rAF로 한 프레임 미뤄 effect 본문에서 곧장
+  // setState하는 걸 피함 — react-hooks/set-state-in-effect, TrustStrip.tsx와 동일 패턴)
+  // 클라이언트에서만 실제로 있는지 확인한다. 실제 복원은 사용자가 버튼을 눌러야 일어난다 —
+  // 조용히 덮어쓰지 않는다.
+  const [hasDraft, setHasDraft] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      setHasDraft(loadDraft<DraftSnapshot>(DRAFT_KEY) !== null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  function applyDraft(draft: DraftSnapshot) {
+    setStep(draft.step);
+    setIndustryCategory(draft.industryCategory);
+    setBusinessName(draft.businessName);
+    setSignaturePhrase(draft.signaturePhrase);
+    setAddress(draft.address);
+    setPhone(draft.phone);
+    setHours(draft.hours);
+    setNaverReservationLink(draft.naverReservationLink);
+    setKakaoLink(draft.kakaoLink);
+    setInstagramLink(draft.instagramLink);
+    setNaverBlogLink(draft.naverBlogLink);
+    setYoutubeLink(draft.youtubeLink);
+    setNaverMapLink(draft.naverMapLink);
+    setOtherLinks(draft.otherLinks);
+    setRegisteredName(draft.registeredName);
+    setCeoName(draft.ceoName);
+    setRegistrationNumber(draft.registrationNumber);
+    setLeadEmphasis(draft.leadEmphasis);
+    setProfessionals(draft.professionals.map((p) => ({ ...p, photo: null })));
+    setTransformations(draft.transformations.map((t) => ({ ...t, beforeImage: null, afterImage: null })));
+    setReviews(draft.reviews);
+    setSizePyeong(draft.sizePyeong);
+    setHasShower(draft.hasShower);
+    setHasLocker(draft.hasLocker);
+    setHasParking(draft.hasParking);
+    setEquipmentText(draft.equipmentText);
+    setLandmarkDistance(draft.landmarkDistance);
+    setAtmosphereText(draft.atmosphereText);
+    setPhilosophyText(draft.philosophyText);
+    setPrograms(draft.programs);
+    setFreeTrialAvailable(draft.freeTrialAvailable);
+    setHowItWorksNote(draft.howItWorksNote);
+    setFaqPairs(draft.faqPairs);
+    setHasDraft(false);
+  }
+
+  // 스텝을 넘어갈 때마다(뒤로 가기 포함) 자동저장 — 사진은 제외하고 텍스트 답변만.
+  // 마운트 시(= 첫 렌더) 저장을 건너뛴다 — 안 그러면 페이지를 막 열었을 때의
+  // 빈 초기 상태가 곧바로 저장되어, 기존에 남아있던 draft를 사용자가 "이어서
+  // 작성"을 누르기도 전에 지워버린다.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const snapshot: DraftSnapshot = {
+      step,
+      industryCategory,
+      businessName,
+      signaturePhrase,
+      address,
+      phone,
+      hours,
+      naverReservationLink,
+      kakaoLink,
+      instagramLink,
+      naverBlogLink,
+      youtubeLink,
+      naverMapLink,
+      otherLinks,
+      registeredName,
+      ceoName,
+      registrationNumber,
+      leadEmphasis,
+      professionals: professionals.map((p) => ({
+        name: p.name,
+        title: p.title,
+        certificationsText: p.certificationsText,
+        specialty: p.specialty,
+        yearsExperience: p.yearsExperience,
+        bioQuote: p.bioQuote,
+      })),
+      transformations: transformations.map((t) => ({
+        durationLabel: t.durationLabel,
+        resultHighlight: t.resultHighlight,
+        memberLabel: t.memberLabel,
+        trainerTag: t.trainerTag,
+      })),
+      reviews,
+      sizePyeong,
+      hasShower,
+      hasLocker,
+      hasParking,
+      equipmentText,
+      landmarkDistance,
+      atmosphereText,
+      philosophyText,
+      programs,
+      freeTrialAvailable,
+      howItWorksNote,
+      faqPairs,
+    };
+    saveDraft(DRAFT_KEY, snapshot);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   function canProceed(): boolean {
     if (step === 0) {
@@ -352,6 +508,47 @@ export default function BoutiqueFitnessCreatePage() {
 
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
+      {hasDraft && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            background: "#eef6ff",
+            border: "1px solid #bcdcff",
+            borderRadius: 8,
+            padding: "12px 16px",
+            marginBottom: 16,
+            fontSize: 13,
+          }}
+        >
+          <span>이전에 작성하던 내용이 있어요. 이어서 작성할까요? (사진은 다시 첨부해주세요)</span>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
+                if (draft) applyDraft(draft);
+              }}
+              style={{ fontSize: 13, fontWeight: 700 }}
+            >
+              이어서 작성
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                clearDraft(DRAFT_KEY);
+                setHasDraft(false);
+              }}
+              style={{ fontSize: 13, color: "#888" }}
+            >
+              새로 시작
+            </button>
+          </div>
+        </div>
+      )}
+
       <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
 
       {step === 0 && (
@@ -928,7 +1125,10 @@ export default function BoutiqueFitnessCreatePage() {
         canProceed={canProceed()}
         onBack={() => setStep((s) => s - 1)}
         onNext={() => setStep((s) => s + 1)}
-        onSubmit={() => setShowManualFlow(true)}
+        onSubmit={() => {
+          clearDraft(DRAFT_KEY);
+          setShowManualFlow(true);
+        }}
       />
     </main>
   );

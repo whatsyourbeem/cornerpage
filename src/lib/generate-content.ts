@@ -203,15 +203,19 @@ export function processGeneratedContent(
     }
   }
 
-  // philosophy/atmosphere는 about과 독립된 top-level 블록으로 분리됐고, Blocks.required
-  // 목록에도 없다 — 즉 "값 없음"을 표현하는 방법이 명시적 null과 키 자체 생략 두
-  // 가지가 다 스키마상 허용된다. Claude가 후자(키 생략)를 택하면 우리 TS 타입
-  // (Blocks.philosophy: Philosophy | null, 항상 존재)과 어긋나므로, hours.break와
-  // 같은 원칙으로 생략된 키를 null로 채워 넣어 형태를 통일한다.
+  // philosophy는 about과 독립된 top-level 블록으로 분리됐고, Blocks.required 목록에도
+  // 없다 — 즉 "값 없음"을 표현하는 방법이 명시적 null과 키 자체 생략 두 가지가 다
+  // 스키마상 허용된다. Claude가 후자(키 생략)를 택하면 우리 TS 타입(Blocks.philosophy:
+  // Philosophy | null, 항상 존재)과 어긋나므로, hours.break와 같은 원칙으로 생략된 키를
+  // null로 채워 넣어 형태를 통일한다.
   if (content.blocks && !("philosophy" in content.blocks)) {
     content.blocks.philosophy = null;
   }
-  if (content.blocks && !("atmosphere" in content.blocks)) {
+  // atmosphere는 general에만 있는 top-level 블록이다 — boutique-fitness는 2026-07-17에
+  // facility.atmosphere_text로 흡수되면서 blocks.atmosphere 키 자체가 스키마에서
+  // 사라졌다(additionalProperties:false). vertical 구분 없이 이 보정을 적용하면
+  // boutique-fitness에서 스키마에 없는 키를 강제로 주입하게 돼 ajv 검증이 100% 실패한다.
+  if (vertical === "general" && content.blocks && !("atmosphere" in content.blocks)) {
     content.blocks.atmosphere = null;
   }
 

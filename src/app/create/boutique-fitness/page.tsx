@@ -100,6 +100,7 @@ export default function BoutiqueFitnessCreatePage() {
 
   const [industryCategory, setIndustryCategory] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [signaturePhrase, setSignaturePhrase] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
@@ -285,6 +286,9 @@ export default function BoutiqueFitnessCreatePage() {
     return {
       industry_category: industryCategory,
       business_name: businessName,
+      // 스키마 필드가 아니라 입력 힌트 — Claude가 새로 창작하지 않고 이 문구를
+      // 그대로 hero.headline에 살리도록 프롬프트(answers)에만 실어 보낸다.
+      signature_phrase: signaturePhrase.trim() || null,
       address,
       phone,
       consult_hours: {
@@ -362,6 +366,17 @@ export default function BoutiqueFitnessCreatePage() {
           </Field>
           <Field label="스튜디오 이름">
             <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="예: 지음필라테스" />
+          </Field>
+          <Field
+            label="이미 쓰고 계신 시그니처 문구나 슬로건이 있나요? (선택, 최대 40자)"
+            hint="이미 손님들에게 익숙한 문구가 있으면, 저희가 새로 만들지 않고 그대로 헤드라인에 살려드려요."
+          >
+            <input
+              value={signaturePhrase}
+              onChange={(e) => setSignaturePhrase(e.target.value.slice(0, 40))}
+              maxLength={40}
+              placeholder="예: 8년째 한 사람만 보는 PT"
+            />
           </Field>
           <Field label="지역/주소">
             <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="예: 서울 강남구 신사동" />

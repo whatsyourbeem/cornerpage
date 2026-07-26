@@ -13,6 +13,7 @@ import { Info } from "./blocks/Info";
 import { StickyCta } from "./blocks/StickyCta";
 import { HowItWorks } from "./blocks/HowItWorks";
 import { Faq } from "./blocks/Faq";
+import { Footer } from "./blocks/Footer";
 
 export function MiniHomepageSite({ content }: { content: MiniHomepageContent }) {
   const { meta, blocks } = content;
@@ -69,6 +70,7 @@ export function MiniHomepageSite({ content }: { content: MiniHomepageContent }) 
     >
       <Topbar topbar={blocks.topbar} logoUrl={meta.logo_url} info={blocks.info} />
       <main>{order.map(renderBlock)}</main>
+      <Footer meta={meta} info={blocks.info} />
       <StickyCta stickyCta={blocks.sticky_cta} info={blocks.info} />
     </div>
   );

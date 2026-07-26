@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getSiteBySlug } from "@/lib/sites";
-import { buildLegalDocuments, type LegalDocument } from "@/lib/legal-boutique-fitness";
-import type { MiniHomepageContent } from "@/lib/content-types-boutique-fitness";
+import { buildLegalDocuments, type LegalDocument, type LegalInfo, type LegalMeta } from "@/lib/legal";
 import styles from "./legal.module.css";
 
 export async function generateMetadata({
@@ -33,16 +32,17 @@ function LegalDocumentSection({ id, document }: { id: string; document: LegalDoc
 }
 
 /**
- * legal-template.md 고정 문구 + 콘텐츠 JSON 변수 치환 — LLM 호출 없는 정적 렌더링.
- * boutique-fitness 전용(다른 vertical은 아직 이 라우트를 안 씀).
+ * 공용 legal 템플릿(@/lib/legal) + 콘텐츠 JSON 변수 치환 — LLM 호출 없는 정적 렌더링.
+ * meta.business_name·blocks.info.{address,phone,business_info}는 모든 vertical 스키마에
+ * 공통으로 존재하므로 vertical 분기 없이 그대로 동작한다.
  */
 export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const site = await getSiteBySlug(slug);
-  if (!site || site.vertical !== "boutique-fitness") notFound();
+  if (!site) notFound();
 
-  const content = site.content_json as MiniHomepageContent;
-  const { terms, privacy } = buildLegalDocuments(content);
+  const content = site.content_json as { meta: LegalMeta; blocks: { info: LegalInfo } };
+  const { terms, privacy } = buildLegalDocuments({ meta: content.meta, info: content.blocks.info });
 
   return (
     <div className={styles.page}>

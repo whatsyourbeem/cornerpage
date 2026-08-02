@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Vertical } from "@/lib/verticals";
 import { compressImage } from "@/lib/compress-image";
-import { navButtonStyle, primaryButtonStyle } from "./form-ui";
+import { Button } from "@/components/ui";
 
 /** 업로드할 이미지 하나. slot은 /api/upload 저장 경로(site-images/{id}/{slot}.ext)의 이름이 된다. */
 export interface PendingUpload {
@@ -164,15 +164,13 @@ export function ManualGenerationFlow({
 
   if (phase === "done" && resultSlug) {
     return (
-      <main style={{ maxWidth: 480, margin: "0 auto", padding: "60px 20px", textAlign: "center" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800 }}>홈페이지가 만들어졌어요</h1>
-        <p style={{ fontSize: 13, color: "#666", margin: "8px 0 24px" }}>
-          서브도메인 배포 전에도 아래 경로로 바로 확인할 수 있어요.
-        </p>
-        <a href={`/site/${resultSlug}`} style={{ color: "#2563eb", fontWeight: 700, fontSize: 16 }}>
+      <main className="mx-auto w-full max-w-md px-5 py-16 text-center text-cp-fg">
+        <h1 className="text-cp-h4 font-bold">홈페이지가 만들어졌어요</h1>
+        <p className="my-2 text-[13px] text-cp-body">서브도메인 배포 전에도 아래 경로로 바로 확인할 수 있어요.</p>
+        <a href={`/site/${resultSlug}`} className="text-[16px] font-bold text-cp-primary">
           /site/{resultSlug} 열기 →
         </a>
-        <p style={{ fontSize: 12, color: "#999", marginTop: 20 }}>
+        <p className="mt-5 text-[12px] text-cp-muted">
           실서비스 URL: {resultSlug}.cornerpage.co (로컬 확인: {resultSlug}.localhost:3000)
         </p>
       </main>
@@ -181,67 +179,49 @@ export function ManualGenerationFlow({
 
   if (phase === "preparing") {
     return (
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px 80px" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 4px" }}>요청 준비 중</h1>
-        <p style={{ fontSize: 13, color: "#666", margin: "0 0 20px" }}>
-          이미지를 업로드하고 클로드에 보낼 요청 본문을 만들고 있어요...
-        </p>
+      <main className="mx-auto w-full max-w-2xl px-5 py-10 pb-20 text-cp-fg">
+        <h1 className="text-cp-h4 font-bold">요청 준비 중</h1>
+        <p className="mt-1 text-[13px] text-cp-body">이미지를 업로드하고 클로드에 보낼 요청 본문을 만들고 있어요...</p>
       </main>
     );
   }
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px 80px" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 4px" }}>클로드 API로 보낼 요청 본문</h1>
-      <p style={{ fontSize: 13, color: "#666", margin: "0 0 12px" }}>
+    <main className="mx-auto w-full max-w-2xl px-5 py-10 pb-20 text-cp-fg">
+      <h1 className="text-cp-h4 font-bold">클로드 API로 보낼 요청 본문</h1>
+      <p className="mt-1 mb-3 text-[13px] text-cp-body">
         아래 내용을 복사해서 claude.ai 등에 직접 붙여넣어 응답을 받아온 뒤, 그 응답을 아래 칸에 붙여넣고 제출해주세요.
       </p>
-      <button type="button" onClick={handleCopy} style={{ ...navButtonStyle, marginBottom: 12 }}>
+      <Button variant="outline" size="md" onClick={handleCopy} className="mb-3">
         복사하기
-      </button>
-      <pre
-        style={{
-          background: "#f5f5f5",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          padding: 16,
-          fontSize: 12,
-          lineHeight: 1.5,
-          overflowX: "auto",
-          whiteSpace: "pre",
-          maxHeight: 400,
-        }}
-      >
+      </Button>
+      <pre className="max-h-[400px] overflow-x-auto whitespace-pre rounded-cp-md border border-cp-border bg-cp-surface p-4 text-[12px] leading-relaxed text-cp-fg">
         {requestBodyJson}
       </pre>
 
-      <h2 style={{ fontSize: 15, fontWeight: 700, margin: "24px 0 8px" }}>클로드 응답 붙여넣기</h2>
+      <h2 className="mt-6 mb-2 text-[15px] font-bold text-cp-fg">클로드 응답 붙여넣기</h2>
       <textarea
         value={responseText}
         onChange={(e) => setResponseText(e.target.value)}
         rows={12}
         placeholder="claude.ai에서 받은 콘텐츠 JSON을 여기에 붙여넣어주세요."
-        style={{ width: "100%", fontFamily: "monospace", fontSize: 12 }}
+        className="w-full rounded-cp-md border border-cp-border bg-cp-canvas p-3 font-mono text-[12px] text-cp-fg outline-none focus:border-cp-primary"
       />
 
-      {errorMsg && <p style={{ color: "crimson", fontSize: 13, marginTop: 12 }}>{errorMsg}</p>}
+      {errorMsg && <p className="mt-3 text-[13px] text-cp-danger">{errorMsg}</p>}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button type="button" onClick={onBack} style={navButtonStyle}>
+      <div className="mt-4 flex gap-2">
+        <Button variant="outline" size="lg" onClick={onBack}>
           답변 수정하러 가기
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          size="lg"
           disabled={!responseText.trim() || phase === "submitting"}
+          loading={phase === "submitting"}
           onClick={handleSubmitResponse}
-          style={{
-            ...navButtonStyle,
-            ...primaryButtonStyle,
-            opacity: !responseText.trim() || phase === "submitting" ? 0.4 : 1,
-          }}
         >
-          {phase === "submitting" ? "저장하는 중..." : "응답 제출하고 저장하기"}
-        </button>
+          응답 제출하고 저장하기
+        </Button>
       </div>
     </main>
   );

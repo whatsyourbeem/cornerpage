@@ -1,28 +1,56 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CtaInteractionMode, CtaPrimaryAction, DayOfWeek, ExternalLinkPlatform } from "@/lib/content-types";
 import {
   DAYS,
+  DraftBanner,
   Field,
+  GateIntro,
   HoursEditor,
   ProgressBar,
   Section,
   WizardNav,
   defaultHours,
-  fileInputStyle,
-  fileNameStyle,
   type DayHours,
   type FaqPairDraft,
 } from "../_shared/form-ui";
 import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
-import { clearDraft, loadDraft, saveDraft } from "../_shared/draft-storage";
+import { clearDraft, loadDraft, useDebouncedDraftSave } from "../_shared/draft-storage";
+import { Accordion, Chip, FileField } from "@/components/ui";
+
+/**
+ * 업종 중립 공통 후보 — input-questions.md 진행 원칙 1(업종별 프론트 분기 금지)을
+ * 지키기 위해 industry-data.md의 업종별 강점 목록에서 특정 업종에 묶이지 않는
+ * 것만 추렸다. 후보를 눌러도, 자유 텍스트 칸에 직접 써도 결과는 같은 strengths
+ * 배열로 합쳐진다.
+ */
+const STRENGTH_CANDIDATES = [
+  "주차 가능",
+  "예약 가능",
+  "반려동물 동반",
+  "오래된 운영 연차",
+  "프라이빗룸",
+  "24시간 운영",
+  "역세권",
+  "단체 가능",
+  "포장 가능",
+  "와이파이·콘센트",
+];
+
+/** industry-data.md 4장의 업종 중립 FAQ 후보. 질문은 칩으로 고르고, 답은 사장님이 직접 쓴다. */
+const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려동물 동반 가능한가요?", "단체 가능한가요?", "카드 결제 되나요?"];
 
 /**
  * general vertical 입력 폼. spec/for-frontend/general/input-questions.md의 STEP
  * 구성을 그대로 따른다. 업종은 자유 텍스트로만 받고(축A/B 판단은 이 값이 아니라
  * 스킬이 전체 답변을 보고 내림 — SKILL.md), 이후 문항 라벨은 업종별로 프론트가
  * 미리 분기하지 않고 전부 중립적으로 유지한다("메뉴" 대신 "대표 서비스·상품" 등).
+ *
+ * 필수 스텝(STEP 1~2, 이 배열의 인덱스 0~2)엔 선택 문항을 절대 끼워 넣지 않는다
+ * — 선택 문항은 전부 STEP 3(인덱스 3) 하나의 게이트로 모으고, 게이트 진입
+ * 화면에서 통째로 건너뛸 수 있다(진행 원칙 2). 필수 스텝을 마쳐도 축하 신호를
+ * 먼저 보여주지 않는다(원칙 7) — Stepper 분모도 게이트를 포함해서 그대로 센다.
  *
  * 톤·레이아웃·카피는 여기서 확정하지 않는다 — 스킬(Claude)이 원본 사업 정보를
  * 보고 직접 판단할 몫이다(generate-content.ts 참고).
@@ -33,7 +61,8 @@ import { clearDraft, loadDraft, saveDraft } from "../_shared/draft-storage";
  * 저장)를 수행한다 — ManualGenerationFlow(../_shared/manual-flow.tsx) 참고.
  */
 
-const STEPS = ["업종", "기본 정보", "강점·소개", "서비스·사진", "신뢰·링크", "이용방법·FAQ"];
+const STEPS = ["업종", "기본 정보", "서비스·사진", "더 채우면 좋아요"];
+const GATE_STEP = 3;
 
 const DRAFT_KEY = "cornerpage-draft:general";
 
@@ -67,7 +96,7 @@ interface MenuItemDraft {
   price: string;
   consult: boolean;
   description: string;
-  image: File | null;
+  image: File[];
 }
 
 interface ReviewDraft {
@@ -78,6 +107,7 @@ interface ReviewDraft {
 
 export default function GeneralCreatePage() {
   const [step, setStep] = useState(0);
+  const [gateOpened, setGateOpened] = useState(false);
 
   const [industry, setIndustry] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -85,8 +115,8 @@ export default function GeneralCreatePage() {
   const [phone, setPhone] = useState("");
   const [is24h, setIs24h] = useState(false);
   const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
-  const [heroFile, setHeroFile] = useState<File | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [heroFiles, setHeroFiles] = useState<File[]>([]);
+  const [logoFiles, setLogoFiles] = useState<File[]>([]);
   const [ctaPrimaryAction, setCtaPrimaryAction] = useState<CtaPrimaryAction>("call");
 
   const [intro, setIntro] = useState("");
@@ -95,7 +125,7 @@ export default function GeneralCreatePage() {
   const [strengthsText, setStrengthsText] = useState("");
 
   const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([
-    { name: "", price: "", consult: false, description: "", image: null },
+    { name: "", price: "", consult: false, description: "", image: [] },
   ]);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
@@ -143,7 +173,7 @@ export default function GeneralCreatePage() {
     setPhilosophyText(draft.philosophyText);
     setAtmosphereText(draft.atmosphereText);
     setStrengthsText(draft.strengthsText);
-    setMenuItems(draft.menuItems.map((item) => ({ ...item, image: null })));
+    setMenuItems(draft.menuItems.map((item) => ({ ...item, image: [] })));
     setLinks(draft.links);
     setReviews(draft.reviews);
     setCtaInteractionMode(draft.ctaInteractionMode);
@@ -152,49 +182,41 @@ export default function GeneralCreatePage() {
     setHasDraft(false);
   }
 
-  // 스텝을 넘어갈 때마다(뒤로 가기 포함) 자동저장 — 사진은 제외하고 텍스트 답변만.
-  // 마운트 시(= 첫 렌더) 저장을 건너뛴다 — 안 그러면 페이지를 막 열었을 때의
-  // 빈 초기 상태가 곧바로 저장되어, 기존에 남아있던 draft를 사용자가 "이어서
-  // 작성"을 누르기도 전에 지워버린다.
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    const snapshot: DraftSnapshot = {
-      step,
-      industry,
-      businessName,
-      address,
-      phone,
-      is24h,
-      hours,
-      ctaPrimaryAction,
-      intro,
-      philosophyText,
-      atmosphereText,
-      strengthsText,
-      menuItems: menuItems.map((item) => ({
-        name: item.name,
-        price: item.price,
-        consult: item.consult,
-        description: item.description,
-      })),
-      links,
-      reviews,
-      ctaInteractionMode,
-      howItWorksNote,
-      faqPairs,
-    };
-    saveDraft(DRAFT_KEY, snapshot);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  // 값이 바뀔 때마다(디바운스) 자동저장 — 사진은 제외하고 텍스트 답변만.
+  // 마운트 시(첫 렌더)의 저장은 useDebouncedDraftSave 내부에서 건너뛴다 —
+  // 안 그러면 페이지를 막 열었을 때의 빈 초기 상태가 곧바로 저장되어, 기존에
+  // 남아있던 draft를 사용자가 "이어서 작성"을 누르기도 전에 지워버린다.
+  const draftSnapshot: DraftSnapshot = {
+    step,
+    industry,
+    businessName,
+    address,
+    phone,
+    is24h,
+    hours,
+    ctaPrimaryAction,
+    intro,
+    philosophyText,
+    atmosphereText,
+    strengthsText,
+    menuItems: menuItems.map((item) => ({
+      name: item.name,
+      price: item.price,
+      consult: item.consult,
+      description: item.description,
+    })),
+    links,
+    reviews,
+    ctaInteractionMode,
+    howItWorksNote,
+    faqPairs,
+  };
+  useDebouncedDraftSave(DRAFT_KEY, draftSnapshot);
 
   function canProceed(): boolean {
     if (step === 0) return industry.trim() !== "";
     if (step === 1) return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "";
-    if (step === 3) return menuItems.some((item) => item.name.trim() !== "");
+    if (step === 2) return menuItems.some((item) => item.name.trim() !== "");
     return true;
   }
 
@@ -202,16 +224,55 @@ export default function GeneralCreatePage() {
     setMenuItems((prev) => prev.map((item, idx) => (idx === i ? { ...item, ...patch } : item)));
   }
 
+  function removeMenuItem(i: number) {
+    setMenuItems((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function removeReview(i: number) {
+    setReviews((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   function updateFaqPair(i: number, patch: Partial<FaqPairDraft>) {
     setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
   }
 
+  function removeFaqPair(i: number) {
+    setFaqPairs((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  /** 강점 자유 텍스트를 리스트로 파싱 — 칩 선택 여부 판단과 토글에 공통으로 쓴다. */
+  const strengthsList = strengthsText
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  function toggleStrength(candidate: string) {
+    const next = strengthsList.includes(candidate)
+      ? strengthsList.filter((s) => s !== candidate)
+      : [...strengthsList, candidate];
+    setStrengthsText(next.join(", "));
+  }
+
+  function toggleFaqCandidate(question: string) {
+    if (faqPairs.some((p) => p.question.trim() === question)) {
+      setFaqPairs((prev) => prev.filter((p) => p.question.trim() !== question));
+    } else {
+      setFaqPairs((prev) => [...prev.filter((p) => p.question.trim() || p.answer.trim()), { question, answer: "" }]);
+    }
+  }
+
   const namedMenuItems = menuItems.filter((item) => item.name.trim());
+  // 4-5 메뉴 한 줄 스토리 echo-back용 — 이름 붙은 메뉴 중 최대 2개, 원래 배열
+  // index를 유지해야 updateMenuItem(i, ...)로 올바른 항목을 갱신할 수 있다.
+  const menuStoryTargets = menuItems
+    .map((item, i) => ({ item, i }))
+    .filter(({ item }) => item.name.trim())
+    .slice(0, 2);
 
   const pendingUploads: PendingUpload[] = [
-    ...(heroFile ? [{ slot: "hero", file: heroFile }] : []),
-    ...(logoFile ? [{ slot: "logo", file: logoFile }] : []),
-    ...namedMenuItems.flatMap((item, i) => (item.image ? [{ slot: `menu-${i}`, file: item.image }] : [])),
+    ...(heroFiles[0] ? [{ slot: "hero", file: heroFiles[0] }] : []),
+    ...(logoFiles[0] ? [{ slot: "logo", file: logoFiles[0] }] : []),
+    ...namedMenuItems.flatMap((item, i) => (item.image[0] ? [{ slot: `menu-${i}`, file: item.image[0] }] : [])),
     ...galleryFiles.map((file, i) => ({ slot: `gallery-${i}`, file })),
   ];
 
@@ -265,9 +326,26 @@ export default function GeneralCreatePage() {
           rating: r.rating ? Number(r.rating) : null,
         })),
       cta_interaction_mode: ctaInteractionMode,
-      how_it_works_note: howItWorksNote.trim() || null,
+      // 출력 스키마의 blocks.how_it_works(생성 블록)와 이름이 겹치지 않도록
+      // _special_note 접미사를 쓴다 — 이건 그 블록을 채우는 재료 중 하나일 뿐,
+      // 블록 자체가 아니다.
+      how_it_works_special_note: howItWorksNote.trim() || null,
       faq_answers: faqAnswers,
     };
+  }
+
+  function handleSubmit() {
+    clearDraft(DRAFT_KEY);
+    setShowManualFlow(true);
+  }
+
+  /** 게이트 진입 화면의 "바로 완료하기" — 이 게이트가 마지막 스텝이므로 곧장 제출로 넘어간다. */
+  function skipGate() {
+    if (step === STEPS.length - 1) {
+      handleSubmit();
+    } else {
+      setStep((s) => s + 1);
+    }
   }
 
   if (showManualFlow) {
@@ -282,49 +360,23 @@ export default function GeneralCreatePage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
+    <main className="cp-form mx-auto w-full max-w-[560px] px-5 pt-8 pb-8">
       {hasDraft && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            background: "#eef6ff",
-            border: "1px solid #bcdcff",
-            borderRadius: 8,
-            padding: "12px 16px",
-            marginBottom: 16,
-            fontSize: 13,
+        <DraftBanner
+          onResume={() => {
+            const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
+            if (draft) applyDraft(draft);
           }}
-        >
-          <span>이전에 작성하던 내용이 있어요. 이어서 작성할까요? (사진은 다시 첨부해주세요)</span>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => {
-                const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
-                if (draft) applyDraft(draft);
-              }}
-              style={{ fontSize: 13, fontWeight: 700 }}
-            >
-              이어서 작성
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearDraft(DRAFT_KEY);
-                setHasDraft(false);
-              }}
-              style={{ fontSize: 13, color: "#888" }}
-            >
-              새로 시작
-            </button>
-          </div>
-        </div>
+          onDiscard={() => {
+            clearDraft(DRAFT_KEY);
+            setHasDraft(false);
+          }}
+        />
       )}
 
-      <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+      <div className="mb-6">
+        <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+      </div>
 
       {step === 0 && (
         <Section title="어떤 업종이세요?">
@@ -332,14 +384,13 @@ export default function GeneralCreatePage() {
             value={industry}
             onChange={(e) => setIndustry(e.target.value)}
             placeholder="예: 카페, 미용실, 헬스장, 학원, 병의원, 스터디카페, 장례용품..."
-            style={{ fontSize: 16, padding: "14px 12px" }}
             autoFocus
           />
         </Section>
       )}
 
       {step === 1 && (
-        <Section title="기본 정보">
+        <Section title="기본 정보" meta="예상 소요시간 약 1분">
           <Field label="가게 이름">
             <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="예: 밀물다방" />
           </Field>
@@ -359,24 +410,8 @@ export default function GeneralCreatePage() {
             {!is24h && <HoursEditor hours={hours} onChange={setHours} />}
           </fieldset>
 
-          <Field label="대표 사진">
-            <input
-              type="file"
-              accept="image/*"
-              style={fileInputStyle}
-              onChange={(e) => setHeroFile(e.target.files?.[0] ?? null)}
-            />
-            {heroFile && <p style={fileNameStyle}>선택됨: {heroFile.name}</p>}
-          </Field>
-          <Field label="로고">
-            <input
-              type="file"
-              accept="image/*"
-              style={fileInputStyle}
-              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-            />
-            {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
-          </Field>
+          <FileField label="대표 사진" value={heroFiles} onChange={setHeroFiles} />
+          <FileField label="로고" value={logoFiles} onChange={setLogoFiles} />
 
           <Field label="손님이 가장 먼저 하길 바라는 행동">
             <select value={ctaPrimaryAction} onChange={(e) => setCtaPrimaryAction(e.target.value as CtaPrimaryAction)}>
@@ -389,62 +424,24 @@ export default function GeneralCreatePage() {
       )}
 
       {step === 2 && (
-        <Section title="강점·소개 (선택)">
-          <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
-            답해주신 만큼 홈페이지가 풍부해져요. 정성껏 만들어 드릴게요.
-          </p>
-          <Field label="한 줄 소개나 가게 소개 문구">
-            <textarea
-              value={intro}
-              onChange={(e) => setIntro(e.target.value)}
-              rows={3}
-              placeholder="이미 쓰시는 문구가 있으면 넣어주세요. 없으면 저희가 만들어 드리니 비워두셔도 괜찮아요."
-            />
-          </Field>
-          <Field label="해당되는 강점이 있다면 적어주세요">
-            <textarea
-              value={strengthsText}
-              onChange={(e) => setStrengthsText(e.target.value)}
-              rows={3}
-              placeholder="쉼표나 줄바꿈으로 구분해서 적어주세요. 예: 오래된 운영 연차, 주차 가능, 반려동물 동반"
-            />
-          </Field>
-          <Field
-            label="이 일을 시작하게 된 계기나 철학이 있나요?"
-            hint="짧아도 좋아요. 이 답변은 소개 문단에 섞이지 않고 눈에 띄는 문구로 따로 강조돼요."
-          >
-            <textarea
-              value={philosophyText}
-              onChange={(e) => setPhilosophyText(e.target.value)}
-              rows={2}
-              placeholder="예: 손님이 아니라 단골이 되어주셨으면 합니다"
-            />
-          </Field>
-          <Field
-            label="공간·분위기에서 손님들이 특히 좋아하는 부분이 있나요?"
-            hint="이 답변이 있으면 '정성으로 준비했습니다' 같은 뻔한 문장 대신, 진짜 이 가게만의 분위기가 전달돼요."
-          >
-            <textarea
-              value={atmosphereText}
-              onChange={(e) => setAtmosphereText(e.target.value)}
-              rows={2}
-              placeholder="예: 낡은 나무 창틀과 오래된 라디오 소리가 늘 배어있어요"
-            />
-          </Field>
-        </Section>
-      )}
-
-      {step === 3 && (
-        <Section title="대표 서비스·상품·사진">
+        <Section title="대표 서비스·상품·사진" meta="예상 소요시간 약 1~2분">
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 서비스·상품</legend>
             {menuItems.map((item, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                <input
-                  placeholder="이름 (예: 아메리카노, 커트, 개인레슨 1회)"
-                  value={item.name}
-                  onChange={(e) => updateMenuItem(i, { name: e.target.value })}
-                />
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="이름 (예: 아메리카노, 커트, 개인레슨 1회)"
+                    value={item.name}
+                    onChange={(e) => updateMenuItem(i, { name: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {menuItems.length > 1 && (
+                    <button type="button" onClick={() => removeMenuItem(i)} className="text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
                     placeholder="가격 (예: 4,500원)"
@@ -462,27 +459,13 @@ export default function GeneralCreatePage() {
                     상담 문의
                   </label>
                 </div>
-                <input
-                  placeholder="이 메뉴가 특별한 이유가 있다면 적어주세요 (선택, 예: 국내산 원두만 사용)"
-                  value={item.description}
-                  onChange={(e) => updateMenuItem(i, { description: e.target.value })}
-                />
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={fileInputStyle}
-                  onChange={(e) => updateMenuItem(i, { image: e.target.files?.[0] ?? null })}
-                />
-                {item.image && <p style={fileNameStyle}>선택됨: {item.image.name}</p>}
+                <FileField label="사진" value={item.image} onChange={(files) => updateMenuItem(i, { image: files })} />
               </div>
             ))}
             <button
               type="button"
               onClick={() =>
-                setMenuItems((prev) => [
-                  ...prev,
-                  { name: "", price: "", consult: false, description: "", image: null },
-                ])
+                setMenuItems((prev) => [...prev, { name: "", price: "", consult: false, description: "", image: [] }])
               }
               style={{ fontSize: 13 }}
             >
@@ -490,108 +473,225 @@ export default function GeneralCreatePage() {
             </button>
           </fieldset>
 
-          <Field label="갤러리 사진 (몇 장이든 업로드한 만큼)">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              style={fileInputStyle}
-              onChange={(e) => setGalleryFiles(Array.from(e.target.files ?? []))}
-            />
-            {galleryFiles.length > 0 && <p style={fileNameStyle}>{galleryFiles.length}장 선택됨</p>}
-          </Field>
+          <FileField label="갤러리 사진 (몇 장이든 업로드한 만큼)" multiple value={galleryFiles} onChange={setGalleryFiles} />
         </Section>
       )}
 
-      {step === 4 && (
-        <Section title="신뢰·링크 (선택)">
-          <Field label="인스타그램">
-            <input value={links.instagram} onChange={(e) => setLinks((p) => ({ ...p, instagram: e.target.value }))} placeholder="https://instagram.com/..." />
-          </Field>
-          <Field label="카카오">
-            <input value={links.kakao} onChange={(e) => setLinks((p) => ({ ...p, kakao: e.target.value }))} placeholder="https://pf.kakao.com/..." />
-          </Field>
-          <Field label="네이버 예약">
-            <input
-              value={links.naver_reservation}
-              onChange={(e) => setLinks((p) => ({ ...p, naver_reservation: e.target.value }))}
-              placeholder="https://booking.naver.com/..."
-            />
-          </Field>
-          <Field label="블로그">
-            <input value={links.blog} onChange={(e) => setLinks((p) => ({ ...p, blog: e.target.value }))} placeholder="https://blog.naver.com/..." />
-          </Field>
+      {step === GATE_STEP && !gateOpened && (
+        <GateIntro
+          description="여기까지만 하셔도 홈페이지는 완성돼요. 아래는 있으면 더 좋은 것들이에요 — 다 채우면 약 3~4분, 마음에 드는 것만 답하셔도 충분해요."
+          fillLabel="몇 개만 더 채우기"
+          skipLabel="바로 완료하기"
+          onFill={() => setGateOpened(true)}
+          onSkip={skipGate}
+        />
+      )}
 
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>리뷰가 있으면 1~2개 붙여주세요 (원문 그대로)</legend>
-            {reviews.map((r, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+      {step === GATE_STEP && gateOpened && (
+        <Section title="더 채우면 좋아요">
+          <div className="flex flex-col gap-3">
+            <Accordion title="강점 체크리스트" hint="가장 빠르게 끝나요">
+              <p className="text-[13px] text-cp-muted">
+                체크만 하면 끝나요. 이 답이 있으면 &apos;고객만족도 1위&apos; 같은 막연한 문구 대신 실제 근거가 담긴
+                신뢰 문구가 만들어져요.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {STRENGTH_CANDIDATES.map((candidate) => (
+                  <Chip key={candidate} selected={strengthsList.includes(candidate)} onClick={() => toggleStrength(candidate)}>
+                    {candidate}
+                  </Chip>
+                ))}
+              </div>
+              <textarea
+                value={strengthsText}
+                onChange={(e) => setStrengthsText(e.target.value)}
+                rows={2}
+                placeholder="해당되는 후보를 누르거나, 쉼표·줄바꿈으로 구분해 직접 적어주세요."
+              />
+            </Accordion>
+
+            <Accordion title="손님 연결 링크">
+              <Field label="인스타그램">
+                <input
+                  value={links.instagram}
+                  onChange={(e) => setLinks((p) => ({ ...p, instagram: e.target.value }))}
+                  placeholder="https://instagram.com/..."
+                />
+              </Field>
+              <Field label="카카오">
+                <input
+                  value={links.kakao}
+                  onChange={(e) => setLinks((p) => ({ ...p, kakao: e.target.value }))}
+                  placeholder="https://pf.kakao.com/..."
+                />
+              </Field>
+              <Field label="네이버 예약">
+                <input
+                  value={links.naver_reservation}
+                  onChange={(e) => setLinks((p) => ({ ...p, naver_reservation: e.target.value }))}
+                  placeholder="https://booking.naver.com/..."
+                />
+              </Field>
+              <Field label="블로그">
+                <input
+                  value={links.blog}
+                  onChange={(e) => setLinks((p) => ({ ...p, blog: e.target.value }))}
+                  placeholder="https://blog.naver.com/..."
+                />
+              </Field>
+            </Accordion>
+
+            <Accordion title="예약 방식">
+              <Field label="예약·문의 방식">
+                <select value={ctaInteractionMode} onChange={(e) => setCtaInteractionMode(e.target.value as CtaInteractionMode)}>
+                  <option value="functional">버튼으로 바로 연결(전화 걸기, 예약 링크 등)</option>
+                  <option value="guided">DM·카톡 등 사람이 직접 응대</option>
+                </select>
+              </Field>
+            </Accordion>
+
+            <Accordion title="소개 문구">
+              <Field label="한 줄 소개나 가게 소개 문구가 있으면 알려주세요">
                 <textarea
-                  placeholder="리뷰 내용"
+                  value={intro}
+                  onChange={(e) => setIntro(e.target.value)}
+                  rows={3}
+                  placeholder="2015년부터 이 자리에서 원두를 직접 로스팅합니다"
+                />
+              </Field>
+            </Accordion>
+
+            {menuStoryTargets.length > 0 && (
+              <Accordion title="메뉴 한 줄 스토리">
+                {menuStoryTargets.map(({ item, i }) => (
+                  <Field
+                    key={i}
+                    label={`[${item.name}]이 특별한 이유가 있나요?`}
+                    hint="이 한 줄이 있고 없고에 따라 메뉴 설명이 '정성으로 만든 메뉴'처럼 뻔해지느냐, 진짜 구체적인 이야기가 되느냐가 갈려요."
+                  >
+                    <input
+                      placeholder="재료 원산지·만드는 방식·다른 곳과의 차이 등"
+                      value={item.description}
+                      onChange={(e) => updateMenuItem(i, { description: e.target.value })}
+                    />
+                  </Field>
+                ))}
+              </Accordion>
+            )}
+
+            <Accordion title="시작하게 된 계기">
+              <Field
+                label="이 일을 시작하게 된 계기나 철학이 있나요?"
+                hint="짧아도 좋아요. 이 답변은 소개 문단에 섞이지 않고 눈에 띄는 문구로 따로 강조돼요."
+              >
+                <textarea
+                  value={philosophyText}
+                  onChange={(e) => setPhilosophyText(e.target.value)}
                   rows={2}
-                  value={r.body}
-                  onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, body: e.target.value } : v)))}
+                  placeholder="부모님이 하시던 가게를 물려받아 10년째 이어가고 있어요"
                 />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    placeholder="작성자 (예: 김O영)"
-                    value={r.author}
-                    onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, author: e.target.value } : v)))}
+              </Field>
+            </Accordion>
+
+            <Accordion title="공간·분위기">
+              <Field
+                label="공간·분위기에서 손님들이 특히 좋아하는 부분이 있나요?"
+                hint="이 답변이 있으면 '정성으로 준비했습니다' 같은 뻔한 문장 대신, 진짜 이 가게만의 분위기가 전달돼요."
+              >
+                <textarea
+                  value={atmosphereText}
+                  onChange={(e) => setAtmosphereText(e.target.value)}
+                  rows={2}
+                  placeholder="창가 자리가 햇살이 잘 들어서 특히 인기가 많아요"
+                />
+              </Field>
+            </Accordion>
+
+            <Accordion title="리뷰" hint="가장 손이 많이 가는 항목이라 마지막에">
+              <p className="text-[13px] text-cp-muted">리뷰가 있으면 내용을 1~2개 붙여주세요(원문 그대로).</p>
+              {reviews.map((r, i) => (
+                <div key={i} className="flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                  <textarea
+                    placeholder="리뷰 내용"
+                    rows={2}
+                    value={r.body}
+                    onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, body: e.target.value } : v)))}
                   />
-                  <input
-                    placeholder="별점 (선택, 1~5)"
-                    value={r.rating}
-                    onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, rating: e.target.value } : v)))}
-                    style={{ width: 100 }}
-                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      placeholder="작성자 (예: 김O영)"
+                      value={r.author}
+                      onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, author: e.target.value } : v)))}
+                    />
+                    <input
+                      placeholder="별점 (선택, 1~5)"
+                      value={r.rating}
+                      onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, rating: e.target.value } : v)))}
+                      style={{ width: 100 }}
+                    />
+                    <button type="button" onClick={() => removeReview(i)} className="flex-none text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </fieldset>
+              ))}
+              <button
+                type="button"
+                onClick={() => setReviews((prev) => [...prev, { body: "", author: "", rating: "" }])}
+                style={{ fontSize: 13 }}
+              >
+                + 리뷰 추가
+              </button>
+            </Accordion>
 
-          <Field label="예약·문의 방식">
-            <select value={ctaInteractionMode} onChange={(e) => setCtaInteractionMode(e.target.value as CtaInteractionMode)}>
-              <option value="functional">버튼으로 바로 연결(전화 걸기, 예약 링크 등)</option>
-              <option value="guided">DM·카톡 등 사람이 직접 응대</option>
-            </select>
-          </Field>
-        </Section>
-      )}
-
-      {step === 5 && (
-        <Section title="이용방법·FAQ (선택)">
-          <Field label="특이한 이용 절차가 있다면 알려주세요">
-            <textarea
-              value={howItWorksNote}
-              onChange={(e) => setHowItWorksNote(e.target.value)}
-              rows={2}
-              placeholder="업종별 기본 흐름은 자동으로 만들어져요. 특이한 절차만 적어주세요."
-            />
-          </Field>
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>자주 묻는 질문이 있다면 적어주세요</legend>
-            {faqPairs.map((pair, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                <input
-                  placeholder="질문 (예: 주차 되나요?)"
-                  value={pair.question}
-                  onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+            <Accordion title="이용방법·FAQ">
+              <Field label="특이한 이용 절차가 있다면 알려주세요">
+                <textarea
+                  value={howItWorksNote}
+                  onChange={(e) => setHowItWorksNote(e.target.value)}
+                  rows={2}
+                  placeholder="업종별 기본 흐름은 자동으로 만들어져요. 특이한 절차만 적어주세요."
                 />
-                <input
-                  placeholder="답변"
-                  value={pair.answer}
-                  onChange={(e) => updateFaqPair(i, { answer: e.target.value })}
-                />
+              </Field>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-semibold text-cp-fg">자주 묻는 질문이 있다면 적어주세요</p>
+                <div className="flex flex-wrap gap-2">
+                  {FAQ_CANDIDATES.map((question) => (
+                    <Chip
+                      key={question}
+                      selected={faqPairs.some((p) => p.question.trim() === question)}
+                      onClick={() => toggleFaqCandidate(question)}
+                    >
+                      {question}
+                    </Chip>
+                  ))}
+                </div>
+                {faqPairs.map((pair, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        placeholder="질문 (예: 주차 되나요?)"
+                        value={pair.question}
+                        onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+                        style={{ flex: 1 }}
+                      />
+                      <button type="button" onClick={() => removeFaqPair(i)} className="flex-none text-[13px] text-cp-muted">
+                        삭제
+                      </button>
+                    </div>
+                    <input placeholder="답변" value={pair.answer} onChange={(e) => updateFaqPair(i, { answer: e.target.value })} />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setFaqPairs((prev) => [...prev, { question: "", answer: "" }])}
+                  style={{ fontSize: 13 }}
+                >
+                  + 질문 추가
+                </button>
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setFaqPairs((prev) => [...prev, { question: "", answer: "" }])}
-              style={{ fontSize: 13 }}
-            >
-              + 질문 추가
-            </button>
-          </fieldset>
+            </Accordion>
+          </div>
         </Section>
       )}
 
@@ -601,10 +701,8 @@ export default function GeneralCreatePage() {
         canProceed={canProceed()}
         onBack={() => setStep((s) => s - 1)}
         onNext={() => setStep((s) => s + 1)}
-        onSubmit={() => {
-          clearDraft(DRAFT_KEY);
-          setShowManualFlow(true);
-        }}
+        onSubmit={handleSubmit}
+        hidePrimary={step === GATE_STEP && !gateOpened}
       />
     </main>
   );

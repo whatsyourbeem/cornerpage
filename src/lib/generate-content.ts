@@ -20,8 +20,11 @@ import type {
  * Claude API를 호출하는 실제 콘텐츠 생성기. mock-generate-content.ts를 대체한다.
  * 방법B(스킬 문서 텍스트 결합) 전략과 근거는 Notion "백엔드 API 아키텍처" 문서 2장 참고.
  *
- * DraftAnswers는 spec/for-frontend/general/input-questions.md의 질문 흐름을 그대로 따르는
- * "가공 전 사업 정보"다. axis_a_tone/axis_b_layout/cta 유형·카피(headline 등)를
+ * GeneralDraftAnswers는 spec/for-frontend/general/input-questions.md의 질문 흐름을
+ * 그대로 따르는 general vertical 전용 "가공 전 사업 정보"다(boutique-fitness는
+ * professionals/transformations/inquiry_channels 등 완전히 다른 형태라 이 타입을
+ * 쓰지 않는다 — generateContent()는 두 vertical이 공유하는 최소 필드만 요구한다).
+ * axis_a_tone/axis_b_layout/cta 유형·카피(headline 등)를
  * 프론트가 미리 정해서 넘기던 이전 목업 파이프라인 방식(placeholder /create 폼)과
  * 달리, 이제는 업종·강점·메뉴 같은 원재료만 넘기고 톤/레이아웃 판단과 카피 작성은
  * 전부 스킬이 SKILL.md 지침대로 직접 한다 — 이게 원래 스킬 설계였다.
@@ -63,7 +66,7 @@ export interface DraftHoursEntry {
   closed: boolean;
 }
 
-export interface DraftAnswers {
+export interface GeneralDraftAnswers {
   // STEP 1 — 업종 (분기점)
   industry_category: string;
 
@@ -76,32 +79,43 @@ export interface DraftAnswers {
   logo_url: string | null;
   cta_primary_action: CtaPrimaryAction;
 
-  // STEP 3 — 강점·소개 (선택)
-  intro: string | null;
-  /** 계기·철학 답변(선택, about과 독립) → blocks.philosophy (top-level 블록) */
-  philosophy: string | null;
-  /** 공간·분위기 답변(선택, about과 독립) → blocks.atmosphere (top-level 블록) */
-  atmosphere: string | null;
-  strengths: string[];
-
-  // STEP 4 — 메뉴/서비스·사진 (필수)
+  // STEP 3 — 서비스·사진 (필수)
   menu_items: {
     name: string;
     price: string | null;
-    /** "이 메뉴가 특별한 이유" 답변(선택) → menu.items[].description */
+    /** "이 메뉴가 특별한 이유" 답변(STEP 4 게이트 4-5, echo-back) → menu.items[].description */
     description: string | null;
     image_url: string | null;
   }[];
   gallery_image_urls: string[];
 
-  // STEP 5 — 신뢰·링크 (선택)
-  external_links: { platform: ExternalLinkPlatform; url: string }[];
-  reviews: { body: string; author: string; rating: number | null }[];
-  cta_interaction_mode: CtaInteractionMode;
+  // STEP 4 — 더 채우면 좋아요 (선택, 하나의 게이트로 통합)
+  strengths: string[]; // 4-1
+  external_links: { platform: ExternalLinkPlatform; url: string }[]; // 4-2
+  cta_interaction_mode: CtaInteractionMode; // 4-3
+  intro: string | null; // 4-4
+  /** 계기·철학 답변(4-6, about과 독립) → blocks.philosophy (top-level 블록) */
+  philosophy: string | null;
+  /** 공간·분위기 답변(4-7, about과 독립) → blocks.atmosphere (top-level 블록) */
+  atmosphere: string | null;
+  reviews: { body: string; author: string; rating: number | null }[]; // 4-8
+  /** 이용방법 특이사항(4-9) — 출력 스키마의 blocks.how_it_works와 이름이 겹치지 않도록 접미사를 다르게 뒀다 */
+  how_it_works_special_note: string | null;
+  faq_answers: { question: string; answer: string }[]; // 4-9
+}
 
-  // 신규 블록 문항 (선택)
-  how_it_works_note: string | null;
-  faq_answers: { question: string; answer: string }[];
+/**
+ * generateContent()가 실제로 직접 읽는 필드는 vertical 판단(determineVertical)과
+ * 지오코딩(geocodeAddress)에 쓰는 이 셋뿐이다 — 나머지는 그대로
+ * buildClaudeRequestBody(answers: unknown)에 JSON으로 넘어간다. general·
+ * boutique-fitness의 answers 형태가 완전히 다르므로(전자는 GeneralDraftAnswers,
+ * 후자는 professionals/transformations 등 별도 구조), 두 vertical이 공유하는
+ * 최소 필드만 여기서 요구하고 나머지는 vertical별 answers 타입에 맡긴다.
+ */
+export interface MinimalDraftAnswers {
+  industry_category: string;
+  business_name: string;
+  address: string;
 }
 
 /** vertical의 스키마/프롬프트는 있지만 렌더러가 아직 못 그리는 경우 API 라우트가 잡아서 안내용 응답으로 바꾼다. */
@@ -238,7 +252,7 @@ const MAX_REPAIR_ATTEMPTS = 2;
  * 확률이 낮다. 최대 횟수까지 실패하면 ContentGenerationFailedError를 던진다.
  */
 async function generateWithRepairLoop(
-  answers: DraftAnswers,
+  answers: MinimalDraftAnswers,
   coordinates: { lat: number; lng: number },
   vertical: Vertical
 ): Promise<MiniHomepageContent> {
@@ -284,7 +298,7 @@ async function generateWithRepairLoop(
  * 대체한다.
  */
 export async function generateContent(
-  answers: DraftAnswers
+  answers: MinimalDraftAnswers
 ): Promise<{ content: MiniHomepageContent; vertical: Vertical }> {
   const vertical = determineVertical(answers.industry_category);
   if (!RENDERER_READY_VERTICALS.includes(vertical)) {

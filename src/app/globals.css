@@ -1,4 +1,65 @@
 @import "tailwindcss";
+@import "./renderer.css";
+
+/*
+ * cp- 네임스페이스: 앱 크롬(홈·로그인·대시보드·/create 위저드) 전용 디자인
+ * 토큰. docs/DESIGN.md(Toss/TDS Mobile 검증 레퍼런스) 기반. 렌더러가 쓰는
+ * 이름(--brand, --paper, --ink, --border, --accent, --radius-*, --shadow-* 등,
+ * renderer.css 참고)과 절대 겹치지 않도록 전부 cp- 접두사를 쓴다 — 특히
+ * src/app/site/[slug]/legal/legal.module.css가 .mhp-page 밖에서 --paper·--ink·
+ * --border를 폴백과 함께 참조하므로, 이 이름들을 여기서 재정의하면 안 된다.
+ *
+ * --font-sans는 여기 넣지 않는다 — Tailwind v4의
+ * --default-font-family: --theme(--font-sans, initial)가 preflight 기본
+ * 폰트를 바꿔버려 렌더러까지 영향이 간다. body의 font-family 상속에 맡긴다.
+ */
+@theme {
+  /* DESIGN.md §2 — TDS product + shared roles */
+  --color-cp-primary: #3182f6;
+  --color-cp-primary-hover: #2272eb;
+  --color-cp-canvas: #ffffff;
+  --color-cp-fg: #191f28;
+  --color-cp-body: #4e5968;
+  --color-cp-muted: #8b95a1;
+  --color-cp-surface: #f2f4f6;
+  --color-cp-border: #e5e8eb;
+  --color-cp-on-primary: #ffffff;
+  --color-cp-danger: #e42939;
+  /* DESIGN.md §2 — marketing-web roles */
+  --color-cp-weak-bg: #e8f3ff;
+  --color-cp-weak-fg: #1b64da;
+
+  /* DESIGN.md §3 타이포 — px 고정 line-height 그대로 */
+  --text-cp-h1: 36px;
+  --text-cp-h1--line-height: 54px;
+  --text-cp-h2: 30px;
+  --text-cp-h2--line-height: 45px;
+  --text-cp-h3: 24px;
+  --text-cp-h3--line-height: 36px;
+  --text-cp-h4: 22px;
+  --text-cp-h4--line-height: 33px;
+  --text-cp-body: 16px;
+  --text-cp-body--line-height: 24px;
+  --text-cp-sm: 14px;
+  --text-cp-sm--line-height: 21px;
+
+  /* DESIGN.md §5 — 4/6/8/16/24/32 */
+  --spacing-cp-xs: 4px;
+  --spacing-cp-sm: 6px;
+  --spacing-cp-md: 8px;
+  --spacing-cp-lg: 16px;
+  --spacing-cp-xl: 24px;
+  --spacing-cp-xxl: 32px;
+
+  /* DESIGN.md §5 — radius */
+  --radius-cp-sm: 4px;
+  --radius-cp-md: 6px;
+  --radius-cp-btn-sm: 8px;
+  --radius-cp-btn-md: 10px;
+  --radius-cp-btn-lg: 14px;
+  --radius-cp-btn-xl: 16px;
+  --radius-cp-marketing: 7px;
+}
 
 :root {
   --font-sans: var(--font-pretendard), -apple-system, BlinkMacSystemFont,
@@ -14,101 +75,6 @@
   --stickycta-h: 92px;
 }
 
-/* ---------- 톤 프리셋 (축 A) ---------- */
-
-[data-tone="warm"] {
-  /* 감성형 — 헤드라인만 Gmarket Sans, 본문은 공통 Pretendard */
-  --brand: #7a5c3e;
-  --brand-deep: #5c4530;
-  --accent: #c26b3a;
-  --accent-on-dark: #e1b49b;
-  --paper: #f7f3ec;
-  --paper-alt: #f0e6d6;
-  --ink: #2b2622;
-  --radius-cta: 12px;
-  --shadow-cta: 0 6px 16px rgb(122 92 62 / 0.25);
-  --font-headline: "Gmarket Sans", var(--font-sans);
-  --headline-weight: 700;
-  --headline-tracking: -0.01em;
-  --motion-level: 1;
-}
-
-[data-tone="trust"] {
-  /* 신뢰형 — 별도 디스플레이체 없이 Pretendard Black 굵기로 "꾸미지 않은 확신감" */
-  --brand: #2e4756;
-  --brand-deep: #22343f;
-  --accent: #86754f;
-  --accent-on-dark: #ad9c74;
-  --paper: #f4f5f6;
-  --paper-alt: #e7eaec;
-  --ink: #23272b;
-  --radius-cta: 8px;
-  --shadow-cta: 0 2px 6px rgb(0 0 0 / 0.08);
-  --font-headline: var(--font-sans);
-  --headline-weight: 900;
-  --headline-tracking: -0.01em;
-  --motion-level: 0;
-}
-
-[data-tone="driven"] {
-  /* 혼합형 — 헤드라인만 S-Core Dream Heavy */
-  --brand: #2d4a43;
-  --brand-deep: #1f3630;
-  --accent: #e0793c;
-  --accent-on-dark: #e28147;
-  --paper: #f5f4f0;
-  --paper-alt: #eae4d8;
-  --ink: #24211c;
-  --radius-cta: 10px;
-  --shadow-cta: 0 6px 18px rgb(45 74 67 / 0.25);
-  --font-headline: "S-Core Dream", var(--font-sans);
-  --headline-weight: 800;
-  --headline-tracking: 0.01em;
-  --motion-level: 2;
-}
-
-/*
-  boutique-fitness 고정 톤 — "차분한 확신"(spec/for-frontend/boutique-fitness/design-guide.md 2장).
-  general처럼 axis별로 갈리지 않고 vertical 전체에 고정되는 팔레트라 [data-tone] 하나만 존재한다.
-  --font-headline을 --font-sans로 맞춰둬서, 일부 블록이 재사용하는 --font-headline 참조 CSS가
-  이 톤에서도 그대로 동작한다(Pretendard 단독 사용 — design-guide.md 3장).
-*/
-[data-tone="grounded"] {
-  --brand: #1f3a35;
-  --brand-deep: #12211d;
-  --brand-light: #eaf1ef;
-  --accent: #e8663d;
-  --accent-deep: #c94f2b;
-  --accent-on-dark: #ff8b65;
-  --paper: #faf8f5;
-  --paper-alt: #f3efe9;
-  --ink: #26241f;
-  --ink-body: #57534a;
-  --ink-muted: #8b857a;
-  --border: #e3ded4;
-  --star: #e8a93d;
-  --error: #d64545;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
-  --radius-full: 9999px;
-  --shadow-floating: 0px 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-sticky: 0px -2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-modal: 0px 4px 12px rgba(0, 0, 0, 0.08);
-  --container-width: 1080px;
-  --font-headline: var(--font-sans);
-  --headline-weight: 700;
-  --headline-tracking: 0;
-  --section-padding: 64px;
-  --motion-level: 1;
-}
-
-@media (min-width: 768px) {
-  [data-tone="grounded"] {
-    --section-padding: 96px;
-  }
-}
-
 * {
   box-sizing: border-box;
 }
@@ -120,12 +86,18 @@ body {
 }
 
 body {
+  /* 명시적 배경이 없으면 다크모드 선호 브라우저에서 투명 배경이 UA 기본
+     검정으로 비쳐 보인다(오버스크롤 바운스에서도 마찬가지) — 앱 크롬 기본색은
+     항상 흰 캔버스. .mhp-page가 이보다 안쪽에서 자기 --paper로 다시 칠한다. */
+  background: var(--color-cp-canvas);
   font-family: var(--font-sans);
 }
 
-/* 키보드 포커스 */
+/* 키보드 포커스. 렌더러 내부([data-tone])는 --accent가 항상 정의돼 있어
+   실제로는 톤 강조색이 쓰이고, 이 폴백(#3182f6, cp-primary)은 앱 크롬에서만
+   적용된다. */
 :focus-visible {
-  outline: 2px solid var(--accent, #2563eb);
+  outline: 2px solid var(--accent, #3182f6);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -141,124 +113,73 @@ body {
   }
 }
 
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* ---------- 공용 레이아웃 유틸 ---------- */
-
-.mhp-page {
-  background: var(--paper);
-  color: var(--ink);
-  /* body의 font-family는 :root 기본값으로 고정 해석되어 버려서(커스텀 프로퍼티는
-     조상에서 자손 방향으로만 흐름), 톤별 --font-sans 오버라이드가 실제로 반영되려면
-     [data-tone]이 걸리는 이 요소 자신에서 다시 선언해야 한다. */
-  font-family: var(--font-sans);
-}
-
 /*
-  데스크톱 반응형 폭 규칙(design-guide.md 6장): 페이지 전체를 카드로 감싸 폭을
-  제한하던 방식에서, "카드 폭 유지 블록"과 "풀블리드 허용 블록"(히어로 배경,
-  topbar, 갤러리 그리드)을 분리하는 방식으로 바꿨다. .mhp-page 자체는 더 이상
-  폭을 제한하지 않고(풀블리드 블록이 전체 폭을 쓸 수 있도록), 카드 폭을 유지해야
-  하는 각 블록이 개별적으로 .mhp-container로 폭을 제한 + --paper 배경을 칠해
-  "카드가 떠 있는" 느낌을 낸다. 모바일에서는 카드=뷰포트라 시각적 차이가 없다.
-*/
-@media (min-width: 640px) {
-  .mhp-page {
-    background: var(--page-backdrop);
+ * .cp-form 스코프: /create 위저드가 쓰는 수많은 네이티브 <input>/<textarea>/
+ * <select>를 하나하나 컴포넌트화하지 않고 일괄 정돈한다(TextField 등 새
+ * 프리미티브를 쓰지 않는 반복 입력 필드들 — 메뉴·리뷰·FAQ·링크 등). @layer
+ * components에 둬서 Tailwind utilities 레이어보다 낮은 우선순위를 갖게 한다 —
+ * 그래야 TextField 등 유틸리티 클래스 기반 컴포넌트가 이 스코프 안에서도
+ * 정상적으로 자기 스타일을 우선 적용받는다(레이어 없이 쓰면 Tailwind v4에서
+ * 유틸리티보다 항상 이긴다).
+ */
+@layer components {
+  .cp-form input:not([type="checkbox"]):not([type="file"]):not([type="radio"]),
+  .cp-form textarea,
+  .cp-form select {
+    height: 44px;
+    width: 100%;
+    border-radius: var(--radius-cp-md);
+    border: 1px solid var(--color-cp-border);
+    background: var(--color-cp-canvas);
+    padding: 0 14px;
+    font-size: 15px;
+    color: var(--color-cp-fg);
+    outline: none;
+    transition: border-color 0.15s;
   }
-}
 
-.mhp-container {
-  width: 100%;
-  max-width: var(--container-width);
-  margin-inline: auto;
-  padding-inline: 20px;
-}
+  .cp-form textarea {
+    height: auto;
+    min-height: 72px;
+    padding: 10px 14px;
+    resize: vertical;
+  }
 
-.mhp-section {
-  padding-block: var(--section-padding, 120px);
-}
+  .cp-form input:focus,
+  .cp-form textarea:focus,
+  .cp-form select:focus {
+    border-color: var(--color-cp-primary);
+  }
 
-/*
-  섹션 배경띠(design-guide.md 6-1-①): 배경은 뷰포트 전체 폭으로 칠하고
-  .mhp-container(안쪽)가 텍스트만 카드 폭으로 잡아준다. 데스크톱에서 카드
-  바깥 회색 여백이 너무 넓어 "휑해 보이는" 문제를 해결하는 장치라, 모바일
-  에서도 동일하게 적용해 톤/명도로 섹션을 구분한다(휘어리 보더 대신).
+  .cp-form input:disabled,
+  .cp-form textarea:disabled,
+  .cp-form select:disabled {
+    background: var(--color-cp-surface);
+    color: var(--color-cp-muted);
+    cursor: not-allowed;
+  }
 
-  -dark는 --paper/--ink/--brand/--accent를 그 자리에서 반전시켜서, 각 블록이
-  이미 쓰고 있는 var(--ink), var(--brand), var(--accent), color-mix(...,
-  var(--ink), ...) 패턴이 전부 자동으로 밝은 배경/어두운 배경 양쪽에 맞게
-  재계산되도록 한다 — 블록 컴포넌트 CSS를 따로 손댈 필요가 없다.
+  .cp-form input::placeholder,
+  .cp-form textarea::placeholder {
+    color: var(--color-cp-muted);
+  }
 
-  --brand/--accent는 둘 다 --accent-on-dark로 바꿔치기한다(단순 --accent가
-  아니라): --accent는 paper 대비로만 맞춘 값이라 --brand-deep처럼 어두운
-  배경 위에서는 대비가 부족할 수 있다(같은 색이 밝은/어두운 배경 양쪽에서
-  4.5:1을 만족하는건 명도差 때문에 대체로 불가능) — 색상.ts의
-  deriveBrandPalette 주석 참고.
-*/
-.mhp-band {
-  width: 100%;
-}
+  .cp-form input[type="checkbox"] {
+    accent-color: var(--color-cp-primary);
+    width: 16px;
+    height: 16px;
+  }
 
-.mhp-band-light {
-  background: var(--paper);
-}
+  .cp-form fieldset {
+    border: 1px solid var(--color-cp-border);
+    border-radius: var(--radius-cp-btn-lg);
+    padding: 16px;
+  }
 
-.mhp-band-light-alt {
-  background: var(--paper-alt);
-}
-
-.mhp-band-dark {
-  background: var(--brand-deep);
-  --paper: var(--brand-deep);
-  --ink: #ffffff;
-  --brand: var(--accent-on-dark);
-  --accent: var(--accent-on-dark);
-  color: var(--ink);
-}
-
-.mhp-band + .mhp-band {
-  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
-}
-
-.mhp-eyebrow {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--brand);
-  margin: 0 0 8px;
-}
-
-.mhp-section-title {
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0 0 20px;
-  color: var(--ink);
-}
-
-/* 사진 없을 때 쓰는 도트 텍스처 (완전 단색은 밋밋해 보임 방지) */
-.mhp-dot-texture {
-  background-image: radial-gradient(
-    color-mix(in srgb, white 22%, transparent) 1.5px,
-    transparent 1.5px
-  );
-  background-size: 18px 18px;
+  .cp-form legend {
+    padding: 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-cp-fg);
+  }
 }

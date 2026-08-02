@@ -5,7 +5,7 @@ import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema
 import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
 import { geocodeAddress } from "./geocode";
 import { buildClaudeRequestBody, type ClaudeRequestBody } from "./claude-request";
-import { determineVertical, RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
+import { RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
 import { notifyAdminOfGenerationFailure } from "./admin-notify";
 import type {
   CtaPrimaryAction,
@@ -48,8 +48,13 @@ import type {
  * plain Ajv를 쓰고 있는데 이건 이 스키마에서는 실제로 동작하지 않는다.
  *
  * vertical(spec/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
- * 갈라져서(현재 general/boutique-fitness), LLM 호출 전에 업종 텍스트로 vertical을
- * 먼저 정해(determineVertical) 그에 맞는 스키마·프롬프트·ajv 검증기를 골라 쓴다.
+ * 갈라져서(현재 general/boutique-fitness), 이 함수는 vertical을 스스로 판단하지
+ * 않는다 — 사용자가 `/create` 진입 화면에서 ChoiceCard로 명시적으로 고른 값을
+ * 호출부(API 라우트)가 그대로 인자로 넘겨받아 그에 맞는 스키마·프롬프트·ajv
+ * 검증기를 골라 쓴다. 업종 텍스트를 키워드 매칭해 vertical을 추론하던 이전
+ * 방식(determineVertical)은 선택 UI와 어긋날 수 있어 폐기했다(오판정 실측:
+ * "PT 전문 짐"·"피티스튜디오" → general로 오판정, 정작 boutique-fitness 폼의
+ * placeholder 예시 문구였는데도).
  *
  * boutique-fitness는 2026-07-18 기준 스키마/프롬프트가 실제로 완성됐지만(신규
  * 블록 3종·meta 구조 변경 등 general과 크게 다름), 렌더러는 아직 general
@@ -99,21 +104,24 @@ export interface GeneralDraftAnswers {
   /** 공간·분위기 답변(4-7, about과 독립) → blocks.atmosphere (top-level 블록) */
   atmosphere: string | null;
   reviews: { body: string; author: string; rating: number | null }[]; // 4-8
-  /** 이용방법 특이사항(4-9) — 출력 스키마의 blocks.how_it_works와 이름이 겹치지 않도록 접미사를 다르게 뒀다 */
-  how_it_works_special_note: string | null;
   faq_answers: { question: string; answer: string }[]; // 4-9
 }
 
 /**
- * generateContent()가 실제로 직접 읽는 필드는 vertical 판단(determineVertical)과
- * 지오코딩(geocodeAddress)에 쓰는 이 셋뿐이다 — 나머지는 그대로
- * buildClaudeRequestBody(answers: unknown)에 JSON으로 넘어간다. general·
- * boutique-fitness의 answers 형태가 완전히 다르므로(전자는 GeneralDraftAnswers,
- * 후자는 professionals/transformations 등 별도 구조), 두 vertical이 공유하는
- * 최소 필드만 여기서 요구하고 나머지는 vertical별 answers 타입에 맡긴다.
+ * generateContent()가 실제로 직접 읽는 필드는 지오코딩(geocodeAddress)에 쓰는
+ * address와 실패 알림(notifyAdminOfGenerationFailure)에 쓰는 business_name
+ * 이 둘뿐이다 — 나머지는 그대로 buildClaudeRequestBody(answers: unknown)에
+ * JSON으로 넘어간다. general·boutique-fitness의 answers 형태가 완전히
+ * 다르므로(전자는 GeneralDraftAnswers, 후자는 professionals/transformations 등
+ * 별도 구조), 두 vertical이 공유하는 최소 필드만 여기서 요구하고 나머지는
+ * vertical별 answers 타입에 맡긴다.
+ *
+ * industry_category는 여기 없지만 answers에서 빠지는 게 아니다 — vertical
+ * 라우팅은 이제 호출부가 넘겨주는 vertical 인자로만 결정되므로 이 함수가 더
+ * 이상 industry_category를 읽지 않을 뿐, 실제 answers 객체(GeneralDraftAnswers
+ * 등)에는 계속 실려 meta.industry_category와 카피 재료로 Claude에게 전달된다.
  */
 export interface MinimalDraftAnswers {
-  industry_category: string;
   business_name: string;
   address: string;
 }
@@ -284,11 +292,9 @@ async function generateWithRepairLoop(
 }
 
 /**
- * vertical을 content와 함께 반환하는 이유: 호출부(POST /api/sites)가
- * sites.vertical 컬럼에 저장할 값이 필요한데, determineVertical()을 호출부에서
- * 따로 한 번 더 부르면 이 함수 내부 판단과 어긋날 여지가 생긴다 — 이 함수가
- * 실제로 쓴 값을 그대로 돌려줘서 content_json과 vertical이 항상 같은 판단
- * 결과를 가리키도록 보장한다.
+ * vertical은 호출부(POST /api/sites)가 사용자의 명시적 ChoiceCard 선택을 검증한
+ * 뒤 그대로 넘겨준 값이다 — 이 함수는 더 이상 vertical을 스스로 판단하지 않으므로
+ * content와 함께 돌려줄 필요도 없다(호출부가 이미 알고 있는 값이기 때문).
  *
  * repair loop(검증 실패 자체 수정)와 별개로, 네트워크 오류·레이트리밋처럼
  * 검증과 무관한 오류만 여기서 1회 추가 재시도한다. repair loop이 최대
@@ -298,9 +304,9 @@ async function generateWithRepairLoop(
  * 대체한다.
  */
 export async function generateContent(
+  vertical: Vertical,
   answers: MinimalDraftAnswers
-): Promise<{ content: MiniHomepageContent; vertical: Vertical }> {
-  const vertical = determineVertical(answers.industry_category);
+): Promise<MiniHomepageContent> {
   if (!RENDERER_READY_VERTICALS.includes(vertical)) {
     // 지오코딩·Claude 호출 전에 막아서 비용 낭비도 함께 없앤다.
     throw new VerticalNotReadyError(vertical);
@@ -308,8 +314,7 @@ export async function generateContent(
   const coordinates = await geocodeAddress(answers.address);
 
   try {
-    const content = await generateWithRepairLoop(answers, coordinates, vertical);
-    return { content, vertical };
+    return await generateWithRepairLoop(answers, coordinates, vertical);
   } catch (err) {
     if (err instanceof ContentGenerationFailedError) {
       await notifyAdminOfGenerationFailure({
@@ -322,8 +327,7 @@ export async function generateContent(
 
     console.error("콘텐츠 생성 실패(네트워크/API), 1회 재시도:", err);
     try {
-      const content = await generateWithRepairLoop(answers, coordinates, vertical);
-      return { content, vertical };
+      return await generateWithRepairLoop(answers, coordinates, vertical);
     } catch (retryErr) {
       if (retryErr instanceof ContentGenerationFailedError) {
         await notifyAdminOfGenerationFailure({

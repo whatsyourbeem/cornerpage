@@ -313,9 +313,15 @@ export default function BoutiqueFitnessCreatePage() {
   function canProceed(): boolean {
     if (step === 0) {
       // 전화번호는 항상 call 문의 채널로 자동 등록되므로, 별도의 "문의 채널 최소 1개" 체크가 불필요하다.
-      return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "";
+      return (
+        industryCategory.trim() !== "" &&
+        businessName.trim() !== "" &&
+        address.trim() !== "" &&
+        phone.trim() !== ""
+      );
     }
     if (step === 1) return professionals.some((p) => p.name.trim() !== "");
+    if (step === 2) return programs.some((p) => p.name.trim() !== "");
     return true;
   }
 
@@ -531,7 +537,6 @@ export default function BoutiqueFitnessCreatePage() {
   }
 
   function handleSubmit() {
-    clearDraft(DRAFT_KEY);
     setShowManualFlow(true);
   }
 
@@ -551,6 +556,7 @@ export default function BoutiqueFitnessCreatePage() {
         pendingUploads={pendingUploads}
         buildAnswers={buildAnswers}
         onBack={() => setShowManualFlow(false)}
+        onSaved={() => clearDraft(DRAFT_KEY)}
       />
     );
   }

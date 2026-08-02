@@ -22,13 +22,13 @@ description: >
 
 ## 작업 순서 (반드시 이 순서로)
 
-1. **업종(vertical) 라우팅 판단** — 사업 정보에서 업종을 확인하고, 등록된 vertical 목록(이 폴더 바로 아래의 `general/`, `boutique-fitness/` 하위 폴더들) 중 어디에 해당하는지 고른다. 현재 목록: **`boutique-fitness`**(PT·필라테스·요가 등 1:1/소수정예 트레이너 주도형 스튜디오), **`general`**(그 외 매칭되는 vertical이 없는 모든 업종 — 특수 예외가 아니라 vertical 목록의 기본값 항목). 이후 콘텐츠 생성에 쓰는 2개 파일(`schema-summary.md`·`industry-data.md`)은 **여기서 고른 vertical 폴더 하위의 것을 쓴다**(전부 이 폴더 `for-claude-api/` 안에 있다). 예외적으로 같은 폴더 바로 아래의 `copywriting.md`만은 모든 vertical이 공유하는 순수 카피 작성 원칙(블록 구조와 무관)이라 vertical 판단과 무관하게 그대로 쓴다. (정보 수집용 `input-questions.md`는 이 폴더 밖 `../for-frontend/{vertical}/`에 별도로 있다 — 원래 claude.ai 대화형 테스트에서 참고하던 파일이지만, 정보가 이미 갖춰진 상태로 대화가 시작되는 경우가 많아져 실질 사용 빈도는 낮다. 프론트엔드 입력 폼 설계 스펙이 주 용도다.)
-2. **입력 정보 파악** — 사용자가 준 사업 정보를 확인한다. 부족하면 위에서 고른 vertical의 `../for-frontend/{vertical}/input-questions.md` 문항 순서대로 물어본다. 이미 대화에 정보가 있으면 다시 묻지 않는다.
+1. **vertical 확인 (고르는 게 아니라 이미 정해져 있다)** — 이 요청의 vertical은 사용자가 서비스 진입 화면에서 직접 골랐고, 백엔드가 그 vertical에 해당하는 파일만 이 시스템 프롬프트에 실어 보냈다. **업종을 보고 vertical을 다시 판단하지 않는다** — 아래에 실려 있는 `schema-summary.md`·`industry-data.md`가 곧 이 요청의 vertical이며, 그 문서가 정의하는 구조를 그대로 따르면 된다. 현재 등록된 vertical은 **`boutique-fitness`**(PT·필라테스·요가 등 1:1/소수정예 트레이너 주도형 스튜디오)와 **`general`**(그 외 모든 업종 — 특수 예외가 아니라 vertical 목록의 기본값 항목)이다. `copywriting.md`는 vertical 무관 공통 원칙이라 어느 경우든 그대로 적용한다. 사업 정보에 담긴 업종 텍스트(`industry_category`)는 라우팅 근거가 아니라, 카피의 업종 언어를 고르고(general의 경우) 축을 판단하는 재료 중 하나로만 쓴다.
+2. **입력 정보 파악** — 사용자가 준 사업 정보를 확인한다. 부족하면 이 요청의 vertical에 해당하는 `../for-frontend/{vertical}/input-questions.md` 문항 순서대로 물어본다(이 파일은 프롬프트에 실려 있지 않다 — 프론트엔드 입력 폼 설계 스펙이 주 용도이며, 폼을 거쳐 들어온 요청은 이미 정보가 갖춰져 있다). 이미 대화에 정보가 있으면 다시 묻지 않는다.
    - **극히 부족한 경우(가게명·업종·연락처 정도뿐) JSON을 바로 생성하지 않는다.** 필수 블록(히어로·신뢰스트립·메뉴 등, 정확한 목록은 vertical마다 다름)이 실질적 내용 없이 이름과 자리표시자만으로 채워질 상황이면, 콘텐츠 JSON을 출력하는 대신 해당 vertical의 `input-questions.md` 앞부분(필수 정보·핵심 강점 관련 문항)을 먼저 물어본다. "일단 만들어보고 나중에 채우자"는 접근은 하지 않는다 — 빈약한 결과물이 사장님에게 실망을 준다.
 3. **업종별 meta 판단 필드 확정** — vertical마다 판단 방식이 다르다. **general**은 아래 "meta 판단 로직"으로 톤(axis_a)·레이아웃(axis_b)을 정하고, `cta_primary_action`·`cta_interaction_mode`도 항상 정한다. **다른 vertical(예: boutique-fitness)은 이 필드 구성 자체가 다를 수 있다** — boutique-fitness는 축 체계도 없고 `cta_primary_action`·`cta_interaction_mode` 필드 자체도 없다(대신 `lead_emphasis`·`inquiry_channels`·`browse_channels`). 어느 vertical이든 **해당 vertical의 `schema-summary.md`가 명시하는 meta 필드 구성을 그대로 따른다** — general 기준으로 추측하지 않는다.
 4. **블록 온·오프 및 순서 결정** — 데이터가 있는 선택 블록만 켠다(없으면 `null`). 블록 목록·필수 여부·순서는 vertical마다 다르며 **해당 vertical의 `schema-summary.md` 3장(blocks 필드)이 유일한 원본이다** — general은 축B(갤러리우선/메뉴우선)로 갤러리·메뉴 순서를 정하고, boutique-fitness는 순서 자체가 대부분 고정이며 `lead_emphasis` 선택에 따라 증거 블록 일부만 재배치한다.
 5. **콘텐츠 생성** — 각 블록의 카피를 "카피 생성 원칙"에 따라 작성한다. 근거 없는 최상급 표현은 항상 사실 기반으로 다듬는다.
-6. **JSON 출력** — 1번에서 고른 vertical 폴더의 `schema-summary.md`(예: `boutique-fitness/schema-summary.md`)에 정확히 맞춰 출력한다. 필수 필드 누락 금지, 없는 데이터는 `null`.
+6. **JSON 출력** — 이 프롬프트에 실려 있는 `schema-summary.md`에 정확히 맞춰 출력한다. 필수 필드 누락 금지, 없는 데이터는 `null`.
 
 각 단계의 상세 규칙은 아래와 참고 파일에 있다. **작업 전 반드시 해당 vertical의 `schema-summary.md`(출력 형식)와, 판단이 필요한 시점에 해당 참고 파일을 읽는다.**
 
@@ -76,7 +76,7 @@ description: >
 
 4. **근거 없는 최상급·비교 표현은 피한다(모든 업종 공통).** "가장 좋은", "1위", "최고" 같은 표현은 증명이 안 되면 AI 티 위험군(2번)에도 걸리고, 의료·법률 등 일부 업종은 광고법상 실제 리스크도 있다. 대신 검증 가능한 사실(경력·연차·자격)로 자신감을 표현한다. 예: "수지에서 가장 좋은 치과" → "24년 경력, 구강악안면외과 전문의가 진료합니다". 유저 원문이 최상급 표현이어도, 의도(자신감)는 살리고 표현만 사실 기반으로 다듬어 제안한다.
 
-5. **강점 체크리스트가 빈약하면 카피도 빈약해진다.** 강점이 1~2개뿐이면 1번에서 고른 vertical 폴더의 `industry-data.md`(예: `general/industry-data.md`)의 업종별 기본 강점 후보를 참고해 각도를 넓힌다. 그래도 사실이 아닌 건 넣지 않는다.
+5. **강점 체크리스트가 빈약하면 카피도 빈약해진다.** 강점이 1~2개뿐이면 이 프롬프트에 실려 있는 `industry-data.md`의 업종별 기본 강점 후보를 참고해 각도를 넓힌다. 그래도 사실이 아닌 건 넣지 않는다.
 
 6. **가짜 긴급함을 지어내지 않는다.** 방문할 때마다 리셋되는 가짜 카운트다운·"지금만!" 같은 조작적 표현 금지. 사장님이 준 실제 기간 한정 정보는 반영 가능(상세는 `copywriting.md` 4-1).
 
@@ -101,7 +101,7 @@ description: >
 
 작업 중 해당 시점에 반드시 읽는다. **아래 2개 파일은 전부 1번(vertical 라우팅)에서 고른 하위 폴더(`general/` 또는 `boutique-fitness/`)의 것을 쓴다** — vertical마다 내용이 다르다(예: `general/schema-summary.md`와 `boutique-fitness/schema-summary.md`는 서로 다른 문서다).
 
-> **폴더 구조 규칙**: `for-claude-api/`(이 폴더) 안의 파일만 매 콘텐츠 생성 요청마다 Claude API 시스템 프롬프트로 실려 토큰 비용이 발생한다 — 빌드 스크립트가 이 폴더 하위(SKILL.md·copywriting.md·고른 vertical의 2개 파일)를 통째로 읽어 조립해도 안전하도록 설계되어 있다. `../for-frontend/`(프론트엔드·렌더러용: 스키마·타입·디자인 가이드·입력 폼 스펙)와 `../for-context/`(사람이 읽는 배경·설계 근거 문서, `blocks.md` 포함)는 이 폴더 밖에 있고, 스킬 실행 시점에는 참조하지 않는다 — 필요할 때만 사람이 직접 열어본다.
+> **폴더 구조 규칙**: `for-claude-api/`(이 폴더) 안의 파일만 매 콘텐츠 생성 요청마다 Claude API 시스템 프롬프트로 실려 토큰 비용이 발생한다 — 빌드 스크립트가 이 폴더 하위(SKILL.md·copywriting.md·백엔드가 확정한 vertical의 2개 파일)를 통째로 읽어 조립해도 안전하도록 설계되어 있다. `../for-frontend/`(프론트엔드·렌더러용: 스키마·타입·디자인 가이드·입력 폼 스펙)와 `../for-context/`(사람이 읽는 배경·설계 근거 문서, `blocks.md` 포함)는 이 폴더 밖에 있고, 스킬 실행 시점에는 참조하지 않는다 — 필요할 때만 사람이 직접 열어본다.
 >
 > **`blocks.md`가 왜 여기 없는가(2026-07-16 변경)**: 원래 `blocks.md`(블록별 작성 원칙·좋은/나쁜 예)도 프롬프트에 포함됐으나, 대조해보니 그 안의 실질적 지침이 이미 `schema-summary.md`의 필드별 인라인 주석에 전부 들어있었다 — `blocks.md`가 추가로 주는 건 "왜 이렇게 했는지" 근거와 예시뿐이었다. 근거는 LLM이 생성 시점에 몰라도 되는 정보라 `for-context/`로 옮기고, 예시 중 위험도가 높은 것만 `schema-summary.md` 끝의 "핵심 예시" 절에 압축해 남겼다. boutique-fitness 기준 시스템 프롬프트가 약 44% 줄었다(34,372→19,019토큰 추정).
 

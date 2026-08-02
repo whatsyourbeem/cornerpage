@@ -24,14 +24,15 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: ew-resize;
-  touch-action: pan-y;
+  /* 세로 스크롤 제스처와 경합하지 않도록 이 슬라이더 위에서는 브라우저 기본 터치
+     제스처를 아예 끈다 — 살짝만 비스듬히 드래그해도 페이지가 스크롤되던 문제였다. */
+  touch-action: none;
   user-select: none;
 }
 
 .layer {
   position: absolute;
   inset: 0;
-  transition: clip-path 150ms ease-out;
 }
 
 .image,
@@ -73,7 +74,6 @@
   width: 3px;
   background: var(--accent);
   transform: translateX(-50%);
-  transition: left 150ms ease-out;
   pointer-events: none;
 }
 
@@ -87,6 +87,17 @@
   border-radius: 50%;
   background: var(--accent);
   box-shadow: var(--shadow-floating);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 이 요소가 좌우로 드래그 가능하다는 걸 알려주는 정적 힌트 — design-guide.md 7장이
+   금지하는 바운스/자동 모션 없이, 아이콘 자체로만 조작 가능함을 알린다. */
+.handleIcon {
+  width: 18px;
+  height: 18px;
+  color: #ffffff;
 }
 
 .caption {

@@ -61,8 +61,8 @@ const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려�
  * 저장)를 수행한다 — ManualGenerationFlow(../_shared/manual-flow.tsx) 참고.
  */
 
-const STEPS = ["업종", "기본 정보", "서비스·사진", "더 채우면 좋아요"];
-const GATE_STEP = 3;
+const STEPS = ["기본 정보", "서비스·사진", "더 채우면 좋아요"];
+const GATE_STEP = 2;
 
 const DRAFT_KEY = "cornerpage-draft:general";
 
@@ -87,7 +87,6 @@ interface DraftSnapshot {
   links: Record<ExternalLinkPlatform, string>;
   reviews: ReviewDraft[];
   ctaInteractionMode: CtaInteractionMode;
-  howItWorksNote: string;
   faqPairs: FaqPairDraft[];
 }
 
@@ -135,13 +134,9 @@ export default function GeneralCreatePage() {
     naver_reservation: "",
     blog: "",
   });
-  const [reviews, setReviews] = useState<ReviewDraft[]>([
-    { body: "", author: "", rating: "" },
-    { body: "", author: "", rating: "" },
-  ]);
+  const [reviews, setReviews] = useState<ReviewDraft[]>([{ body: "", author: "", rating: "" }]);
   const [ctaInteractionMode, setCtaInteractionMode] = useState<CtaInteractionMode>("functional");
 
-  const [howItWorksNote, setHowItWorksNote] = useState("");
   const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
   const [showManualFlow, setShowManualFlow] = useState(false);
@@ -161,7 +156,9 @@ export default function GeneralCreatePage() {
   }, []);
 
   function applyDraft(draft: DraftSnapshot) {
-    setStep(draft.step);
+    // STEP "업종"이 STEP 1(기본 정보)로 흡수되면서 STEPS 배열이 줄었다 — 예전
+    // draft.step이 새 배열 범위를 벗어날 수 있어 클램프한다.
+    setStep(Math.min(draft.step, STEPS.length - 1));
     setIndustry(draft.industry);
     setBusinessName(draft.businessName);
     setAddress(draft.address);
@@ -177,7 +174,6 @@ export default function GeneralCreatePage() {
     setLinks(draft.links);
     setReviews(draft.reviews);
     setCtaInteractionMode(draft.ctaInteractionMode);
-    setHowItWorksNote(draft.howItWorksNote);
     setFaqPairs(draft.faqPairs);
     setHasDraft(false);
   }
@@ -208,15 +204,17 @@ export default function GeneralCreatePage() {
     links,
     reviews,
     ctaInteractionMode,
-    howItWorksNote,
     faqPairs,
   };
   useDebouncedDraftSave(DRAFT_KEY, draftSnapshot);
 
   function canProceed(): boolean {
-    if (step === 0) return industry.trim() !== "";
-    if (step === 1) return businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== "";
-    if (step === 2) return menuItems.some((item) => item.name.trim() !== "");
+    if (step === 0) {
+      return (
+        industry.trim() !== "" && businessName.trim() !== "" && address.trim() !== "" && phone.trim() !== ""
+      );
+    }
+    if (step === 1) return menuItems.some((item) => item.name.trim() !== "");
     return true;
   }
 
@@ -326,16 +324,11 @@ export default function GeneralCreatePage() {
           rating: r.rating ? Number(r.rating) : null,
         })),
       cta_interaction_mode: ctaInteractionMode,
-      // 출력 스키마의 blocks.how_it_works(생성 블록)와 이름이 겹치지 않도록
-      // _special_note 접미사를 쓴다 — 이건 그 블록을 채우는 재료 중 하나일 뿐,
-      // 블록 자체가 아니다.
-      how_it_works_special_note: howItWorksNote.trim() || null,
       faq_answers: faqAnswers,
     };
   }
 
   function handleSubmit() {
-    clearDraft(DRAFT_KEY);
     setShowManualFlow(true);
   }
 
@@ -355,6 +348,7 @@ export default function GeneralCreatePage() {
         pendingUploads={pendingUploads}
         buildAnswers={buildAnswers}
         onBack={() => setShowManualFlow(false)}
+        onSaved={() => clearDraft(DRAFT_KEY)}
       />
     );
   }
@@ -379,18 +373,15 @@ export default function GeneralCreatePage() {
       </div>
 
       {step === 0 && (
-        <Section title="어떤 업종이세요?">
-          <input
-            value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            placeholder="예: 카페, 미용실, 헬스장, 학원, 병의원, 스터디카페, 장례용품..."
-            autoFocus
-          />
-        </Section>
-      )}
-
-      {step === 1 && (
         <Section title="기본 정보" meta="예상 소요시간 약 1분">
+          <Field label="업종">
+            <input
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              placeholder="예: 카페, 미용실, 헬스장, 학원, 병의원, 스터디카페, 장례용품..."
+              autoFocus
+            />
+          </Field>
           <Field label="가게 이름">
             <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="예: 밀물다방" />
           </Field>
@@ -423,7 +414,7 @@ export default function GeneralCreatePage() {
         </Section>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
         <Section title="대표 서비스·상품·사진" meta="예상 소요시간 약 1~2분">
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 서비스·상품</legend>
@@ -644,15 +635,7 @@ export default function GeneralCreatePage() {
               </button>
             </Accordion>
 
-            <Accordion title="이용방법·FAQ">
-              <Field label="특이한 이용 절차가 있다면 알려주세요">
-                <textarea
-                  value={howItWorksNote}
-                  onChange={(e) => setHowItWorksNote(e.target.value)}
-                  rows={2}
-                  placeholder="업종별 기본 흐름은 자동으로 만들어져요. 특이한 절차만 적어주세요."
-                />
-              </Field>
+            <Accordion title="FAQ">
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold text-cp-fg">자주 묻는 질문이 있다면 적어주세요</p>
                 <div className="flex flex-wrap gap-2">

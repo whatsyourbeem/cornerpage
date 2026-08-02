@@ -99,9 +99,17 @@ for-claude-api/{vertical}/industry-data.md
 
 ## 3. 업종(vertical) 라우팅
 
-`SKILL.md` 1단계에 라우팅 규칙이 있습니다. `for-claude-api/` 하위에 등록된 vertical 목록(현재 `boutique-fitness`, `general`) 중 사업 정보와 매칭되는 것을 고릅니다. **`general`은 "업종 무관 예외 처리"가 아니라, 매칭되는 전문 vertical이 없을 때 쓰는 vertical 목록의 기본값 항목**입니다 — 구조적으로 다른 vertical과 동등하게 취급합니다. 장기적으로는 이 vertical 목록만으로 라우팅하고, 업종별 전문 vertical이 늘어날수록 `general`이 커버하는 범위는 줄어드는 방향입니다.
+`for-claude-api/` 하위에 등록된 vertical 목록(현재 `boutique-fitness`, `general`) 중 하나가 선택됩니다. **`general`은 "업종 무관 예외 처리"가 아니라, 매칭되는 전문 vertical이 없을 때 쓰는 vertical 목록의 기본값 항목**입니다 — 구조적으로 다른 vertical과 동등하게 취급합니다. 장기적으로는 이 vertical 목록만으로 라우팅하고, 업종별 전문 vertical이 늘어날수록 `general`이 커버하는 범위는 줄어드는 방향입니다.
 
-실제 백엔드에서는 이 라우팅을 LLM이 실행 중에 고르는 게 아니라, **백엔드 코드가 요청 전에 미리 결정**해서 그에 맞는 시스템 프롬프트(vertical마다 하나씩)를 골라 보내야 합니다(방법B 특성상). vertical이 늘어날수록 백엔드가 관리할 시스템 프롬프트 종류도 그만큼 늘어난다는 뜻입니다.
+### vertical은 사용자가 직접 고른다 — 시스템이 추론하지 않는다
+
+**vertical의 유일한 결정 근거는 사용자가 `/create` 진입 화면에서 카드 UI로 명시적으로 고른 값입니다.** 이 선택 하나가 이후 라우트(`/create/{vertical}`)·입력 폼 구조·시스템 프롬프트·ajv 스키마·`sites.vertical` 컬럼을 전부 결정합니다. 백엔드는 클라이언트가 보낸 vertical을 그대로 신뢰하며, 검증은 "등록된 vertical 목록에 있는 값인가"까지입니다.
+
+**업종 텍스트로 vertical을 다시 추론하지 않습니다.** 사용자가 별도로 입력하는 업종 자유 텍스트(`meta.industry_category`)는 카피의 업종 언어와 general의 축 판단에 쓰이는 재료일 뿐, 라우팅 근거가 아닙니다.
+
+이 규칙이 중요한 이유는 자체 추론이 사용자의 명시적 선택을 덮어쓸 수 있기 때문입니다. 그렇게 되면 A vertical의 폼으로 모은 답변을 B vertical의 스키마·프롬프트로 처리하게 되어 ajv 검증이 반드시 실패하고, repair loop을 최대 횟수까지 소진한 뒤 생성이 실패합니다(API 비용도 그만큼 배로 나갑니다). 실제로 키워드 매칭 방식(`determineVertical()`, 2026-08 폐기)에서 boutique-fitness 폼의 placeholder 예시 문구인 `"PT 전문 짐"`과 `"피티스튜디오"`가 `general`로 오판정되는 것이 확인됐습니다. 키워드 목록을 늘리는 대응은 같은 문제를 계속 뒤쫓게 되므로 채택하지 않습니다.
+
+한편 **LLM이 실행 중에 vertical을 고르지도 않습니다**(방법B 특성상). 백엔드가 요청 전에 확정된 vertical에 맞는 시스템 프롬프트(vertical마다 하나씩)를 골라 보내므로, LLM에게는 애초에 선택지가 주어지지 않습니다. vertical이 늘어날수록 백엔드가 관리할 시스템 프롬프트 종류도 그만큼 늘어난다는 뜻입니다.
 
 **boutique-fitness vertical의 모든 참고 파일이 완성되었습니다**(2026-07-16) — `definition.md`·`blocks.md`(현재 `for-context/`에 위치, API 미전송)·`schema-summary.md`·`content.schema.json`·`content.types.ts`·`design-guide.md`·`input-questions.md`·`industry-data.md` 전부 작성 완료.
 
@@ -125,7 +133,7 @@ for-claude-api/{vertical}/industry-data.md
 - `scripts/build-skill-prompt.ts`의 파일 읽기 경로 — **vertical별로 다른 파일을 읽어 시스템 프롬프트를 조립하도록 분기 로직 자체를 새로 작성**해야 합니다(2장의 4개 파일 목록 참고). vertical 판별 → `for-claude-api/{vertical}/`의 2개 파일(`schema-summary.md`·`industry-data.md`) + `for-claude-api/` 바로 아래 공통 2개 파일(`SKILL.md`, `copywriting.md`)을 조합하는 구조입니다. **`for-claude-api/` 폴더 전체를 통째로 glob해서 읽어도 안전**하도록 설계돼 있으니, vertical 하위 폴더까지만 정확히 지정하면 됩니다.
 - `src/lib/generate-content.ts`의 `import contentSchema from "..."` 경로 → vertical에 따라 `spec/for-frontend/{vertical}/content.schema.json` 중 하나를 골라 import(혹은 동적으로 로드)하도록 변경. ajv 검증도 vertical별로 다른 스키마 인스턴스를 써야 합니다.
 - `content.types.ts`를 프론트엔드/렌더러 쪽에서 쓰고 있었다면, 그것도 `spec/for-frontend/{vertical}/content.types.ts`를 가리키도록 vertical별로 분기(렌더러도 vertical에 따라 다른 컴포넌트를 그려야 하므로 이 분기는 어차피 필요합니다).
-- **DB 스키마도 함께 손볼 필요**: ~~공통 `sites` 테이블(소유자·slug·도메인·업종카테고리 등) + vertical별 콘텐츠 테이블(예: `general_content`, `boutique_fitness_content`, 각각 블록 단위 jsonb 컬럼)로 분리~~ **(2026-07-17 수정)** — `sites` 테이블 하나에 `content_json jsonb` 컬럼 + 신설한 `vertical text` 컬럼(text+check 제약, enum 아님 — vertical 목록이 계속 늘 걸 이미 알고 있어서)으로 유지하기로 재조정했습니다. 이유: "업종마다 콘텐츠 구조가 다르다"는 것 자체는 jsonb가 이미 자유 구조를 허용하므로 테이블 분리 근거가 안 되고, "구조 개편 시 마이그레이션이 어렵다"는 것도 `vertical` 컬럼으로 `WHERE vertical = 'general'`처럼 범위를 좁혀 마이그레이션하면 되므로 테이블을 나누든 안 나누든 작업량이 같습니다. 블록 단위 컬럼/테이블 분리는 "블록 단위 부분 수정·조회" 같은 구체적 기능이 실제로 필요해지는 시점에 진행합니다. `sites.vertical` 값은 `/api/sites` POST에서 `determineVertical()`이 계산한 결과를 그대로 저장(스킬이 값을 판단하지 않고 통과시키는 `brand_color` 패턴과 동일).
+- **DB 스키마도 함께 손볼 필요**: ~~공통 `sites` 테이블(소유자·slug·도메인·업종카테고리 등) + vertical별 콘텐츠 테이블(예: `general_content`, `boutique_fitness_content`, 각각 블록 단위 jsonb 컬럼)로 분리~~ **(2026-07-17 수정)** — `sites` 테이블 하나에 `content_json jsonb` 컬럼 + 신설한 `vertical text` 컬럼(text+check 제약, enum 아님 — vertical 목록이 계속 늘 걸 이미 알고 있어서)으로 유지하기로 재조정했습니다. 이유: "업종마다 콘텐츠 구조가 다르다"는 것 자체는 jsonb가 이미 자유 구조를 허용하므로 테이블 분리 근거가 안 되고, "구조 개편 시 마이그레이션이 어렵다"는 것도 `vertical` 컬럼으로 `WHERE vertical = 'general'`처럼 범위를 좁혀 마이그레이션하면 되므로 테이블을 나누든 안 나누든 작업량이 같습니다. 블록 단위 컬럼/테이블 분리는 "블록 단위 부분 수정·조회" 같은 구체적 기능이 실제로 필요해지는 시점에 진행합니다. `sites.vertical` 값은 `/api/sites` POST가 클라이언트에게서 받아 검증한 vertical(사용자가 `/create`에서 직접 고른 값, 3장 참고)을 그대로 저장합니다 — 스킬이 값을 판단하지 않고 통과시키는 `brand_color` 패턴과 동일.
 
 편입 후 최종 구조:
 ```

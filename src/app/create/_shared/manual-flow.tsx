@@ -63,11 +63,19 @@ export function ManualGenerationFlow({
   pendingUploads,
   buildAnswers,
   onBack,
+  onSaved,
 }: {
   vertical: Vertical;
   pendingUploads: PendingUpload[];
   buildAnswers: (urls: Record<string, string>) => unknown;
   onBack: () => void;
+  /**
+   * 저장이 실제로 성공한 시점(phase === "done")에만 호출된다 — 부모가
+   * localStorage draft를 이 시점에 지우도록(clearDraft) 쓴다. 이미지 업로드
+   * 실패 등으로 중간에 이탈해도 draft가 남아있어야 새로고침 후 입력을 복구할
+   * 수 있으므로, 제출 버튼을 누른 시점이 아니라 저장 성공 시점에 지운다.
+   */
+  onSaved?: () => void;
 }) {
   // 마운트 직후 곧바로 handlePrepare가 시작되므로, 초기값을 이미 그 상태로
   // 잡아둔다 — effect 안에서 동기적으로 setState하면 react-hooks/set-state-in-effect
@@ -138,6 +146,7 @@ export function ManualGenerationFlow({
       const data = (await res.json()) as { slug: string };
       setResultSlug(data.slug);
       setPhase("done");
+      onSaved?.();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "알 수 없는 오류");
       setPhase("ready"); // 붙여넣은 응답을 고쳐서 다시 시도할 수 있게 ready로 되돌린다

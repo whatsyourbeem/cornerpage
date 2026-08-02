@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { generateContent, VerticalNotReadyError, type MinimalDraftAnswers } from "@/lib/generate-content";
+import { VERTICALS, type Vertical } from "@/lib/verticals";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -49,18 +50,21 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { id, answers } = body as { id: string; answers: MinimalDraftAnswers };
+  const { id, vertical, answers } = body as { id: string; vertical: string; answers: MinimalDraftAnswers };
 
   if (typeof id !== "string" || !UUID_RE.test(id)) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
+  }
+  if (!VERTICALS.includes(vertical as Vertical)) {
+    return NextResponse.json({ error: "invalid vertical" }, { status: 400 });
   }
   if (!answers?.business_name) {
     return NextResponse.json({ error: "business_name is required" }, { status: 400 });
   }
 
-  let content, vertical;
+  let content;
   try {
-    ({ content, vertical } = await generateContent(answers));
+    content = await generateContent(vertical as Vertical, answers);
   } catch (err) {
     if (err instanceof VerticalNotReadyError) {
       return NextResponse.json(

@@ -12,6 +12,7 @@ export { CheckField } from "./CheckField";
 export type { CheckFieldProps } from "./CheckField";
 export { Badge } from "./Badge";
 export type { BadgeTone, BadgeVariant, BadgeSize } from "./Badge";
+export { Accordion } from "./Accordion";
 export { Chip } from "./Chip";
 export { ChoiceCard } from "./ChoiceCard";
 export { Panel } from "./Panel";

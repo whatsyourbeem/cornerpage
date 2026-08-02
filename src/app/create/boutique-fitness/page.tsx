@@ -6,6 +6,7 @@ import {
   DAYS,
   DraftBanner,
   Field,
+  GateIntro,
   HoursEditor,
   ProgressBar,
   Section,
@@ -16,9 +17,9 @@ import {
 } from "../_shared/form-ui";
 import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
 import { clearDraft, loadDraft, useDebouncedDraftSave } from "../_shared/draft-storage";
-import { Chip, FileField } from "@/components/ui";
+import { Accordion, Chip, FileField } from "@/components/ui";
 
-/** industry-data.md 4장의 업종 중립 FAQ 후보. 질문은 칩으로 고르고, 답은 사장님이 직접 쓴다. */
+/** industry-data.md 3장의 업종 중립 FAQ 후보. 질문은 칩으로 고르고, 답은 사장님이 직접 쓴다. */
 const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려동물 동반 가능한가요?", "단체 가능한가요?", "카드 결제 되나요?"];
 
 /**
@@ -26,6 +27,14 @@ const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려�
  * input-questions.md의 STEP 구성을 그대로 따른다 — general과 스키마 자체가
  * 달라서(신규 블록 3종·meta 구조 변경 등, generate-content.ts 참고) 질문 흐름도
  * 완전히 분리된 라우트다.
+ *
+ * 필수 스텝(인덱스 0~2)엔 선택 문항을 끼워 넣지 않는다. 선택 문항은 두 게이트로
+ * 나뉜다 — STEP 5(인덱스 3, 회원 변화·후기)는 "직접 증거"라 사실상 필수급이라서
+ * 독립된 자체 게이트를 갖고, 나머지 저가치 선택 항목(시설정보·사업자정보·슬로건
+ * 등)은 STEP 6(인덱스 4) 하나의 통합 게이트로 몰았다(definition.md 4장 — 이
+ * 둘을 같은 게이트에 묶으면 채움률이 떨어질 위험). 새 선택 항목을 추가할 땐
+ * "이게 STEP5급 가치인가 STEP6급인가"부터 판단해서 배치할 것 — 전부 STEP6에
+ * 몰아넣지 않는 게 이 설계의 핵심이다.
  *
  * meta.cta_primary_action/cta_interaction_mode(general 개념)는 이 vertical에
  * 없다 — 대신 meta.inquiry_channels(예약·문의 채널, 최소 1개 복수 선택)와
@@ -44,12 +53,14 @@ const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려�
  * 테스트 목적으로 감수).
  */
 
-const STEPS = ["기본 정보", "전문가 프로필", "회원 변화·후기", "공간", "프로그램·이용방법"];
+const STEPS = ["기본 정보", "전문가 프로필", "프로그램·이용방법", "회원 변화·후기", "더 채우면 좋아요"];
+const GATE5_STEP = 3;
+const GATE6_STEP = 4;
 
 const DRAFT_KEY = "cornerpage-draft:boutique-fitness";
 
 /**
- * localStorage 임시저장용 스냅샷. File 객체(heroFiles·logoFile·facilityPhotos·
+ * localStorage 임시저장용 스냅샷. File 객체(heroFiles·logoFiles·facilityPhotos·
  * professionals[].photo·transformations[].beforeImage/afterImage)는 제외한다 —
  * 문자열만 저장 가능해서 사진은 복원 시 다시 첨부해야 한다.
  */
@@ -85,7 +96,6 @@ interface DraftSnapshot {
   philosophyText: string;
   programs: ProgramDraft[];
   freeTrialAvailable: boolean;
-  howItWorksNote: string;
   faqPairs: FaqPairDraft[];
 }
 
@@ -144,6 +154,8 @@ interface ProgramDraft {
 
 export default function BoutiqueFitnessCreatePage() {
   const [step, setStep] = useState(0);
+  const [gate5Opened, setGate5Opened] = useState(false);
+  const [gate6Opened, setGate6Opened] = useState(false);
 
   const [industryCategory, setIndustryCategory] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -192,7 +204,6 @@ export default function BoutiqueFitnessCreatePage() {
 
   const [programs, setPrograms] = useState<ProgramDraft[]>([{ name: "", price: "", consult: true }]);
   const [freeTrialAvailable, setFreeTrialAvailable] = useState(false);
-  const [howItWorksNote, setHowItWorksNote] = useState("");
   const [faqPairs, setFaqPairs] = useState<FaqPairDraft[]>([{ question: "", answer: "" }]);
 
   const [showManualFlow, setShowManualFlow] = useState(false);
@@ -243,7 +254,6 @@ export default function BoutiqueFitnessCreatePage() {
     setPhilosophyText(draft.philosophyText);
     setPrograms(draft.programs);
     setFreeTrialAvailable(draft.freeTrialAvailable);
-    setHowItWorksNote(draft.howItWorksNote);
     setFaqPairs(draft.faqPairs);
     setHasDraft(false);
   }
@@ -296,7 +306,6 @@ export default function BoutiqueFitnessCreatePage() {
     philosophyText,
     programs,
     freeTrialAvailable,
-    howItWorksNote,
     faqPairs,
   };
   useDebouncedDraftSave(DRAFT_KEY, draftSnapshot);
@@ -517,9 +526,22 @@ export default function BoutiqueFitnessCreatePage() {
       philosophy: philosophyText.trim() || null,
       programs: finalPrograms,
       free_trial_available: freeTrialAvailable,
-      how_it_works_note: howItWorksNote.trim() || null,
       faq_answers: faqAnswers,
     };
+  }
+
+  function handleSubmit() {
+    clearDraft(DRAFT_KEY);
+    setShowManualFlow(true);
+  }
+
+  /** 게이트 진입 화면의 스킵 — 마지막 스텝(STEP6)이면 곧장 제출, 아니면 다음 스텝(STEP6)으로. */
+  function skipGate() {
+    if (step === STEPS.length - 1) {
+      handleSubmit();
+    } else {
+      setStep((s) => s + 1);
+    }
   }
 
   if (showManualFlow) {
@@ -553,7 +575,7 @@ export default function BoutiqueFitnessCreatePage() {
       </div>
 
       {step === 0 && (
-        <Section title="기본 정보">
+        <Section title="기본 정보" meta="예상 소요시간 약 1~2분">
           <Field label="업종 (한 줄로)">
             <input
               value={industryCategory}
@@ -564,17 +586,6 @@ export default function BoutiqueFitnessCreatePage() {
           </Field>
           <Field label="스튜디오 이름">
             <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="예: 지음필라테스" />
-          </Field>
-          <Field
-            label="이미 쓰고 계신 시그니처 문구나 슬로건이 있나요? (선택, 최대 40자)"
-            hint="이미 손님들에게 익숙한 문구가 있으면, 저희가 새로 만들지 않고 그대로 헤드라인에 살려드려요."
-          >
-            <input
-              value={signaturePhrase}
-              onChange={(e) => setSignaturePhrase(e.target.value.slice(0, 40))}
-              maxLength={40}
-              placeholder="예: 8년째 한 사람만 보는 PT"
-            />
           </Field>
           <Field label="지역/주소">
             <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="예: 서울 강남구 신사동" />
@@ -750,43 +761,11 @@ export default function BoutiqueFitnessCreatePage() {
             onChange={setHeroFiles}
           />
           <FileField label="로고" value={logoFiles} onChange={setLogoFiles} />
-
-          <Field
-            label="사업자정보 (선택)"
-            hint="페이지 하단에 작게 표시돼요. 법적으로 필수는 아니지만, 있으면 신뢰도에 도움이 됩니다."
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <input
-                placeholder="등록 상호명"
-                value={registeredName}
-                onChange={(e) => setRegisteredName(e.target.value)}
-              />
-              <input placeholder="대표자명" value={ceoName} onChange={(e) => setCeoName(e.target.value)} />
-              <input
-                placeholder="사업자등록번호"
-                value={registrationNumber}
-                onChange={(e) => setRegistrationNumber(e.target.value)}
-              />
-            </div>
-          </Field>
-
-          <Field
-            label="손님께 가장 먼저 자신 있게 보여주고 싶은 게 있다면요? (선택)"
-            hint="고르지 않으셔도 괜찮아요. 저희가 알아서 가장 설득력 있는 순서로 배치해드려요."
-          >
-            <select value={leadEmphasis} onChange={(e) => setLeadEmphasis(e.target.value as typeof leadEmphasis)}>
-              <option value="">고르지 않음</option>
-              <option value="transformations">회원 변화 사례</option>
-              <option value="reviews">후기</option>
-              <option value="professionals">트레이너 경력</option>
-              <option value="facility">시설</option>
-            </select>
-          </Field>
         </Section>
       )}
 
       {step === 1 && (
-        <Section title="전문가 프로필 (필수)">
+        <Section title="전문가 프로필 (필수)" meta="예상 소요시간 트레이너 1인당 약 30초~1분">
           <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
             이 정보가 홈페이지의 핵심이에요. 손님들은 &quot;어떤 공간인가&quot;보다 &quot;누구에게 배우는가&quot;를 더 궁금해합니다.
           </p>
@@ -827,11 +806,6 @@ export default function BoutiqueFitnessCreatePage() {
                 onChange={(e) => updateProfessional(i, { yearsExperience: e.target.value })}
                 style={{ width: 140 }}
               />
-              <input
-                placeholder="지도 철학·스타일 한 줄 (선택)"
-                value={p.bioQuote}
-                onChange={(e) => updateProfessional(i, { bioQuote: e.target.value })}
-              />
             </fieldset>
           ))}
           <button
@@ -850,10 +824,79 @@ export default function BoutiqueFitnessCreatePage() {
       )}
 
       {step === 2 && (
-        <Section title="회원 변화 사례·후기 (선택이지만 강력 권장)">
-          <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
-            솔직히 말씀드리면, 이 두 가지가 홈페이지 설득력의 8할을 좌우해요. 시간이 되실 때 1개라도 채워주시면 결과물이 확실히 달라집니다.
-          </p>
+        <Section title="프로그램·이용방법" meta="예상 소요시간 약 30초~1분">
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
+            {programs.map((p, i) => (
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
+                    value={p.name}
+                    onChange={(e) => updateProgram(i, { name: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {programs.length > 1 && (
+                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="가격"
+                    value={p.price}
+                    disabled={p.consult}
+                    onChange={(e) => updateProgram(i, { price: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
+                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
+                    상담 후 안내
+                  </label>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
+              style={{ fontSize: 13 }}
+            >
+              + 프로그램 추가
+            </button>
+          </fieldset>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
+            무료 체험이나 1회 체험 프로그램이 있어요
+          </label>
+        </Section>
+      )}
+
+      {step === GATE5_STEP && !gate5Opened && (
+        <GateIntro
+          description="솔직히 말씀드리면, 이 두 가지가 홈페이지 설득력의 8할을 좌우해요. 아무리 경력이 화려해도 '진짜 효과가 있었나'를 보여주는 것만큼 강력하지 않거든요. 시간이 되실 때 1개라도 채워주시면 결과물이 확실히 달라집니다. (사례 1개 기준 약 1~2분)"
+          fillLabel="지금 채우기"
+          skipLabel="나중에 할게요"
+          onFill={() => setGate5Opened(true)}
+          onSkip={skipGate}
+        />
+      )}
+
+      {step === GATE5_STEP && gate5Opened && (
+        <Section title="회원 변화 사례·후기">
+          <Field
+            label="손님께 가장 먼저 자신 있게 보여주고 싶은 게 있다면요? (선택)"
+            hint="고르지 않으셔도 괜찮아요. 저희가 알아서 가장 설득력 있는 순서로 배치해드려요."
+          >
+            <select value={leadEmphasis} onChange={(e) => setLeadEmphasis(e.target.value as typeof leadEmphasis)}>
+              <option value="">고르지 않음</option>
+              <option value="transformations">회원 변화 사례</option>
+              <option value="reviews">후기</option>
+              <option value="professionals">트레이너 경력</option>
+              <option value="facility">시설</option>
+            </select>
+          </Field>
 
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>회원 변화 사례 (1~4개 권장)</legend>
@@ -974,181 +1017,185 @@ export default function BoutiqueFitnessCreatePage() {
         </Section>
       )}
 
-      {step === 3 && (
-        <Section title="공간 (선택)">
-          <Field label="평수 (선택)">
-            <input
-              value={sizePyeong}
-              onChange={(e) => setSizePyeong(e.target.value)}
-              placeholder="숫자만 (예: 25)"
-              style={{ width: 140 }}
-            />
-          </Field>
-          <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <input type="checkbox" checked={hasShower} onChange={(e) => setHasShower(e.target.checked)} />
-              샤워실
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <input type="checkbox" checked={hasLocker} onChange={(e) => setHasLocker(e.target.checked)} />
-              개인 라커
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <input type="checkbox" checked={hasParking} onChange={(e) => setHasParking(e.target.checked)} />
-              주차 가능
-            </label>
-          </div>
-          <Field label="보유 기구 (선택, 쉼표로 구분)">
-            <input
-              value={equipmentText}
-              onChange={(e) => setEquipmentText(e.target.value)}
-              placeholder="예: 리포머 5대, 캐딜락 2대"
-            />
-          </Field>
-          <Field
-            label="가장 가까운 눈에 띄는 장소에서 도보 거리 (선택)"
-            hint="지하철역이 아니어도 괜찮아요 — 사거리·도서관·큰 건물 등. 있으면 위치 안내에서 눈에 띄게 강조해드려요."
-          >
-            <input
-              value={landmarkDistance}
-              onChange={(e) => setLandmarkDistance(e.target.value)}
-              placeholder="예: 시청 사거리에서 도보 5분"
-            />
-          </Field>
-          <FileField
-            label="공간 사진 (선택, 트레이너·시설 사진과 겹치지 않는 분위기 사진)"
-            multiple
-            value={facilityPhotos}
-            onChange={setFacilityPhotos}
-          />
-          <Field
-            label="공간에서 손님들이 특히 좋아하는 부분이 있나요? (선택)"
-            hint="이 답변이 있으면 사진만으로는 안 전해지는 이 공간만의 느낌이 문구로 살아나요."
-          >
-            <textarea
-              value={atmosphereText}
-              onChange={(e) => setAtmosphereText(e.target.value)}
-              rows={2}
-              placeholder="예: 조용함, 채광, 음악"
-            />
-          </Field>
-          <Field
-            label="이 스튜디오를 열게 된 계기가 있나요? (선택)"
-            hint="짧아도 좋아요. 이 답변은 눈에 띄는 문구로 따로 강조돼요."
-          >
-            <textarea
-              value={philosophyText}
-              onChange={(e) => setPhilosophyText(e.target.value)}
-              rows={2}
-              placeholder="트레이너 개인 이야기 말고, 이 공간을 만들게 된 이유"
-            />
-          </Field>
-        </Section>
+      {step === GATE6_STEP && !gate6Opened && (
+        <GateIntro
+          description="여기부터는 순전히 덤이에요. 안 채우셔도 홈페이지엔 전혀 문제없어요 — 다 채우면 약 3~4분, 마음에 드는 것만 답하셔도 충분해요."
+          fillLabel="몇 개만 더 채우기"
+          skipLabel="바로 완료하기"
+          onFill={() => setGate6Opened(true)}
+          onSkip={skipGate}
+        />
       )}
 
-      {step === 4 && (
-        <Section title="프로그램·이용방법 (필수 + 선택)">
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
-            {programs.map((p, i) => (
-              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {step === GATE6_STEP && gate6Opened && (
+        <Section title="더 채우면 좋아요">
+          <div className="flex flex-col gap-3">
+            <Accordion title="시설 정보" hint="가장 빠르게 끝나요">
+              <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input type="checkbox" checked={hasShower} onChange={(e) => setHasShower(e.target.checked)} />
+                  샤워실
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input type="checkbox" checked={hasLocker} onChange={(e) => setHasLocker(e.target.checked)} />
+                  개인 라커
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input type="checkbox" checked={hasParking} onChange={(e) => setHasParking(e.target.checked)} />
+                  주차 가능
+                </label>
+              </div>
+              <Field label="평수">
+                <input value={sizePyeong} onChange={(e) => setSizePyeong(e.target.value)} placeholder="숫자만 (예: 25)" style={{ width: 140 }} />
+              </Field>
+              <Field label="보유 기구 (쉼표로 구분)">
+                <input
+                  value={equipmentText}
+                  onChange={(e) => setEquipmentText(e.target.value)}
+                  placeholder="예: 리포머 5대, 캐딜락 2대"
+                />
+              </Field>
+            </Accordion>
+
+            <Accordion title="가까운 랜드마크">
+              <Field
+                label="가장 가까운 눈에 띄는 장소에서 도보 거리"
+                hint="이 업종에서는 '가기 쉬운가'가 특히 중요하더라고요. 있으면 위치 안내에서 눈에 띄게 강조해드려요."
+              >
+                <input
+                  value={landmarkDistance}
+                  onChange={(e) => setLandmarkDistance(e.target.value)}
+                  placeholder="예: 시청 사거리에서 도보 5분(지하철역이 아니어도 괜찮아요)"
+                />
+              </Field>
+            </Accordion>
+
+            <Accordion title="사업자정보">
+              <Field label="사업자정보" hint="페이지 하단에 작게 표시돼요. 법적으로 필수는 아니지만, 있으면 신뢰도에 도움이 됩니다.">
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <input placeholder="등록 상호명" value={registeredName} onChange={(e) => setRegisteredName(e.target.value)} />
+                  <input placeholder="대표자명" value={ceoName} onChange={(e) => setCeoName(e.target.value)} />
                   <input
-                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
-                    value={p.name}
-                    onChange={(e) => updateProgram(i, { name: e.target.value })}
-                    style={{ flex: 1 }}
+                    placeholder="사업자등록번호"
+                    value={registrationNumber}
+                    onChange={(e) => setRegistrationNumber(e.target.value)}
                   />
-                  {programs.length > 1 && (
-                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
+                </div>
+              </Field>
+            </Accordion>
+
+            <Accordion title="시그니처 문구·슬로건">
+              <Field
+                label="이미 쓰고 계신 시그니처 문구나 슬로건이 있나요? (최대 40자)"
+                hint="이미 손님들에게 익숙한 문구가 있으면, 저희가 새로 만들지 않고 그대로 헤드라인에 살려드려요."
+              >
+                <input
+                  value={signaturePhrase}
+                  onChange={(e) => setSignaturePhrase(e.target.value.slice(0, 40))}
+                  maxLength={40}
+                  placeholder="예: 8년째 한 사람만 보는 PT"
+                />
+              </Field>
+            </Accordion>
+
+            <Accordion title="공간 사진">
+              <FileField
+                label="트레이너·시설 사진과 겹치지 않는, 분위기를 보여주는 사진만"
+                multiple
+                value={facilityPhotos}
+                onChange={setFacilityPhotos}
+              />
+            </Accordion>
+
+            <Accordion title="FAQ 답변">
+              <p className="text-[13px] text-cp-muted">
+                &quot;초보자도 가능한가요?&quot; 같은 질문에 대한 답은 특히 강력해요 — 망설이는 손님을 상담으로 이끄는
+                결정적인 한마디가 되거든요.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {FAQ_CANDIDATES.map((question) => (
+                  <Chip
+                    key={question}
+                    selected={faqPairs.some((p) => p.question.trim() === question)}
+                    onClick={() => toggleFaqCandidate(question)}
+                  >
+                    {question}
+                  </Chip>
+                ))}
+              </div>
+              {faqPairs.map((pair, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      placeholder="질문 (예: 환불 규정이 어떻게 되나요?)"
+                      value={pair.question}
+                      onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+                      style={{ flex: 1 }}
+                    />
+                    <button type="button" onClick={() => removeFaqPair(i)} className="flex-none text-[13px] text-cp-muted">
                       삭제
                     </button>
-                  )}
+                  </div>
+                  <input placeholder="답변" value={pair.answer} onChange={(e) => updateFaqPair(i, { answer: e.target.value })} />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    placeholder="가격"
-                    value={p.price}
-                    disabled={p.consult}
-                    onChange={(e) => updateProgram(i, { price: e.target.value })}
-                    style={{ flex: 1 }}
-                  />
-                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
-                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
-                    상담 후 안내
-                  </label>
-                </div>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
-              style={{ fontSize: 13 }}
-            >
-              + 프로그램 추가
-            </button>
-          </fieldset>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
-            무료 체험이나 1회 체험 프로그램이 있어요
-          </label>
-
-          <Field label="특이한 이용 절차가 있다면 알려주세요 (선택)">
-            <textarea
-              value={howItWorksNote}
-              onChange={(e) => setHowItWorksNote(e.target.value)}
-              rows={2}
-              placeholder="업종 기본 흐름(상담→체험→등록)은 자동으로 만들어져요. 특이한 절차만 적어주세요."
-            />
-          </Field>
-
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>
-              자주 묻는 질문이 있다면 적어주세요
-            </legend>
-            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
-              &quot;초보자도 가능한가요?&quot; 같은 질문에 대한 답은 특히 강력해요.
-            </p>
-            <div className="mb-3 flex flex-wrap gap-2">
-              {FAQ_CANDIDATES.map((question) => (
-                <Chip
-                  key={question}
-                  selected={faqPairs.some((p) => p.question.trim() === question)}
-                  onClick={() => toggleFaqCandidate(question)}
-                >
-                  {question}
-                </Chip>
               ))}
-            </div>
-            {faqPairs.map((pair, i) => (
-              <div key={i} className="mb-3 flex flex-col gap-1.5">
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    placeholder="질문 (예: 환불 규정이 어떻게 되나요?)"
-                    value={pair.question}
-                    onChange={(e) => updateFaqPair(i, { question: e.target.value })}
-                    style={{ flex: 1 }}
-                  />
-                  <button type="button" onClick={() => removeFaqPair(i)} className="flex-none text-[13px] text-cp-muted">
-                    삭제
-                  </button>
-                </div>
-                <input
-                  placeholder="답변"
-                  value={pair.answer}
-                  onChange={(e) => updateFaqPair(i, { answer: e.target.value })}
+              <button
+                type="button"
+                onClick={() => setFaqPairs((prev) => [...prev, { question: "", answer: "" }])}
+                style={{ fontSize: 13 }}
+              >
+                + 질문 추가
+              </button>
+            </Accordion>
+
+            {finalProfessionalsList.length > 0 && (
+              <Accordion title="트레이너별 지도 철학">
+                {professionals.map((p, i) =>
+                  p.name.trim() ? (
+                    <Field
+                      key={i}
+                      label={`[${p.name}]님의 지도 철학이나 스타일을 한 줄로 표현하면?`}
+                      hint="이 한 줄이 있으면 '늘 최선을 다합니다' 같은 뻔한 소개 대신, 이 트레이너님만의 색깔이 드러나요."
+                    >
+                      <input
+                        placeholder="처음 오시는 분일수록 더 꼼꼼히 봐드려요"
+                        value={p.bioQuote}
+                        onChange={(e) => updateProfessional(i, { bioQuote: e.target.value })}
+                      />
+                    </Field>
+                  ) : null
+                )}
+              </Accordion>
+            )}
+
+            <Accordion title="공간에서 좋아하는 부분">
+              <Field
+                label="공간에서 손님들이 특히 좋아하는 부분이 있나요?"
+                hint="이 답변이 있으면 사진만으로는 안 전해지는 이 공간만의 느낌이 문구로 살아나요."
+              >
+                <textarea
+                  value={atmosphereText}
+                  onChange={(e) => setAtmosphereText(e.target.value)}
+                  rows={2}
+                  placeholder="통유리라 낮 수업엔 자연광이 그대로 들어와요"
                 />
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setFaqPairs((prev) => [...prev, { question: "", answer: "" }])}
-              style={{ fontSize: 13 }}
-            >
-              + 질문 추가
-            </button>
-          </fieldset>
+              </Field>
+            </Accordion>
+
+            <Accordion title="스튜디오를 열게 된 계기" hint="가장 손이 많이 가는 항목이라 마지막에">
+              <Field
+                label="이 스튜디오를 열게 된 계기가 있나요?"
+                hint="짧아도 좋아요. 이 답변은 눈에 띄는 문구로 따로 강조돼요(트레이너 개인 이야기 말고, 이 공간을 만들게 된 이유)."
+              >
+                <textarea
+                  value={philosophyText}
+                  onChange={(e) => setPhilosophyText(e.target.value)}
+                  rows={2}
+                  placeholder="기존 스튜디오들이 다 너무 좁고 시끄러워서, 직접 만들어보기로 했어요"
+                />
+              </Field>
+            </Accordion>
+          </div>
         </Section>
       )}
 
@@ -1158,10 +1205,8 @@ export default function BoutiqueFitnessCreatePage() {
         canProceed={canProceed()}
         onBack={() => setStep((s) => s - 1)}
         onNext={() => setStep((s) => s + 1)}
-        onSubmit={() => {
-          clearDraft(DRAFT_KEY);
-          setShowManualFlow(true);
-        }}
+        onSubmit={handleSubmit}
+        hidePrimary={(step === GATE5_STEP && !gate5Opened) || (step === GATE6_STEP && !gate6Opened)}
       />
     </main>
   );

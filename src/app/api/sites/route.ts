@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { generateContent, VerticalNotReadyError, type DraftAnswers } from "@/lib/generate-content";
+import { generateContent, VerticalNotReadyError, type MinimalDraftAnswers } from "@/lib/generate-content";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { id, answers } = body as { id: string; answers: DraftAnswers };
+  const { id, answers } = body as { id: string; answers: MinimalDraftAnswers };
 
   if (typeof id !== "string" || !UUID_RE.test(id)) {
     return NextResponse.json({ error: "invalid id" }, { status: 400 });

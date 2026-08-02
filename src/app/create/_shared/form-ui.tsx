@@ -30,10 +30,14 @@ export interface FaqPairDraft {
 }
 
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+/** meta: 필수 스텝 제목 아래 붙이는 예상 소요시간 등 짧은 안내(input-questions.md 원칙 10). */
+export function Section({ title, meta, children }: { title: string; meta?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-cp-h3 font-bold text-cp-fg">{title}</h1>
+      <div>
+        <h1 className="text-cp-h3 font-bold text-cp-fg">{title}</h1>
+        {meta && <p className="mt-1 text-[13px] text-cp-muted">{meta}</p>}
+      </div>
       {children}
     </div>
   );
@@ -139,7 +143,11 @@ export function DraftBanner({ onResume, onDiscard }: { onResume: () => void; onD
   );
 }
 
-/** 단계 내비게이션 바(이전/다음/제출). 마지막 단계에서는 onSubmit(수동 생성 흐름 시작 버튼)으로 바뀐다. */
+/**
+ * 단계 내비게이션 바(이전/다음/제출). 마지막 단계에서는 onSubmit(수동 생성 흐름
+ * 시작 버튼)으로 바뀐다. hidePrimary: 게이트 진입 화면(GateIntro)이 자기 버튼을
+ * 이미 보여주고 있을 때, 다음/제출과 중복되지 않도록 "이전"만 남긴다.
+ */
 export function WizardNav({
   step,
   isLastStep,
@@ -147,6 +155,7 @@ export function WizardNav({
   onBack,
   onNext,
   onSubmit,
+  hidePrimary,
 }: {
   step: number;
   isLastStep: boolean;
@@ -154,6 +163,7 @@ export function WizardNav({
   onBack: () => void;
   onNext: () => void;
   onSubmit: () => void;
+  hidePrimary?: boolean;
 }) {
   return (
     <div className="sticky bottom-0 z-10 -mx-5 mt-8 flex gap-2 border-t border-cp-border bg-cp-canvas px-5 py-3">
@@ -162,15 +172,50 @@ export function WizardNav({
           이전
         </Button>
       )}
-      {!isLastStep ? (
-        <Button size="xl" className="flex-1" disabled={!canProceed} onClick={onNext}>
-          다음
-        </Button>
-      ) : (
-        <Button size="xl" className="flex-1" onClick={onSubmit}>
-          이미지 업로드하고 요청 준비하기
-        </Button>
-      )}
+      {!hidePrimary &&
+        (!isLastStep ? (
+          <Button size="xl" className="flex-1" disabled={!canProceed} onClick={onNext}>
+            다음
+          </Button>
+        ) : (
+          <Button size="xl" className="flex-1" onClick={onSubmit}>
+            이미지 업로드하고 요청 준비하기
+          </Button>
+        ))}
     </div>
+  );
+}
+
+/**
+ * 선택 게이트 진입 화면. "채우기"를 누르면 하위 섹션이 펼쳐지고(부모가
+ * gateOpened 상태를 관리), "건너뛰기"를 누르면 이 게이트를 통째로 건너뛴다
+ * (input-questions.md 원칙 2 — 선택 문항은 하나의 게이트로 몰아 완전히
+ * 건너뛸 수 있게).
+ */
+export function GateIntro({
+  description,
+  fillLabel,
+  skipLabel,
+  onFill,
+  onSkip,
+}: {
+  description: string;
+  fillLabel: string;
+  skipLabel: string;
+  onFill: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <Panel tone="surface" className="flex flex-col gap-4">
+      <p className="text-[15px] leading-relaxed text-cp-fg">{description}</p>
+      <div className="flex gap-2">
+        <Button variant="outline" size="lg" className="flex-1" onClick={onSkip}>
+          {skipLabel}
+        </Button>
+        <Button size="lg" className="flex-1" onClick={onFill}>
+          {fillLabel}
+        </Button>
+      </div>
+    </Panel>
   );
 }

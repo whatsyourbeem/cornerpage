@@ -1,22 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CtaInteractionMode, CtaPrimaryAction, DayOfWeek, ExternalLinkPlatform } from "@/lib/content-types";
 import {
   DAYS,
+  DraftBanner,
   Field,
   HoursEditor,
   ProgressBar,
   Section,
   WizardNav,
   defaultHours,
-  fileInputStyle,
-  fileNameStyle,
   type DayHours,
   type FaqPairDraft,
 } from "../_shared/form-ui";
 import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
-import { clearDraft, loadDraft, saveDraft } from "../_shared/draft-storage";
+import { clearDraft, loadDraft, useDebouncedDraftSave } from "../_shared/draft-storage";
+import { Chip, FileField } from "@/components/ui";
+
+/**
+ * 업종 중립 공통 후보 — input-questions.md 진행 원칙 1(업종별 프론트 분기 금지)을
+ * 지키기 위해 industry-data.md의 업종별 강점 목록에서 특정 업종에 묶이지 않는
+ * 것만 추렸다. 후보를 눌러도, 자유 텍스트 칸에 직접 써도 결과는 같은 strengths
+ * 배열로 합쳐진다.
+ */
+const STRENGTH_CANDIDATES = [
+  "주차 가능",
+  "예약 가능",
+  "반려동물 동반",
+  "오래된 운영 연차",
+  "프라이빗룸",
+  "24시간 운영",
+  "역세권",
+  "단체 가능",
+  "포장 가능",
+  "와이파이·콘센트",
+];
+
+/** industry-data.md 4장의 업종 중립 FAQ 후보. 질문은 칩으로 고르고, 답은 사장님이 직접 쓴다. */
+const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려동물 동반 가능한가요?", "단체 가능한가요?", "카드 결제 되나요?"];
 
 /**
  * general vertical 입력 폼. spec/for-frontend/general/input-questions.md의 STEP
@@ -67,7 +89,7 @@ interface MenuItemDraft {
   price: string;
   consult: boolean;
   description: string;
-  image: File | null;
+  image: File[];
 }
 
 interface ReviewDraft {
@@ -85,8 +107,8 @@ export default function GeneralCreatePage() {
   const [phone, setPhone] = useState("");
   const [is24h, setIs24h] = useState(false);
   const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
-  const [heroFile, setHeroFile] = useState<File | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [heroFiles, setHeroFiles] = useState<File[]>([]);
+  const [logoFiles, setLogoFiles] = useState<File[]>([]);
   const [ctaPrimaryAction, setCtaPrimaryAction] = useState<CtaPrimaryAction>("call");
 
   const [intro, setIntro] = useState("");
@@ -95,7 +117,7 @@ export default function GeneralCreatePage() {
   const [strengthsText, setStrengthsText] = useState("");
 
   const [menuItems, setMenuItems] = useState<MenuItemDraft[]>([
-    { name: "", price: "", consult: false, description: "", image: null },
+    { name: "", price: "", consult: false, description: "", image: [] },
   ]);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
 
@@ -143,7 +165,7 @@ export default function GeneralCreatePage() {
     setPhilosophyText(draft.philosophyText);
     setAtmosphereText(draft.atmosphereText);
     setStrengthsText(draft.strengthsText);
-    setMenuItems(draft.menuItems.map((item) => ({ ...item, image: null })));
+    setMenuItems(draft.menuItems.map((item) => ({ ...item, image: [] })));
     setLinks(draft.links);
     setReviews(draft.reviews);
     setCtaInteractionMode(draft.ctaInteractionMode);
@@ -152,44 +174,36 @@ export default function GeneralCreatePage() {
     setHasDraft(false);
   }
 
-  // 스텝을 넘어갈 때마다(뒤로 가기 포함) 자동저장 — 사진은 제외하고 텍스트 답변만.
-  // 마운트 시(= 첫 렌더) 저장을 건너뛴다 — 안 그러면 페이지를 막 열었을 때의
-  // 빈 초기 상태가 곧바로 저장되어, 기존에 남아있던 draft를 사용자가 "이어서
-  // 작성"을 누르기도 전에 지워버린다.
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    const snapshot: DraftSnapshot = {
-      step,
-      industry,
-      businessName,
-      address,
-      phone,
-      is24h,
-      hours,
-      ctaPrimaryAction,
-      intro,
-      philosophyText,
-      atmosphereText,
-      strengthsText,
-      menuItems: menuItems.map((item) => ({
-        name: item.name,
-        price: item.price,
-        consult: item.consult,
-        description: item.description,
-      })),
-      links,
-      reviews,
-      ctaInteractionMode,
-      howItWorksNote,
-      faqPairs,
-    };
-    saveDraft(DRAFT_KEY, snapshot);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  // 값이 바뀔 때마다(디바운스) 자동저장 — 사진은 제외하고 텍스트 답변만.
+  // 마운트 시(첫 렌더)의 저장은 useDebouncedDraftSave 내부에서 건너뛴다 —
+  // 안 그러면 페이지를 막 열었을 때의 빈 초기 상태가 곧바로 저장되어, 기존에
+  // 남아있던 draft를 사용자가 "이어서 작성"을 누르기도 전에 지워버린다.
+  const draftSnapshot: DraftSnapshot = {
+    step,
+    industry,
+    businessName,
+    address,
+    phone,
+    is24h,
+    hours,
+    ctaPrimaryAction,
+    intro,
+    philosophyText,
+    atmosphereText,
+    strengthsText,
+    menuItems: menuItems.map((item) => ({
+      name: item.name,
+      price: item.price,
+      consult: item.consult,
+      description: item.description,
+    })),
+    links,
+    reviews,
+    ctaInteractionMode,
+    howItWorksNote,
+    faqPairs,
+  };
+  useDebouncedDraftSave(DRAFT_KEY, draftSnapshot);
 
   function canProceed(): boolean {
     if (step === 0) return industry.trim() !== "";
@@ -202,16 +216,49 @@ export default function GeneralCreatePage() {
     setMenuItems((prev) => prev.map((item, idx) => (idx === i ? { ...item, ...patch } : item)));
   }
 
+  function removeMenuItem(i: number) {
+    setMenuItems((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function removeReview(i: number) {
+    setReviews((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   function updateFaqPair(i: number, patch: Partial<FaqPairDraft>) {
     setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
+  }
+
+  function removeFaqPair(i: number) {
+    setFaqPairs((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  /** 강점 자유 텍스트를 리스트로 파싱 — 칩 선택 여부 판단과 토글에 공통으로 쓴다. */
+  const strengthsList = strengthsText
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  function toggleStrength(candidate: string) {
+    const next = strengthsList.includes(candidate)
+      ? strengthsList.filter((s) => s !== candidate)
+      : [...strengthsList, candidate];
+    setStrengthsText(next.join(", "));
+  }
+
+  function toggleFaqCandidate(question: string) {
+    if (faqPairs.some((p) => p.question.trim() === question)) {
+      setFaqPairs((prev) => prev.filter((p) => p.question.trim() !== question));
+    } else {
+      setFaqPairs((prev) => [...prev.filter((p) => p.question.trim() || p.answer.trim()), { question, answer: "" }]);
+    }
   }
 
   const namedMenuItems = menuItems.filter((item) => item.name.trim());
 
   const pendingUploads: PendingUpload[] = [
-    ...(heroFile ? [{ slot: "hero", file: heroFile }] : []),
-    ...(logoFile ? [{ slot: "logo", file: logoFile }] : []),
-    ...namedMenuItems.flatMap((item, i) => (item.image ? [{ slot: `menu-${i}`, file: item.image }] : [])),
+    ...(heroFiles[0] ? [{ slot: "hero", file: heroFiles[0] }] : []),
+    ...(logoFiles[0] ? [{ slot: "logo", file: logoFiles[0] }] : []),
+    ...namedMenuItems.flatMap((item, i) => (item.image[0] ? [{ slot: `menu-${i}`, file: item.image[0] }] : [])),
     ...galleryFiles.map((file, i) => ({ slot: `gallery-${i}`, file })),
   ];
 
@@ -282,49 +329,23 @@ export default function GeneralCreatePage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
+    <main className="cp-form mx-auto w-full max-w-[560px] px-5 pt-8 pb-8">
       {hasDraft && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            background: "#eef6ff",
-            border: "1px solid #bcdcff",
-            borderRadius: 8,
-            padding: "12px 16px",
-            marginBottom: 16,
-            fontSize: 13,
+        <DraftBanner
+          onResume={() => {
+            const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
+            if (draft) applyDraft(draft);
           }}
-        >
-          <span>이전에 작성하던 내용이 있어요. 이어서 작성할까요? (사진은 다시 첨부해주세요)</span>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => {
-                const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
-                if (draft) applyDraft(draft);
-              }}
-              style={{ fontSize: 13, fontWeight: 700 }}
-            >
-              이어서 작성
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearDraft(DRAFT_KEY);
-                setHasDraft(false);
-              }}
-              style={{ fontSize: 13, color: "#888" }}
-            >
-              새로 시작
-            </button>
-          </div>
-        </div>
+          onDiscard={() => {
+            clearDraft(DRAFT_KEY);
+            setHasDraft(false);
+          }}
+        />
       )}
 
-      <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+      <div className="mb-6">
+        <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+      </div>
 
       {step === 0 && (
         <Section title="어떤 업종이세요?">
@@ -332,7 +353,6 @@ export default function GeneralCreatePage() {
             value={industry}
             onChange={(e) => setIndustry(e.target.value)}
             placeholder="예: 카페, 미용실, 헬스장, 학원, 병의원, 스터디카페, 장례용품..."
-            style={{ fontSize: 16, padding: "14px 12px" }}
             autoFocus
           />
         </Section>
@@ -359,24 +379,8 @@ export default function GeneralCreatePage() {
             {!is24h && <HoursEditor hours={hours} onChange={setHours} />}
           </fieldset>
 
-          <Field label="대표 사진">
-            <input
-              type="file"
-              accept="image/*"
-              style={fileInputStyle}
-              onChange={(e) => setHeroFile(e.target.files?.[0] ?? null)}
-            />
-            {heroFile && <p style={fileNameStyle}>선택됨: {heroFile.name}</p>}
-          </Field>
-          <Field label="로고">
-            <input
-              type="file"
-              accept="image/*"
-              style={fileInputStyle}
-              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-            />
-            {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
-          </Field>
+          <FileField label="대표 사진" value={heroFiles} onChange={setHeroFiles} />
+          <FileField label="로고" value={logoFiles} onChange={setLogoFiles} />
 
           <Field label="손님이 가장 먼저 하길 바라는 행동">
             <select value={ctaPrimaryAction} onChange={(e) => setCtaPrimaryAction(e.target.value as CtaPrimaryAction)}>
@@ -402,11 +406,18 @@ export default function GeneralCreatePage() {
             />
           </Field>
           <Field label="해당되는 강점이 있다면 적어주세요">
+            <div className="mb-2 flex flex-wrap gap-2">
+              {STRENGTH_CANDIDATES.map((candidate) => (
+                <Chip key={candidate} selected={strengthsList.includes(candidate)} onClick={() => toggleStrength(candidate)}>
+                  {candidate}
+                </Chip>
+              ))}
+            </div>
             <textarea
               value={strengthsText}
               onChange={(e) => setStrengthsText(e.target.value)}
               rows={3}
-              placeholder="쉼표나 줄바꿈으로 구분해서 적어주세요. 예: 오래된 운영 연차, 주차 가능, 반려동물 동반"
+              placeholder="해당되는 후보를 누르거나, 쉼표·줄바꿈으로 구분해 직접 적어주세요."
             />
           </Field>
           <Field
@@ -439,12 +450,20 @@ export default function GeneralCreatePage() {
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 서비스·상품</legend>
             {menuItems.map((item, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                <input
-                  placeholder="이름 (예: 아메리카노, 커트, 개인레슨 1회)"
-                  value={item.name}
-                  onChange={(e) => updateMenuItem(i, { name: e.target.value })}
-                />
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="이름 (예: 아메리카노, 커트, 개인레슨 1회)"
+                    value={item.name}
+                    onChange={(e) => updateMenuItem(i, { name: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {menuItems.length > 1 && (
+                    <button type="button" onClick={() => removeMenuItem(i)} className="text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
                     placeholder="가격 (예: 4,500원)"
@@ -467,13 +486,11 @@ export default function GeneralCreatePage() {
                   value={item.description}
                   onChange={(e) => updateMenuItem(i, { description: e.target.value })}
                 />
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={fileInputStyle}
-                  onChange={(e) => updateMenuItem(i, { image: e.target.files?.[0] ?? null })}
+                <FileField
+                  label="사진"
+                  value={item.image}
+                  onChange={(files) => updateMenuItem(i, { image: files })}
                 />
-                {item.image && <p style={fileNameStyle}>선택됨: {item.image.name}</p>}
               </div>
             ))}
             <button
@@ -481,7 +498,7 @@ export default function GeneralCreatePage() {
               onClick={() =>
                 setMenuItems((prev) => [
                   ...prev,
-                  { name: "", price: "", consult: false, description: "", image: null },
+                  { name: "", price: "", consult: false, description: "", image: [] },
                 ])
               }
               style={{ fontSize: 13 }}
@@ -490,16 +507,7 @@ export default function GeneralCreatePage() {
             </button>
           </fieldset>
 
-          <Field label="갤러리 사진 (몇 장이든 업로드한 만큼)">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              style={fileInputStyle}
-              onChange={(e) => setGalleryFiles(Array.from(e.target.files ?? []))}
-            />
-            {galleryFiles.length > 0 && <p style={fileNameStyle}>{galleryFiles.length}장 선택됨</p>}
-          </Field>
+          <FileField label="갤러리 사진 (몇 장이든 업로드한 만큼)" multiple value={galleryFiles} onChange={setGalleryFiles} />
         </Section>
       )}
 
@@ -525,7 +533,7 @@ export default function GeneralCreatePage() {
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>리뷰가 있으면 1~2개 붙여주세요 (원문 그대로)</legend>
             {reviews.map((r, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
                 <textarea
                   placeholder="리뷰 내용"
                   rows={2}
@@ -544,9 +552,19 @@ export default function GeneralCreatePage() {
                     onChange={(e) => setReviews((prev) => prev.map((v, idx) => (idx === i ? { ...v, rating: e.target.value } : v)))}
                     style={{ width: 100 }}
                   />
+                  <button type="button" onClick={() => removeReview(i)} className="flex-none text-[13px] text-cp-muted">
+                    삭제
+                  </button>
                 </div>
               </div>
             ))}
+            <button
+              type="button"
+              onClick={() => setReviews((prev) => [...prev, { body: "", author: "", rating: "" }])}
+              style={{ fontSize: 13 }}
+            >
+              + 리뷰 추가
+            </button>
           </fieldset>
 
           <Field label="예약·문의 방식">
@@ -570,13 +588,30 @@ export default function GeneralCreatePage() {
           </Field>
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>자주 묻는 질문이 있다면 적어주세요</legend>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {FAQ_CANDIDATES.map((question) => (
+                <Chip
+                  key={question}
+                  selected={faqPairs.some((p) => p.question.trim() === question)}
+                  onClick={() => toggleFaqCandidate(question)}
+                >
+                  {question}
+                </Chip>
+              ))}
+            </div>
             {faqPairs.map((pair, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                <input
-                  placeholder="질문 (예: 주차 되나요?)"
-                  value={pair.question}
-                  onChange={(e) => updateFaqPair(i, { question: e.target.value })}
-                />
+              <div key={i} className="mb-3 flex flex-col gap-1.5">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="질문 (예: 주차 되나요?)"
+                    value={pair.question}
+                    onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" onClick={() => removeFaqPair(i)} className="flex-none text-[13px] text-cp-muted">
+                    삭제
+                  </button>
+                </div>
                 <input
                   placeholder="답변"
                   value={pair.answer}

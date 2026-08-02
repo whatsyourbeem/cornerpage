@@ -1,22 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { DayOfWeek } from "@/lib/content-types";
 import {
   DAYS,
+  DraftBanner,
   Field,
   HoursEditor,
   ProgressBar,
   Section,
   WizardNav,
   defaultHours,
-  fileInputStyle,
-  fileNameStyle,
   type DayHours,
   type FaqPairDraft,
 } from "../_shared/form-ui";
 import { ManualGenerationFlow, type PendingUpload } from "../_shared/manual-flow";
-import { clearDraft, loadDraft, saveDraft } from "../_shared/draft-storage";
+import { clearDraft, loadDraft, useDebouncedDraftSave } from "../_shared/draft-storage";
+import { Chip, FileField } from "@/components/ui";
+
+/** industry-data.md 4장의 업종 중립 FAQ 후보. 질문은 칩으로 고르고, 답은 사장님이 직접 쓴다. */
+const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려동물 동반 가능한가요?", "단체 가능한가요?", "카드 결제 되나요?"];
 
 /**
  * boutique-fitness vertical 입력 폼. spec/for-frontend/boutique-fitness/
@@ -109,7 +112,7 @@ interface OtherLinkDraft {
 interface ProfessionalDraft {
   name: string;
   title: string;
-  photo: File | null;
+  photo: File[];
   certificationsText: string;
   specialty: string;
   yearsExperience: string;
@@ -117,8 +120,8 @@ interface ProfessionalDraft {
 }
 
 interface TransformationDraft {
-  beforeImage: File | null;
-  afterImage: File | null;
+  beforeImage: File[];
+  afterImage: File[];
   durationLabel: string;
   resultHighlight: string;
   memberLabel: string;
@@ -158,7 +161,7 @@ export default function BoutiqueFitnessCreatePage() {
     { url: "", label: "", forInquiry: false, forBrowse: false },
   ]);
   const [heroFiles, setHeroFiles] = useState<File[]>([]);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoFiles, setLogoFiles] = useState<File[]>([]);
   const [registeredName, setRegisteredName] = useState("");
   const [ceoName, setCeoName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
@@ -167,11 +170,11 @@ export default function BoutiqueFitnessCreatePage() {
   >("");
 
   const [professionals, setProfessionals] = useState<ProfessionalDraft[]>([
-    { name: "", title: "", photo: null, certificationsText: "", specialty: "", yearsExperience: "", bioQuote: "" },
+    { name: "", title: "", photo: [], certificationsText: "", specialty: "", yearsExperience: "", bioQuote: "" },
   ]);
 
   const [transformations, setTransformations] = useState<TransformationDraft[]>([
-    { beforeImage: null, afterImage: null, durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
+    { beforeImage: [], afterImage: [], durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
   ]);
   const [reviews, setReviews] = useState<BfReviewDraft[]>([
     { body: "", author: "", rating: "", source: "", trainerTag: "" },
@@ -227,8 +230,8 @@ export default function BoutiqueFitnessCreatePage() {
     setCeoName(draft.ceoName);
     setRegistrationNumber(draft.registrationNumber);
     setLeadEmphasis(draft.leadEmphasis);
-    setProfessionals(draft.professionals.map((p) => ({ ...p, photo: null })));
-    setTransformations(draft.transformations.map((t) => ({ ...t, beforeImage: null, afterImage: null })));
+    setProfessionals(draft.professionals.map((p) => ({ ...p, photo: [] })));
+    setTransformations(draft.transformations.map((t) => ({ ...t, beforeImage: [], afterImage: [] })));
     setReviews(draft.reviews);
     setSizePyeong(draft.sizePyeong);
     setHasShower(draft.hasShower);
@@ -245,66 +248,58 @@ export default function BoutiqueFitnessCreatePage() {
     setHasDraft(false);
   }
 
-  // 스텝을 넘어갈 때마다(뒤로 가기 포함) 자동저장 — 사진은 제외하고 텍스트 답변만.
-  // 마운트 시(= 첫 렌더) 저장을 건너뛴다 — 안 그러면 페이지를 막 열었을 때의
-  // 빈 초기 상태가 곧바로 저장되어, 기존에 남아있던 draft를 사용자가 "이어서
-  // 작성"을 누르기도 전에 지워버린다.
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    const snapshot: DraftSnapshot = {
-      step,
-      industryCategory,
-      businessName,
-      signaturePhrase,
-      address,
-      phone,
-      hours,
-      naverReservationLink,
-      kakaoLink,
-      instagramLink,
-      naverBlogLink,
-      youtubeLink,
-      naverMapLink,
-      otherLinks,
-      registeredName,
-      ceoName,
-      registrationNumber,
-      leadEmphasis,
-      professionals: professionals.map((p) => ({
-        name: p.name,
-        title: p.title,
-        certificationsText: p.certificationsText,
-        specialty: p.specialty,
-        yearsExperience: p.yearsExperience,
-        bioQuote: p.bioQuote,
-      })),
-      transformations: transformations.map((t) => ({
-        durationLabel: t.durationLabel,
-        resultHighlight: t.resultHighlight,
-        memberLabel: t.memberLabel,
-        trainerTag: t.trainerTag,
-      })),
-      reviews,
-      sizePyeong,
-      hasShower,
-      hasLocker,
-      hasParking,
-      equipmentText,
-      landmarkDistance,
-      atmosphereText,
-      philosophyText,
-      programs,
-      freeTrialAvailable,
-      howItWorksNote,
-      faqPairs,
-    };
-    saveDraft(DRAFT_KEY, snapshot);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  // 값이 바뀔 때마다(디바운스) 자동저장 — 사진은 제외하고 텍스트 답변만.
+  // 마운트 시(첫 렌더)의 저장은 useDebouncedDraftSave 내부에서 건너뛴다 —
+  // 안 그러면 페이지를 막 열었을 때의 빈 초기 상태가 곧바로 저장되어, 기존에
+  // 남아있던 draft를 사용자가 "이어서 작성"을 누르기도 전에 지워버린다.
+  const draftSnapshot: DraftSnapshot = {
+    step,
+    industryCategory,
+    businessName,
+    signaturePhrase,
+    address,
+    phone,
+    hours,
+    naverReservationLink,
+    kakaoLink,
+    instagramLink,
+    naverBlogLink,
+    youtubeLink,
+    naverMapLink,
+    otherLinks,
+    registeredName,
+    ceoName,
+    registrationNumber,
+    leadEmphasis,
+    professionals: professionals.map((p) => ({
+      name: p.name,
+      title: p.title,
+      certificationsText: p.certificationsText,
+      specialty: p.specialty,
+      yearsExperience: p.yearsExperience,
+      bioQuote: p.bioQuote,
+    })),
+    transformations: transformations.map((t) => ({
+      durationLabel: t.durationLabel,
+      resultHighlight: t.resultHighlight,
+      memberLabel: t.memberLabel,
+      trainerTag: t.trainerTag,
+    })),
+    reviews,
+    sizePyeong,
+    hasShower,
+    hasLocker,
+    hasParking,
+    equipmentText,
+    landmarkDistance,
+    atmosphereText,
+    philosophyText,
+    programs,
+    freeTrialAvailable,
+    howItWorksNote,
+    faqPairs,
+  };
+  useDebouncedDraftSave(DRAFT_KEY, draftSnapshot);
 
   function canProceed(): boolean {
     if (step === 0) {
@@ -349,38 +344,70 @@ export default function BoutiqueFitnessCreatePage() {
     setOtherLinks((prev) => prev.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
   }
 
+  function removeOtherLink(i: number) {
+    setOtherLinks((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   function updateProfessional(i: number, patch: Partial<ProfessionalDraft>) {
     setProfessionals((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+
+  function removeProfessional(i: number) {
+    setProfessionals((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   function updateTransformation(i: number, patch: Partial<TransformationDraft>) {
     setTransformations((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
   }
 
+  function removeTransformation(i: number) {
+    setTransformations((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   function updateReview(i: number, patch: Partial<BfReviewDraft>) {
     setReviews((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function removeReview(i: number) {
+    setReviews((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   function updateProgram(i: number, patch: Partial<ProgramDraft>) {
     setPrograms((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   }
 
+  function removeProgram(i: number) {
+    setPrograms((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   function updateFaqPair(i: number, patch: Partial<FaqPairDraft>) {
     setFaqPairs((prev) => prev.map((pair, idx) => (idx === i ? { ...pair, ...patch } : pair)));
   }
 
+  function removeFaqPair(i: number) {
+    setFaqPairs((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function toggleFaqCandidate(question: string) {
+    if (faqPairs.some((p) => p.question.trim() === question)) {
+      setFaqPairs((prev) => prev.filter((p) => p.question.trim() !== question));
+    } else {
+      setFaqPairs((prev) => [...prev.filter((p) => p.question.trim() || p.answer.trim()), { question, answer: "" }]);
+    }
+  }
+
   const finalProfessionalsList = professionals.filter((p) => p.name.trim());
   const finalTransformationsList = transformations.filter(
-    (t) => t.beforeImage || t.afterImage || t.resultHighlight.trim()
+    (t) => t.beforeImage[0] || t.afterImage[0] || t.resultHighlight.trim()
   );
 
   const pendingUploads: PendingUpload[] = [
     ...heroFiles.map((file, i) => ({ slot: `hero-${i}`, file })),
-    ...(logoFile ? [{ slot: "logo", file: logoFile }] : []),
-    ...finalProfessionalsList.flatMap((p, i) => (p.photo ? [{ slot: `professional-${i}-photo`, file: p.photo }] : [])),
+    ...(logoFiles[0] ? [{ slot: "logo", file: logoFiles[0] }] : []),
+    ...finalProfessionalsList.flatMap((p, i) => (p.photo[0] ? [{ slot: `professional-${i}-photo`, file: p.photo[0] }] : [])),
     ...finalTransformationsList.flatMap((t, i) => [
-      ...(t.beforeImage ? [{ slot: `transformation-${i}-before`, file: t.beforeImage }] : []),
-      ...(t.afterImage ? [{ slot: `transformation-${i}-after`, file: t.afterImage }] : []),
+      ...(t.beforeImage[0] ? [{ slot: `transformation-${i}-before`, file: t.beforeImage[0] }] : []),
+      ...(t.afterImage[0] ? [{ slot: `transformation-${i}-after`, file: t.afterImage[0] }] : []),
     ]),
     ...facilityPhotos.map((file, i) => ({ slot: `facility-${i}`, file })),
   ];
@@ -507,49 +534,23 @@ export default function BoutiqueFitnessCreatePage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
+    <main className="cp-form mx-auto w-full max-w-[560px] px-5 pt-8 pb-8">
       {hasDraft && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            background: "#eef6ff",
-            border: "1px solid #bcdcff",
-            borderRadius: 8,
-            padding: "12px 16px",
-            marginBottom: 16,
-            fontSize: 13,
+        <DraftBanner
+          onResume={() => {
+            const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
+            if (draft) applyDraft(draft);
           }}
-        >
-          <span>이전에 작성하던 내용이 있어요. 이어서 작성할까요? (사진은 다시 첨부해주세요)</span>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => {
-                const draft = loadDraft<DraftSnapshot>(DRAFT_KEY);
-                if (draft) applyDraft(draft);
-              }}
-              style={{ fontSize: 13, fontWeight: 700 }}
-            >
-              이어서 작성
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearDraft(DRAFT_KEY);
-                setHasDraft(false);
-              }}
-              style={{ fontSize: 13, color: "#888" }}
-            >
-              새로 시작
-            </button>
-          </div>
-        </div>
+          onDiscard={() => {
+            clearDraft(DRAFT_KEY);
+            setHasDraft(false);
+          }}
+        />
       )}
 
-      <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+      <div className="mb-6">
+        <ProgressBar step={step + 1} total={STEPS.length} label={STEPS[step]} />
+      </div>
 
       {step === 0 && (
         <Section title="기본 정보">
@@ -708,6 +709,15 @@ export default function BoutiqueFitnessCreatePage() {
                       onChange={(e) => updateOtherLink(i, { url: e.target.value })}
                       style={{ flex: 1 }}
                     />
+                    {otherLinks.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeOtherLink(i)}
+                        className="flex-none text-[13px] text-cp-muted"
+                      >
+                        삭제
+                      </button>
+                    )}
                   </div>
                   {o.url.trim() && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4, marginLeft: 104 }}>
@@ -732,25 +742,14 @@ export default function BoutiqueFitnessCreatePage() {
             </div>
           </fieldset>
 
-          <Field label="대표 사진 (여러 장이면 히어로 배경에서 순서대로 넘어가요, 최대 5장)">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              style={fileInputStyle}
-              onChange={(e) => setHeroFiles(Array.from(e.target.files ?? []).slice(0, 5))}
-            />
-            {heroFiles.length > 0 && <p style={fileNameStyle}>{heroFiles.length}장 선택됨</p>}
-          </Field>
-          <Field label="로고">
-            <input
-              type="file"
-              accept="image/*"
-              style={fileInputStyle}
-              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-            />
-            {logoFile && <p style={fileNameStyle}>선택됨: {logoFile.name}</p>}
-          </Field>
+          <FileField
+            label="대표 사진 (여러 장이면 히어로 배경에서 순서대로 넘어가요, 최대 5장)"
+            multiple
+            maxFiles={5}
+            value={heroFiles}
+            onChange={setHeroFiles}
+          />
+          <FileField label="로고" value={logoFiles} onChange={setLogoFiles} />
 
           <Field
             label="사업자정보 (선택)"
@@ -793,20 +792,25 @@ export default function BoutiqueFitnessCreatePage() {
           </p>
           {professionals.map((p, i) => (
             <fieldset key={i} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-              <legend style={{ fontSize: 13, fontWeight: 700 }}>트레이너 {i + 1}</legend>
+              <legend style={{ fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                트레이너 {i + 1}
+                {professionals.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeProfessional(i)}
+                    className="text-[12px] font-normal text-cp-muted"
+                  >
+                    삭제
+                  </button>
+                )}
+              </legend>
               <input placeholder="이름" value={p.name} onChange={(e) => updateProfessional(i, { name: e.target.value })} />
               <input
                 placeholder="직함 (예: 대표 트레이너, 강사, 원장)"
                 value={p.title}
                 onChange={(e) => updateProfessional(i, { title: e.target.value })}
               />
-              <input
-                type="file"
-                accept="image/*"
-                style={fileInputStyle}
-                onChange={(e) => updateProfessional(i, { photo: e.target.files?.[0] ?? null })}
-              />
-              {p.photo && <p style={fileNameStyle}>선택됨: {p.photo.name}</p>}
+              <FileField label="사진" value={p.photo} onChange={(files) => updateProfessional(i, { photo: files })} />
               <input
                 placeholder="보유 자격증 (쉼표로 구분, 없으면 비워두세요)"
                 value={p.certificationsText}
@@ -835,7 +839,7 @@ export default function BoutiqueFitnessCreatePage() {
             onClick={() =>
               setProfessionals((prev) => [
                 ...prev,
-                { name: "", title: "", photo: null, certificationsText: "", specialty: "", yearsExperience: "", bioQuote: "" },
+                { name: "", title: "", photo: [], certificationsText: "", specialty: "", yearsExperience: "", bioQuote: "" },
               ])
             }
             style={{ fontSize: 13 }}
@@ -857,25 +861,13 @@ export default function BoutiqueFitnessCreatePage() {
               ⚠️ 회원님께 미리 동의를 받은 사진만 올려주세요 — 나중에 문제가 될 수 있어요.
             </p>
             {transformations.map((t, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid #eee" }}>
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={fileInputStyle}
-                      onChange={(e) => updateTransformation(i, { beforeImage: e.target.files?.[0] ?? null })}
-                    />
-                    {t.beforeImage && <p style={fileNameStyle}>Before: {t.beforeImage.name}</p>}
+                    <FileField label="Before" value={t.beforeImage} onChange={(files) => updateTransformation(i, { beforeImage: files })} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={fileInputStyle}
-                      onChange={(e) => updateTransformation(i, { afterImage: e.target.files?.[0] ?? null })}
-                    />
-                    {t.afterImage && <p style={fileNameStyle}>After: {t.afterImage.name}</p>}
+                    <FileField label="After" value={t.afterImage} onChange={(files) => updateTransformation(i, { afterImage: files })} />
                   </div>
                 </div>
                 <input
@@ -893,11 +885,23 @@ export default function BoutiqueFitnessCreatePage() {
                   value={t.memberLabel}
                   onChange={(e) => updateTransformation(i, { memberLabel: e.target.value })}
                 />
-                <input
-                  placeholder="담당 트레이너 (선택, 여러 명이면 누가 지도했는지)"
-                  value={t.trainerTag}
-                  onChange={(e) => updateTransformation(i, { trainerTag: e.target.value })}
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="담당 트레이너 (선택, 여러 명이면 누가 지도했는지)"
+                    value={t.trainerTag}
+                    onChange={(e) => updateTransformation(i, { trainerTag: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {transformations.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTransformation(i)}
+                      className="flex-none text-[13px] text-cp-muted"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
             <button
@@ -905,7 +909,7 @@ export default function BoutiqueFitnessCreatePage() {
               onClick={() =>
                 setTransformations((prev) => [
                   ...prev,
-                  { beforeImage: null, afterImage: null, durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
+                  { beforeImage: [], afterImage: [], durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
                 ])
               }
               style={{ fontSize: 13 }}
@@ -942,11 +946,19 @@ export default function BoutiqueFitnessCreatePage() {
                   value={r.source}
                   onChange={(e) => updateReview(i, { source: e.target.value })}
                 />
-                <input
-                  placeholder="담당 트레이너 (선택, 후기에 실제 언급된 경우만)"
-                  value={r.trainerTag}
-                  onChange={(e) => updateReview(i, { trainerTag: e.target.value })}
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="담당 트레이너 (선택, 후기에 실제 언급된 경우만)"
+                    value={r.trainerTag}
+                    onChange={(e) => updateReview(i, { trainerTag: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {reviews.length > 1 && (
+                    <button type="button" onClick={() => removeReview(i)} className="flex-none text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
             <button
@@ -1003,16 +1015,12 @@ export default function BoutiqueFitnessCreatePage() {
               placeholder="예: 시청 사거리에서 도보 5분"
             />
           </Field>
-          <Field label="공간 사진 (선택, 트레이너·시설 사진과 겹치지 않는 분위기 사진)">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              style={fileInputStyle}
-              onChange={(e) => setFacilityPhotos(Array.from(e.target.files ?? []))}
-            />
-            {facilityPhotos.length > 0 && <p style={fileNameStyle}>{facilityPhotos.length}장 선택됨</p>}
-          </Field>
+          <FileField
+            label="공간 사진 (선택, 트레이너·시설 사진과 겹치지 않는 분위기 사진)"
+            multiple
+            value={facilityPhotos}
+            onChange={setFacilityPhotos}
+          />
           <Field
             label="공간에서 손님들이 특히 좋아하는 부분이 있나요? (선택)"
             hint="이 답변이 있으면 사진만으로는 안 전해지는 이 공간만의 느낌이 문구로 살아나요."
@@ -1043,12 +1051,20 @@ export default function BoutiqueFitnessCreatePage() {
           <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
             <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
             {programs.map((p, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                <input
-                  placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
-                  value={p.name}
-                  onChange={(e) => updateProgram(i, { name: e.target.value })}
-                />
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
+                    value={p.name}
+                    onChange={(e) => updateProgram(i, { name: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {programs.length > 1 && (
+                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
                     placeholder="가격"
@@ -1094,13 +1110,30 @@ export default function BoutiqueFitnessCreatePage() {
             <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>
               &quot;초보자도 가능한가요?&quot; 같은 질문에 대한 답은 특히 강력해요.
             </p>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {FAQ_CANDIDATES.map((question) => (
+                <Chip
+                  key={question}
+                  selected={faqPairs.some((p) => p.question.trim() === question)}
+                  onClick={() => toggleFaqCandidate(question)}
+                >
+                  {question}
+                </Chip>
+              ))}
+            </div>
             {faqPairs.map((pair, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
-                <input
-                  placeholder="질문 (예: 환불 규정이 어떻게 되나요?)"
-                  value={pair.question}
-                  onChange={(e) => updateFaqPair(i, { question: e.target.value })}
-                />
+              <div key={i} className="mb-3 flex flex-col gap-1.5">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="질문 (예: 환불 규정이 어떻게 되나요?)"
+                    value={pair.question}
+                    onChange={(e) => updateFaqPair(i, { question: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" onClick={() => removeFaqPair(i)} className="flex-none text-[13px] text-cp-muted">
+                    삭제
+                  </button>
+                </div>
                 <input
                   placeholder="답변"
                   value={pair.answer}

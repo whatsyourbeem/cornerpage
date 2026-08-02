@@ -1,6 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { DayOfWeek } from "@/lib/content-types";
+import { Button, Panel, Stepper } from "@/components/ui";
 
 /** general·boutique-fitness 두 위저드가 공유하는 UI 조각·타입·스타일. */
 
@@ -27,44 +29,11 @@ export interface FaqPairDraft {
   answer: string;
 }
 
-/**
- * 전역 CSS(Tailwind preflight)가 폼 요소에 appearance:none을 적용해서, 이 스타일
- * 없이는 <input type="file">의 네이티브 "파일 선택" 버튼이 아예 안 보인다(빈 공간만
- * 남음). 명시적으로 되돌리고, 항상 보이는 테두리 박스를 씌워 클릭 영역을 분명히 한다.
- */
-export const fileInputStyle: React.CSSProperties = {
-  appearance: "auto",
-  display: "block",
-  width: "100%",
-  padding: "10px",
-  borderRadius: 8,
-  border: "1px solid #ddd",
-  fontSize: 13,
-};
 
-export const fileNameStyle: React.CSSProperties = { fontSize: 12, color: "#666", marginTop: 4 };
-
-export const navButtonStyle: React.CSSProperties = {
-  flex: 1,
-  padding: "14px 16px",
-  borderRadius: 8,
-  border: "1px solid #ddd",
-  background: "white",
-  fontWeight: 700,
-  fontSize: 14,
-  cursor: "pointer",
-};
-
-export const primaryButtonStyle: React.CSSProperties = {
-  background: "#111",
-  color: "white",
-  border: "1px solid #111",
-};
-
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-cp-h3 font-bold text-cp-fg">{title}</h1>
       {children}
     </div>
   );
@@ -75,19 +44,11 @@ export function Section({ title, children }: { title: string; children: React.Re
  * "강요·과장 없이 사실만 담백하게"). 채우면 왜 좋은지를 솔직하게 알려주되,
  * 채우지 않아도 되는 선택 사항이라는 톤은 유지한다.
  */
-export function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
+export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-      <span style={{ fontWeight: 600 }}>{label}</span>
-      {hint && <span style={{ fontSize: 12, color: "#888" }}>{hint}</span>}
+    <label className="flex flex-col gap-1.5 text-[15px]">
+      <span className="text-sm font-semibold text-cp-fg">{label}</span>
+      {hint && <span className="text-[13px] text-cp-muted">{hint}</span>}
       {children}
     </label>
   );
@@ -100,12 +61,23 @@ export function HoursEditor({
   hours: Record<DayOfWeek, DayHours>;
   onChange: (updater: (prev: Record<DayOfWeek, DayHours>) => Record<DayOfWeek, DayHours>) => void;
 }) {
+  function applyMondayToWeekdays() {
+    const mon = hours.mon;
+    onChange((prev) => {
+      const next = { ...prev };
+      (["tue", "wed", "thu", "fri"] as DayOfWeek[]).forEach((d) => {
+        next[d] = { ...mon };
+      });
+      return next;
+    });
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div className="flex flex-col gap-1">
       {DAYS.map((d) => (
-        <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-          <span style={{ width: 20, fontWeight: 700 }}>{d.label}</span>
-          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <div key={d.key} className="flex min-h-11 flex-wrap items-center gap-2.5 text-[14px]">
+          <span className="w-5 flex-none font-bold text-cp-fg">{d.label}</span>
+          <label className="flex items-center gap-1.5 text-cp-body">
             <input
               type="checkbox"
               checked={hours[d.key].closed}
@@ -119,40 +91,51 @@ export function HoursEditor({
                 type="time"
                 value={hours[d.key].open}
                 onChange={(e) => onChange((prev) => ({ ...prev, [d.key]: { ...prev[d.key], open: e.target.value } }))}
+                className="h-9 w-[124px] flex-none rounded-cp-sm border border-cp-border px-2 text-[13px] text-cp-fg outline-none focus:border-cp-primary"
               />
-              <span>–</span>
+              <span className="text-cp-muted">–</span>
               <input
                 type="time"
                 value={hours[d.key].close}
                 onChange={(e) => onChange((prev) => ({ ...prev, [d.key]: { ...prev[d.key], close: e.target.value } }))}
+                className="h-9 w-[124px] flex-none rounded-cp-sm border border-cp-border px-2 text-[13px] text-cp-fg outline-none focus:border-cp-primary"
               />
             </>
           )}
         </div>
       ))}
+      <button
+        type="button"
+        onClick={applyMondayToWeekdays}
+        className="mt-1 self-start text-[13px] font-semibold text-cp-primary"
+      >
+        월요일 시간을 평일(화~금)에 일괄 적용
+      </button>
     </div>
   );
 }
 
 /** 단계 번호 + 진행바. STEPS[0]("업종 선택")은 vertical 라우트 진입 전이라 이 컴포넌트가 관여하지 않는다. */
 export function ProgressBar({ step, total, label }: { step: number; total: number; label: string }) {
+  return <Stepper step={step} total={total} label={label} />;
+}
+
+/** 이전에 남겨둔 draft 복구 배너. 사진은 다시 첨부해야 한다는 점을 명시한다. */
+export function DraftBanner({ onResume, onDiscard }: { onResume: () => void; onDiscard: () => void }) {
   return (
-    <>
-      <p style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>
-        {step} / {total} · {label}
-      </p>
-      <div style={{ height: 4, background: "#eee", borderRadius: 2, marginBottom: 28 }}>
-        <div
-          style={{
-            height: "100%",
-            width: `${(step / total) * 100}%`,
-            background: "#111",
-            borderRadius: 2,
-            transition: "width 0.2s",
-          }}
-        />
+    <Panel tone="surface" className="mb-4 flex items-center justify-between gap-3">
+      <span className="text-[13px] text-cp-body">
+        이전에 작성하던 내용이 있어요. 이어서 작성할까요? (사진은 다시 첨부해주세요)
+      </span>
+      <div className="flex flex-shrink-0 gap-3">
+        <button type="button" onClick={onResume} className="text-[13px] font-bold text-cp-primary">
+          이어서 작성
+        </button>
+        <button type="button" onClick={onDiscard} className="text-[13px] text-cp-muted">
+          새로 시작
+        </button>
       </div>
-    </>
+    </Panel>
   );
 }
 
@@ -173,25 +156,20 @@ export function WizardNav({
   onSubmit: () => void;
 }) {
   return (
-    <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
+    <div className="sticky bottom-0 z-10 -mx-5 mt-8 flex gap-2 border-t border-cp-border bg-cp-canvas px-5 py-3">
       {step > 0 && (
-        <button type="button" onClick={onBack} style={navButtonStyle}>
+        <Button variant="outline" size="xl" onClick={onBack}>
           이전
-        </button>
+        </Button>
       )}
       {!isLastStep ? (
-        <button
-          type="button"
-          disabled={!canProceed}
-          onClick={onNext}
-          style={{ ...navButtonStyle, ...primaryButtonStyle, opacity: canProceed ? 1 : 0.4 }}
-        >
+        <Button size="xl" className="flex-1" disabled={!canProceed} onClick={onNext}>
           다음
-        </button>
+        </Button>
       ) : (
-        <button type="button" onClick={onSubmit} style={{ ...navButtonStyle, ...primaryButtonStyle }}>
+        <Button size="xl" className="flex-1" onClick={onSubmit}>
           이미지 업로드하고 요청 준비하기
-        </button>
+        </Button>
       )}
     </div>
   );

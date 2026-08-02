@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { VERTICALS, type Vertical } from "@/lib/verticals";
-import { Section, Field, navButtonStyle, primaryButtonStyle } from "./_shared/form-ui";
+import { Button, ChoiceCard } from "@/components/ui";
 
 /**
  * /create의 첫 화면 — vertical(업종 대분류) 선택만 담당한다. 고른 뒤 "다음"을
@@ -25,37 +25,25 @@ export default function CreatePage() {
   const [vertical, setVertical] = useState<Vertical | null>(null);
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "32px 20px 80px" }}>
-      <Section title="어떤 업종이세요?">
-        <Field label="업종 카테고리">
-          <select
-            value={vertical ?? ""}
-            onChange={(e) => setVertical((e.target.value || null) as Vertical | null)}
-            autoFocus
-          >
-            <option value="" disabled>
-              선택해주세요
-            </option>
-            {VERTICALS.map((v) => (
-              <option key={v} value={v}>
-                {VERTICAL_LABELS[v].label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {vertical && <p style={{ fontSize: 12, color: "#888" }}>{VERTICAL_LABELS[vertical].desc}</p>}
-      </Section>
+    <main className="mx-auto w-full max-w-[560px] px-5 py-10">
+      <p className="mb-1 text-[13px] font-semibold text-cp-muted">약 3분이면 충분해요</p>
+      <h1 className="mb-6 text-cp-h3 font-bold text-cp-fg">어떤 업종이세요?</h1>
 
-      <div style={{ display: "flex", marginTop: 24 }}>
-        <button
-          type="button"
-          disabled={!vertical}
-          onClick={() => router.push(`/create/${vertical}`)}
-          style={{ ...navButtonStyle, ...primaryButtonStyle, opacity: vertical ? 1 : 0.4 }}
-        >
-          다음
-        </button>
+      <div className="flex flex-col gap-3">
+        {VERTICALS.map((v) => (
+          <ChoiceCard
+            key={v}
+            selected={vertical === v}
+            onClick={() => setVertical(v)}
+            title={VERTICAL_LABELS[v].label}
+            description={VERTICAL_LABELS[v].desc}
+          />
+        ))}
       </div>
+
+      <Button size="xl" fullWidth disabled={!vertical} onClick={() => router.push(`/create/${vertical}`)} className="mt-8">
+        다음
+      </Button>
     </main>
   );
 }

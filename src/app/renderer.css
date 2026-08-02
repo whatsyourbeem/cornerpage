@@ -1,0 +1,224 @@
+/*
+ * 생성된 미니홈페이지 렌더러 전용 CSS. src/components/site 계열(general,
+ * boutique-fitness) 블록들이 [data-tone] 프리셋과 mhp- 유틸 클래스로 이
+ * 파일에 의존한다. 앱 크롬(홈·로그인·대시보드·/create 위저드)은 이 파일의
+ * 어떤 이름도 참조하지 않는다 — 새 앱 크롬 토큰은 globals.css의 cp-
+ * 네임스페이스에 둔다.
+ */
+
+/* ---------- 톤 프리셋 (축 A) ---------- */
+
+[data-tone="warm"] {
+  /* 감성형 — 헤드라인만 Gmarket Sans, 본문은 공통 Pretendard */
+  --brand: #7a5c3e;
+  --brand-deep: #5c4530;
+  --accent: #c26b3a;
+  --accent-on-dark: #e1b49b;
+  --paper: #f7f3ec;
+  --paper-alt: #f0e6d6;
+  --ink: #2b2622;
+  --radius-cta: 12px;
+  --shadow-cta: 0 6px 16px rgb(122 92 62 / 0.25);
+  --font-headline: "Gmarket Sans", var(--font-sans);
+  --headline-weight: 700;
+  --headline-tracking: -0.01em;
+  --motion-level: 1;
+}
+
+[data-tone="trust"] {
+  /* 신뢰형 — 별도 디스플레이체 없이 Pretendard Black 굵기로 "꾸미지 않은 확신감" */
+  --brand: #2e4756;
+  --brand-deep: #22343f;
+  --accent: #86754f;
+  --accent-on-dark: #ad9c74;
+  --paper: #f4f5f6;
+  --paper-alt: #e7eaec;
+  --ink: #23272b;
+  --radius-cta: 8px;
+  --shadow-cta: 0 2px 6px rgb(0 0 0 / 0.08);
+  --font-headline: var(--font-sans);
+  --headline-weight: 900;
+  --headline-tracking: -0.01em;
+  --motion-level: 0;
+}
+
+[data-tone="driven"] {
+  /* 혼합형 — 헤드라인만 S-Core Dream Heavy */
+  --brand: #2d4a43;
+  --brand-deep: #1f3630;
+  --accent: #e0793c;
+  --accent-on-dark: #e28147;
+  --paper: #f5f4f0;
+  --paper-alt: #eae4d8;
+  --ink: #24211c;
+  --radius-cta: 10px;
+  --shadow-cta: 0 6px 18px rgb(45 74 67 / 0.25);
+  --font-headline: "S-Core Dream", var(--font-sans);
+  --headline-weight: 800;
+  --headline-tracking: 0.01em;
+  --motion-level: 2;
+}
+
+/*
+  boutique-fitness 고정 톤 — "차분한 확신"(spec/for-frontend/boutique-fitness/design-guide.md 2장).
+  general처럼 axis별로 갈리지 않고 vertical 전체에 고정되는 팔레트라 [data-tone] 하나만 존재한다.
+  --font-headline을 --font-sans로 맞춰둬서, 일부 블록이 재사용하는 --font-headline 참조 CSS가
+  이 톤에서도 그대로 동작한다(Pretendard 단독 사용 — design-guide.md 3장).
+*/
+[data-tone="grounded"] {
+  --brand: #1f3a35;
+  --brand-deep: #12211d;
+  --brand-light: #eaf1ef;
+  --accent: #e8663d;
+  --accent-deep: #c94f2b;
+  --accent-on-dark: #ff8b65;
+  --paper: #faf8f5;
+  --paper-alt: #f3efe9;
+  --ink: #26241f;
+  --ink-body: #57534a;
+  --ink-muted: #8b857a;
+  --border: #e3ded4;
+  --star: #e8a93d;
+  --error: #d64545;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+  --shadow-floating: 0px 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-sticky: 0px -2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0px 4px 12px rgba(0, 0, 0, 0.08);
+  --container-width: 1080px;
+  --font-headline: var(--font-sans);
+  --headline-weight: 700;
+  --headline-tracking: 0;
+  --section-padding: 64px;
+  --motion-level: 1;
+}
+
+@media (min-width: 768px) {
+  [data-tone="grounded"] {
+    --section-padding: 96px;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- 공용 레이아웃 유틸 ---------- */
+
+.mhp-page {
+  background: var(--paper);
+  color: var(--ink);
+  /* body의 font-family는 :root 기본값으로 고정 해석되어 버려서(커스텀 프로퍼티는
+     조상에서 자손 방향으로만 흐름), 톤별 --font-sans 오버라이드가 실제로 반영되려면
+     [data-tone]이 걸리는 이 요소 자신에서 다시 선언해야 한다. */
+  font-family: var(--font-sans);
+}
+
+/*
+  데스크톱 반응형 폭 규칙(design-guide.md 6장): 페이지 전체를 카드로 감싸 폭을
+  제한하던 방식에서, "카드 폭 유지 블록"과 "풀블리드 허용 블록"(히어로 배경,
+  topbar, 갤러리 그리드)을 분리하는 방식으로 바꿨다. .mhp-page 자체는 더 이상
+  폭을 제한하지 않고(풀블리드 블록이 전체 폭을 쓸 수 있도록), 카드 폭을 유지해야
+  하는 각 블록이 개별적으로 .mhp-container로 폭을 제한 + --paper 배경을 칠해
+  "카드가 떠 있는" 느낌을 낸다. 모바일에서는 카드=뷰포트라 시각적 차이가 없다.
+*/
+@media (min-width: 640px) {
+  .mhp-page {
+    background: var(--page-backdrop);
+  }
+}
+
+.mhp-container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+.mhp-section {
+  padding-block: var(--section-padding, 120px);
+}
+
+/*
+  섹션 배경띠(design-guide.md 6-1-①): 배경은 뷰포트 전체 폭으로 칠하고
+  .mhp-container(안쪽)가 텍스트만 카드 폭으로 잡아준다. 데스크톱에서 카드
+  바깥 회색 여백이 너무 넓어 "휑해 보이는" 문제를 해결하는 장치라, 모바일
+  에서도 동일하게 적용해 톤/명도로 섹션을 구분한다(휘어리 보더 대신).
+
+  -dark는 --paper/--ink/--brand/--accent를 그 자리에서 반전시켜서, 각 블록이
+  이미 쓰고 있는 var(--ink), var(--brand), var(--accent), color-mix(...,
+  var(--ink), ...) 패턴이 전부 자동으로 밝은 배경/어두운 배경 양쪽에 맞게
+  재계산되도록 한다 — 블록 컴포넌트 CSS를 따로 손댈 필요가 없다.
+
+  --brand/--accent는 둘 다 --accent-on-dark로 바꿔치기한다(단순 --accent가
+  아니라): --accent는 paper 대비로만 맞춘 값이라 --brand-deep처럼 어두운
+  배경 위에서는 대비가 부족할 수 있다(같은 색이 밝은/어두운 배경 양쪽에서
+  4.5:1을 만족하는건 명도差 때문에 대체로 불가능) — 색상.ts의
+  deriveBrandPalette 주석 참고.
+*/
+.mhp-band {
+  width: 100%;
+}
+
+.mhp-band-light {
+  background: var(--paper);
+}
+
+.mhp-band-light-alt {
+  background: var(--paper-alt);
+}
+
+.mhp-band-dark {
+  background: var(--brand-deep);
+  --paper: var(--brand-deep);
+  --ink: #ffffff;
+  --brand: var(--accent-on-dark);
+  --accent: var(--accent-on-dark);
+  color: var(--ink);
+}
+
+.mhp-band + .mhp-band {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.mhp-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--brand);
+  margin: 0 0 8px;
+}
+
+.mhp-section-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+/* 사진 없을 때 쓰는 도트 텍스처 (완전 단색은 밋밋해 보임 방지) */
+.mhp-dot-texture {
+  background-image: radial-gradient(
+    color-mix(in srgb, white 22%, transparent) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 18px 18px;
+}

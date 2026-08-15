@@ -60,7 +60,7 @@ const GATE6_STEP = 4;
 const DRAFT_KEY = "cornerpage-draft:boutique-fitness";
 
 /**
- * localStorage 임시저장용 스냅샷. File 객체(heroFiles·logoFiles·facilityPhotos·
+ * localStorage 임시저장용 스냅샷. File 객체(spacePhotos·miscPhotos·logoFiles·
  * professionals[].photo·transformations[].beforeImage/afterImage)는 제외한다 —
  * 문자열만 저장 가능해서 사진은 복원 시 다시 첨부해야 한다.
  */
@@ -172,7 +172,8 @@ export default function BoutiqueFitnessCreatePage() {
   const [otherLinks, setOtherLinks] = useState<OtherLinkDraft[]>([
     { url: "", label: "", forInquiry: false, forBrowse: false },
   ]);
-  const [heroFiles, setHeroFiles] = useState<File[]>([]);
+  const [spacePhotos, setSpacePhotos] = useState<File[]>([]);
+  const [miscPhotos, setMiscPhotos] = useState<File[]>([]);
   const [logoFiles, setLogoFiles] = useState<File[]>([]);
   const [registeredName, setRegisteredName] = useState("");
   const [ceoName, setCeoName] = useState("");
@@ -197,7 +198,6 @@ export default function BoutiqueFitnessCreatePage() {
   const [hasLocker, setHasLocker] = useState(false);
   const [hasParking, setHasParking] = useState(false);
   const [equipmentText, setEquipmentText] = useState("");
-  const [facilityPhotos, setFacilityPhotos] = useState<File[]>([]);
   const [landmarkDistance, setLandmarkDistance] = useState("");
   const [atmosphereText, setAtmosphereText] = useState("");
   const [philosophyText, setPhilosophyText] = useState("");
@@ -317,7 +317,8 @@ export default function BoutiqueFitnessCreatePage() {
         industryCategory.trim() !== "" &&
         businessName.trim() !== "" &&
         address.trim() !== "" &&
-        phone.trim() !== ""
+        phone.trim() !== "" &&
+        spacePhotos.length >= 1
       );
     }
     if (step === 1) return professionals.some((p) => p.name.trim() !== "");
@@ -417,14 +418,14 @@ export default function BoutiqueFitnessCreatePage() {
   );
 
   const pendingUploads: PendingUpload[] = [
-    ...heroFiles.map((file, i) => ({ slot: `hero-${i}`, file })),
+    ...spacePhotos.map((file, i) => ({ slot: `space-${i}`, file })),
+    ...miscPhotos.map((file, i) => ({ slot: `misc-${i}`, file })),
     ...(logoFiles[0] ? [{ slot: "logo", file: logoFiles[0] }] : []),
     ...finalProfessionalsList.flatMap((p, i) => (p.photo[0] ? [{ slot: `professional-${i}-photo`, file: p.photo[0] }] : [])),
     ...finalTransformationsList.flatMap((t, i) => [
       ...(t.beforeImage[0] ? [{ slot: `transformation-${i}-before`, file: t.beforeImage[0] }] : []),
       ...(t.afterImage[0] ? [{ slot: `transformation-${i}-after`, file: t.afterImage[0] }] : []),
     ]),
-    ...facilityPhotos.map((file, i) => ({ slot: `facility-${i}`, file })),
   ];
 
   function buildAnswers(urls: Record<string, string>) {
@@ -470,8 +471,15 @@ export default function BoutiqueFitnessCreatePage() {
       hasLocker ||
       hasParking ||
       equipmentList.length > 0 ||
-      facilityPhotos.length > 0 ||
+      spacePhotos.length > 0 ||
       atmosphereText.trim();
+
+    // hero.background_images ← 공간 사진 먼저, 남는 자리를 기타 사진으로 채워
+    // 최대 5장만 자른다. facility.photos ← 공간 사진 전체(자르지 않음, 같은
+    // 소스를 재사용 — spec/for-claude-api/boutique-fitness/schema-summary.md 참고).
+    const spacePhotoUrls = spacePhotos.map((_, i) => urls[`space-${i}`]).filter((u): u is string => !!u);
+    const miscPhotoUrls = miscPhotos.map((_, i) => urls[`misc-${i}`]).filter((u): u is string => !!u);
+    const heroImageUrls = [...spacePhotoUrls, ...miscPhotoUrls].slice(0, 5);
 
     const faqAnswers = faqPairs
       .filter((pair) => pair.question.trim() && pair.answer.trim())
@@ -500,7 +508,7 @@ export default function BoutiqueFitnessCreatePage() {
       },
       inquiry_channels: buildInquiryChannels(),
       browse_channels: buildBrowseChannels(),
-      hero_image_urls: heroFiles.map((_, i) => urls[`hero-${i}`]).filter((u): u is string => !!u),
+      hero_image_urls: heroImageUrls,
       logo_url: urls["logo"] ?? null,
       business_info:
         registeredName.trim() && ceoName.trim() && registrationNumber.trim()
@@ -521,10 +529,7 @@ export default function BoutiqueFitnessCreatePage() {
             has_locker: hasLocker,
             has_parking: hasParking,
             equipment_list: equipmentList.length > 0 ? equipmentList : null,
-            photos:
-              facilityPhotos.length > 0
-                ? facilityPhotos.map((_, i) => urls[`facility-${i}`]).filter((u): u is string => !!u)
-                : null,
+            photos: spacePhotoUrls.length > 0 ? spacePhotoUrls : null,
             atmosphere_text: atmosphereText.trim() || null,
           }
         : null,
@@ -759,13 +764,12 @@ export default function BoutiqueFitnessCreatePage() {
             </div>
           </fieldset>
 
-          <FileField
-            label="대표 사진 (여러 장이면 히어로 배경에서 순서대로 넘어가요, 최대 5장)"
-            multiple
-            maxFiles={5}
-            value={heroFiles}
-            onChange={setHeroFiles}
-          />
+          <FileField label="공간 사진 (최소 1장, 최대 10장)" multiple maxFiles={10} value={spacePhotos} onChange={setSpacePhotos} />
+          <FileField label="기타 사진 (선택, 최대 10장)" multiple maxFiles={10} value={miscPhotos} onChange={setMiscPhotos} />
+          <p style={{ fontSize: 12, color: "#888", margin: "-8px 0 0" }}>
+            공간 사진과 기타 사진을 합쳐 히어로 배경에 최대 5장까지 순서대로 보여드려요. 공간 사진이 시설 정보
+            사진으로도 함께 쓰이니, 최대한 다양한 각도로 몇 장 올려주시면 좋아요.
+          </p>
           <FileField label="로고" value={logoFiles} onChange={setLogoFiles} />
         </Section>
       )}
@@ -1025,7 +1029,7 @@ export default function BoutiqueFitnessCreatePage() {
 
       {step === GATE6_STEP && !gate6Opened && (
         <GateIntro
-          description="여기부터는 순전히 덤이에요. 안 채우셔도 홈페이지엔 전혀 문제없어요 — 다 채우면 약 3~4분, 마음에 드는 것만 답하셔도 충분해요."
+          description="여기부터는 순전히 덤이에요. 안 채우셔도 홈페이지엔 전혀 문제없어요 — 다 채우면 약 2~3분, 마음에 드는 것만 답하셔도 충분해요."
           fillLabel="몇 개만 더 채우기"
           skipLabel="바로 완료하기"
           onFill={() => setGate6Opened(true)}
@@ -1102,15 +1106,6 @@ export default function BoutiqueFitnessCreatePage() {
                   placeholder="예: 8년째 한 사람만 보는 PT"
                 />
               </Field>
-            </Accordion>
-
-            <Accordion title="공간 사진">
-              <FileField
-                label="트레이너·시설 사진과 겹치지 않는, 분위기를 보여주는 사진만"
-                multiple
-                value={facilityPhotos}
-                onChange={setFacilityPhotos}
-              />
             </Accordion>
 
             <Accordion title="FAQ 답변">

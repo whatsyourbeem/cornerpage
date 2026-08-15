@@ -85,7 +85,7 @@
   "badge": "string, required (지역 + 구체적 전문분야, 예: '수내동 · 필라테스 스튜디오')",
   "headline": "string, required (정체성·전문성 사실 기반. 결과 약속 문구 금지 — 증거는 뒤 블록이 담당. 줄바꿈은 \\n으로 직접 지정 — 최대 2줄, 각 줄 4~20자. 20자 넘는 문장을 \\n 없이 한 줄로 넣으면 스키마가 거부한다)",
   "tagline": "string, required ('나도 할 수 있을까' 불안을 사실 기반으로 완화하는 자리)",
-  "background_images": "url[] | null, required key (최대 5장. 여러 장이면 렌더러가 순서대로 전환하며 줌 애니메이션 적용 — 이미 구현됨, 스킬은 URL 순서만 그대로 전달)",
+  "background_images": "url[] | null, required key (최대 5장. 여러 장이면 렌더러가 순서대로 전환하며 줌 애니메이션 적용 — 이미 구현됨, 스킬은 URL 순서만 그대로 전달. 입력 폼 STEP 2 \"공간 사진\"(최소 1장)과 \"기타 사진\"(선택)을 합쳐 앞에서부터 최대 5장까지만 받는다 — 폼이 이미 5장으로 잘라서 넘기므로 스킬이 따로 개수를 셀 필요는 없다)",
   "cta_label": "string, required (저부담)"
 }
 ```
@@ -206,7 +206,7 @@
   "atmosphere_text": "string | null, required key (감각적 디테일 위주 — 공간·소리·조용함 등)"
 } | null
 ```
-`equipment_list`는 구체적 수량과 함께(예: "리포머 5대"). `photos`는 갤러리와 중복 금지.
+`equipment_list`는 구체적 수량과 함께(예: "리포머 5대"). `photos`는 `hero.background_images`와 같은 소스(입력 폼 STEP 2 "공간 사진")에서 채워진다 — 별도로 안 겹치게 다시 받지 않는다(`../../for-frontend/boutique-fitness/input-questions.md` STEP 2 참고).
 
 **`atmosphere_text`는 옛 `atmosphere` 독립 블록을 흡수한 필드다(2026-07-17)** — `facility`와 항상 같은 "공간 클러스터"로 붙어 다니고 독립적으로 위치가 바뀔 일이 없어, 별도 top-level 블록으로 둘 이유가 없어졌다(general은 여전히 독립 블록 유지 — 이 vertical만의 변경). 감각적 디테일(채광·소리·조용함 등)을 담되, 과장 없이(이 vertical의 "차분한 확신" 톤 원칙 적용).
 

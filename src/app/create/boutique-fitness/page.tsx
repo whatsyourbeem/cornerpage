@@ -53,7 +53,7 @@ const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려�
  * 테스트 목적으로 감수).
  */
 
-const STEPS = ["기본 정보", "전문가 프로필", "프로그램·이용방법", "회원 변화·후기", "더 채우면 좋아요"];
+const STEPS = ["기본 정보", "프로그램·이용방법", "전문가 프로필", "회원 변화·후기", "더 채우면 좋아요"];
 const GATE5_STEP = 3;
 const GATE6_STEP = 4;
 
@@ -72,7 +72,6 @@ interface DraftSnapshot {
   address: string;
   phone: string;
   hours: Record<DayOfWeek, DayHours>;
-  naverReservationLink: string;
   kakaoLink: DualPurposeLinkDraft;
   instagramLink: DualPurposeLinkDraft;
   naverBlogLink: string;
@@ -103,9 +102,14 @@ interface DraftSnapshot {
  * 2026-07-19 링크 입력 재설계(spec/for-frontend/boutique-fitness/input-questions.md STEP 2):
  * 예전엔 문의 채널·둘러보기 채널을 완전히 분리된 두 체크리스트로 받아서, 카카오톡/인스타그램처럼
  * 두 역할을 겸하는 링크는 똑같은 URL을 두 번 입력해야 했다. 이제 플랫폼당 링크 입력 하나뿐이고,
- * 채널 성격이 고정된 플랫폼(네이버예약=문의 전용, 네이버블로그·유튜브·네이버지도=둘러보기 전용)은
- * 입력하는 즉시 자동 분류된다. 카카오톡·인스타그램만 둘 다로 쓰일 수 있어 체크박스로 문의 겸용
- * 여부를 고르게 한다(기본 체크 — 링크는 항상 browse_channels에도 들어간다).
+ * 채널 성격이 고정된 플랫폼(네이버블로그·유튜브·네이버지도=둘러보기 전용)은 입력하는 즉시
+ * 자동 분류된다. 카카오톡·인스타그램만 둘 다로 쓰일 수 있어 체크박스로 문의 겸용 여부를
+ * 고르게 한다(기본 체크 — 링크는 항상 browse_channels에도 들어간다).
+ *
+ * 네이버예약 링크는 2026-08부터 이 폼에서 받지 않는다 — inquiry_channels는 minItems: 1만
+ * 요구하고 특정 채널 타입을 강제하지 않으며, 전화번호가 항상 call 채널로 자동 등록되므로
+ * 없어도 검증에 문제가 없다. InquiryChannelType enum과 렌더러(ChannelIcon.tsx 등)의
+ * naver_reservation case는 과거 데이터·다른 경로 유입을 위해 그대로 둔다 — 이 폼에서만 뺐다.
  */
 interface DualPurposeLinkDraft {
   url: string;
@@ -163,7 +167,6 @@ export default function BoutiqueFitnessCreatePage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [hours, setHours] = useState<Record<DayOfWeek, DayHours>>(defaultHours());
-  const [naverReservationLink, setNaverReservationLink] = useState("");
   const [kakaoLink, setKakaoLink] = useState<DualPurposeLinkDraft>({ url: "", alsoInquiry: true });
   const [instagramLink, setInstagramLink] = useState<DualPurposeLinkDraft>({ url: "", alsoInquiry: true });
   const [naverBlogLink, setNaverBlogLink] = useState("");
@@ -230,7 +233,6 @@ export default function BoutiqueFitnessCreatePage() {
     setAddress(draft.address);
     setPhone(draft.phone);
     setHours(draft.hours);
-    setNaverReservationLink(draft.naverReservationLink);
     setKakaoLink(draft.kakaoLink);
     setInstagramLink(draft.instagramLink);
     setNaverBlogLink(draft.naverBlogLink);
@@ -270,7 +272,6 @@ export default function BoutiqueFitnessCreatePage() {
     address,
     phone,
     hours,
-    naverReservationLink,
     kakaoLink,
     instagramLink,
     naverBlogLink,
@@ -321,16 +322,14 @@ export default function BoutiqueFitnessCreatePage() {
         spacePhotos.length >= 1
       );
     }
-    if (step === 1) return professionals.some((p) => p.name.trim() !== "");
-    if (step === 2) return programs.some((p) => p.name.trim() !== "");
+    if (step === 1) return programs.some((p) => p.name.trim() !== "");
+    if (step === 2) return professionals.some((p) => p.name.trim() !== "");
     return true;
   }
 
   function buildInquiryChannels() {
     const list: { type: string; action_value: string; other_label: string | null }[] = [];
     if (phone.trim()) list.push({ type: "call", action_value: phone.trim(), other_label: null });
-    if (naverReservationLink.trim())
-      list.push({ type: "naver_reservation", action_value: naverReservationLink.trim(), other_label: null });
     if (kakaoLink.url.trim() && kakaoLink.alsoInquiry)
       list.push({ type: "kakao", action_value: kakaoLink.url.trim(), other_label: null });
     if (instagramLink.url.trim() && instagramLink.alsoInquiry)
@@ -631,16 +630,6 @@ export default function BoutiqueFitnessCreatePage() {
                 />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>네이버예약</label>
-                <input
-                  placeholder="https://booking.naver.com/..."
-                  value={naverReservationLink}
-                  onChange={(e) => setNaverReservationLink(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-              </div>
-
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <label style={{ fontSize: 13, width: 96, flexShrink: 0 }}>카카오톡 채널</label>
@@ -775,6 +764,56 @@ export default function BoutiqueFitnessCreatePage() {
       )}
 
       {step === 1 && (
+        <Section title="프로그램·이용방법" meta="예상 소요시간 약 30초~1분">
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
+            {programs.map((p, i) => (
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
+                    value={p.name}
+                    onChange={(e) => updateProgram(i, { name: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {programs.length > 1 && (
+                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="가격"
+                    value={p.price}
+                    disabled={p.consult}
+                    onChange={(e) => updateProgram(i, { price: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
+                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
+                    상담 후 안내
+                  </label>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
+              style={{ fontSize: 13 }}
+            >
+              + 프로그램 추가
+            </button>
+          </fieldset>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
+            무료 체험이나 1회 체험 프로그램이 있어요
+          </label>
+        </Section>
+      )}
+
+      {step === 2 && (
         <Section title="전문가 프로필 (필수)" meta="예상 소요시간 트레이너 1인당 약 30초~1분">
           <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
             이 정보가 홈페이지의 핵심이에요. 손님들은 &quot;어떤 공간인가&quot;보다 &quot;누구에게 배우는가&quot;를 더 궁금해합니다.
@@ -830,56 +869,6 @@ export default function BoutiqueFitnessCreatePage() {
           >
             + 트레이너 추가
           </button>
-        </Section>
-      )}
-
-      {step === 2 && (
-        <Section title="프로그램·이용방법" meta="예상 소요시간 약 30초~1분">
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
-            {programs.map((p, i) => (
-              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
-                    value={p.name}
-                    onChange={(e) => updateProgram(i, { name: e.target.value })}
-                    style={{ flex: 1 }}
-                  />
-                  {programs.length > 1 && (
-                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
-                      삭제
-                    </button>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    placeholder="가격"
-                    value={p.price}
-                    disabled={p.consult}
-                    onChange={(e) => updateProgram(i, { price: e.target.value })}
-                    style={{ flex: 1 }}
-                  />
-                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
-                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
-                    상담 후 안내
-                  </label>
-                </div>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
-              style={{ fontSize: 13 }}
-            >
-              + 프로그램 추가
-            </button>
-          </fieldset>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
-            무료 체험이나 1회 체험 프로그램이 있어요
-          </label>
         </Section>
       )}
 
@@ -1067,7 +1056,7 @@ export default function BoutiqueFitnessCreatePage() {
               </Field>
             </Accordion>
 
-            <Accordion title="가까운 랜드마크">
+            <Accordion title="찾아오는 길">
               <Field
                 label="가장 가까운 눈에 띄는 장소에서 도보 거리"
                 hint="이 업종에서는 '가기 쉬운가'가 특히 중요하더라고요. 있으면 위치 안내에서 눈에 띄게 강조해드려요."
@@ -1076,34 +1065,6 @@ export default function BoutiqueFitnessCreatePage() {
                   value={landmarkDistance}
                   onChange={(e) => setLandmarkDistance(e.target.value)}
                   placeholder="예: 시청 사거리에서 도보 5분(지하철역이 아니어도 괜찮아요)"
-                />
-              </Field>
-            </Accordion>
-
-            <Accordion title="사업자정보">
-              <Field label="사업자정보" hint="페이지 하단에 작게 표시돼요. 법적으로 필수는 아니지만, 있으면 신뢰도에 도움이 됩니다.">
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <input placeholder="등록 상호명" value={registeredName} onChange={(e) => setRegisteredName(e.target.value)} />
-                  <input placeholder="대표자명" value={ceoName} onChange={(e) => setCeoName(e.target.value)} />
-                  <input
-                    placeholder="사업자등록번호"
-                    value={registrationNumber}
-                    onChange={(e) => setRegistrationNumber(e.target.value)}
-                  />
-                </div>
-              </Field>
-            </Accordion>
-
-            <Accordion title="시그니처 문구·슬로건">
-              <Field
-                label="이미 쓰고 계신 시그니처 문구나 슬로건이 있나요? (최대 40자)"
-                hint="이미 손님들에게 익숙한 문구가 있으면, 저희가 새로 만들지 않고 그대로 헤드라인에 살려드려요."
-              >
-                <input
-                  value={signaturePhrase}
-                  onChange={(e) => setSignaturePhrase(e.target.value.slice(0, 40))}
-                  maxLength={40}
-                  placeholder="예: 8년째 한 사람만 보는 PT"
                 />
               </Field>
             </Accordion>
@@ -1149,6 +1110,34 @@ export default function BoutiqueFitnessCreatePage() {
               </button>
             </Accordion>
 
+            <Accordion title="시그니처 문구·슬로건">
+              <Field
+                label="이미 쓰고 계신 시그니처 문구나 슬로건이 있나요? (최대 40자)"
+                hint="이미 손님들에게 익숙한 문구가 있으면, 저희가 새로 만들지 않고 그대로 헤드라인에 살려드려요."
+              >
+                <input
+                  value={signaturePhrase}
+                  onChange={(e) => setSignaturePhrase(e.target.value.slice(0, 40))}
+                  maxLength={40}
+                  placeholder="예: 8년째 한 사람만 보는 PT"
+                />
+              </Field>
+            </Accordion>
+
+            <Accordion title="공간 장점">
+              <Field
+                label="이 공간만의 장점이 있다면 알려주세요"
+                hint="이 답변이 있으면 사진만으로는 안 전해지는 이 공간만의 장점이 문구로 살아나요."
+              >
+                <textarea
+                  value={atmosphereText}
+                  onChange={(e) => setAtmosphereText(e.target.value)}
+                  rows={2}
+                  placeholder="통유리라 낮 수업엔 자연광이 그대로 들어와요"
+                />
+              </Field>
+            </Accordion>
+
             {finalProfessionalsList.length > 0 && (
               <Accordion title="트레이너별 지도 철학">
                 {professionals.map((p, i) =>
@@ -1169,21 +1158,7 @@ export default function BoutiqueFitnessCreatePage() {
               </Accordion>
             )}
 
-            <Accordion title="공간에서 좋아하는 부분">
-              <Field
-                label="공간에서 손님들이 특히 좋아하는 부분이 있나요?"
-                hint="이 답변이 있으면 사진만으로는 안 전해지는 이 공간만의 느낌이 문구로 살아나요."
-              >
-                <textarea
-                  value={atmosphereText}
-                  onChange={(e) => setAtmosphereText(e.target.value)}
-                  rows={2}
-                  placeholder="통유리라 낮 수업엔 자연광이 그대로 들어와요"
-                />
-              </Field>
-            </Accordion>
-
-            <Accordion title="스튜디오를 열게 된 계기" hint="가장 손이 많이 가는 항목이라 마지막에">
+            <Accordion title="스튜디오를 열게 된 계기">
               <Field
                 label="이 스튜디오를 열게 된 계기가 있나요?"
                 hint="짧아도 좋아요. 이 답변은 눈에 띄는 문구로 따로 강조돼요(트레이너 개인 이야기 말고, 이 공간을 만들게 된 이유)."
@@ -1194,6 +1169,20 @@ export default function BoutiqueFitnessCreatePage() {
                   rows={2}
                   placeholder="기존 스튜디오들이 다 너무 좁고 시끄러워서, 직접 만들어보기로 했어요"
                 />
+              </Field>
+            </Accordion>
+
+            <Accordion title="사업자정보">
+              <Field label="사업자정보" hint="페이지 하단에 작게 표시돼요. 법적으로 필수는 아니지만, 있으면 신뢰도에 도움이 됩니다.">
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <input placeholder="등록 상호명" value={registeredName} onChange={(e) => setRegisteredName(e.target.value)} />
+                  <input placeholder="대표자명" value={ceoName} onChange={(e) => setCeoName(e.target.value)} />
+                  <input
+                    placeholder="사업자등록번호"
+                    value={registrationNumber}
+                    onChange={(e) => setRegistrationNumber(e.target.value)}
+                  />
+                </div>
               </Field>
             </Accordion>
           </div>

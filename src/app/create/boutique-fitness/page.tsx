@@ -53,7 +53,7 @@ const FAQ_CANDIDATES = ["주차 되나요?", "예약 필수인가요?", "반려�
  * 테스트 목적으로 감수).
  */
 
-const STEPS = ["기본 정보", "전문가 프로필", "프로그램·이용방법", "회원 변화·후기", "더 채우면 좋아요"];
+const STEPS = ["기본 정보", "프로그램·이용방법", "전문가 프로필", "회원 변화·후기", "더 채우면 좋아요"];
 const GATE5_STEP = 3;
 const GATE6_STEP = 4;
 
@@ -322,8 +322,8 @@ export default function BoutiqueFitnessCreatePage() {
         spacePhotos.length >= 1
       );
     }
-    if (step === 1) return professionals.some((p) => p.name.trim() !== "");
-    if (step === 2) return programs.some((p) => p.name.trim() !== "");
+    if (step === 1) return programs.some((p) => p.name.trim() !== "");
+    if (step === 2) return professionals.some((p) => p.name.trim() !== "");
     return true;
   }
 
@@ -764,6 +764,56 @@ export default function BoutiqueFitnessCreatePage() {
       )}
 
       {step === 1 && (
+        <Section title="프로그램·이용방법" meta="예상 소요시간 약 30초~1분">
+          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
+            {programs.map((p, i) => (
+              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
+                    value={p.name}
+                    onChange={(e) => updateProgram(i, { name: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  {programs.length > 1 && (
+                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
+                      삭제
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    placeholder="가격"
+                    value={p.price}
+                    disabled={p.consult}
+                    onChange={(e) => updateProgram(i, { price: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
+                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
+                    상담 후 안내
+                  </label>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
+              style={{ fontSize: 13 }}
+            >
+              + 프로그램 추가
+            </button>
+          </fieldset>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
+            무료 체험이나 1회 체험 프로그램이 있어요
+          </label>
+        </Section>
+      )}
+
+      {step === 2 && (
         <Section title="전문가 프로필 (필수)" meta="예상 소요시간 트레이너 1인당 약 30초~1분">
           <p style={{ fontSize: 13, color: "#666", margin: "-8px 0 0" }}>
             이 정보가 홈페이지의 핵심이에요. 손님들은 &quot;어떤 공간인가&quot;보다 &quot;누구에게 배우는가&quot;를 더 궁금해합니다.
@@ -819,56 +869,6 @@ export default function BoutiqueFitnessCreatePage() {
           >
             + 트레이너 추가
           </button>
-        </Section>
-      )}
-
-      {step === 2 && (
-        <Section title="프로그램·이용방법" meta="예상 소요시간 약 30초~1분">
-          <fieldset style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <legend style={{ fontSize: 13, fontWeight: 700 }}>대표 프로그램</legend>
-            {programs.map((p, i) => (
-              <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    placeholder="이름 (예: 1:1 PT 1회, 그룹 필라테스 8주 과정)"
-                    value={p.name}
-                    onChange={(e) => updateProgram(i, { name: e.target.value })}
-                    style={{ flex: 1 }}
-                  />
-                  {programs.length > 1 && (
-                    <button type="button" onClick={() => removeProgram(i)} className="flex-none text-[13px] text-cp-muted">
-                      삭제
-                    </button>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    placeholder="가격"
-                    value={p.price}
-                    disabled={p.consult}
-                    onChange={(e) => updateProgram(i, { price: e.target.value })}
-                    style={{ flex: 1 }}
-                  />
-                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, whiteSpace: "nowrap" }}>
-                    <input type="checkbox" checked={p.consult} onChange={(e) => updateProgram(i, { consult: e.target.checked })} />
-                    상담 후 안내
-                  </label>
-                </div>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPrograms((prev) => [...prev, { name: "", price: "", consult: true }])}
-              style={{ fontSize: 13 }}
-            >
-              + 프로그램 추가
-            </button>
-          </fieldset>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-            <input type="checkbox" checked={freeTrialAvailable} onChange={(e) => setFreeTrialAvailable(e.target.checked)} />
-            무료 체험이나 1회 체험 프로그램이 있어요
-          </label>
         </Section>
       )}
 

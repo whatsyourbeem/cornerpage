@@ -51,7 +51,6 @@ tokens:
     card-evidence:     { type: card, bg: "#FAF8F5", border: "1px solid #E3DED4", radius: 24, padding: "24px", use: "비포애프터·리뷰 카드" }
     card-professional: { type: card, bg: "#FFFFFF", border: "1px solid #E3DED4", radius: 24, padding: "24px", use: "전문가 프로필 카드" }
     facility-item:     { type: list-item, icon_color: "#1F3A35", label_font: "15px/400", use: "시설 스펙 아이콘+라벨 행" }
-    before-after-slider: { type: interactive, handle_color: "#E8663D", transition: "150ms ease-out", use: "비포/애프터 드래그 비교 — 이 vertical의 시그니처 인터랙션" }
     inquiry-dialog:    { type: modal, bg: "#FFFFFF", radius: 24, padding: "24px", overlay: "rgba(18,33,29,0.5)", use: "topbar·hero·하단 FAB의 cta_label 버튼 클릭 시 열리는 채널 목록 다이얼로그(2026-07-17 신규)" }
     fab-button:        { type: button, shape: pill, bg: "#E8663D", fg: "#FFFFFF", shadow: floating, position: "fixed bottom-right", use: "하단 CTA(2026-07-17, 바에서 플로팅 버튼으로 전환) — 히어로 통과 후 페이드인 등장" }
     channel-button:    { type: button, bg: "#FAF8F5", border: "1px solid #E3DED4", radius: 12, padding: "14px 16px", font: "16px/600", icon_color: "#1F3A35", use: "다이얼로그 안의 개별 채널 버튼(전화·카카오톡 등), 히어로의 browse_channels 버튼도 동일 스타일 재사용" }
@@ -114,9 +113,11 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 
 ### 4-1. 신규 블록 컴포넌트 (이 vertical 전용)
 
-**비포/애프터 슬라이더 (`transformations`) — 시그니처 컴포넌트**
-- 좌우 드래그(모바일은 터치 드래그) 방식으로 전/후 사진을 비교
-- 핸들 색상: `--accent`, 트랜지션 150ms ease-out
+**비포/애프터 사진 (`transformations`)**
+- 사장님이 이미 하나로 합쳐서 만들어둔 완성된 비포/애프터 사진 한 장을 그대로 노출(2026-08: 좌우 드래그 슬라이더 폐기 — 사진 안에 라벨·주석이 이미 박혀 있는 완성 콘텐츠라 슬라이더로 자를 수 없고, 실사용상 사장님 대부분이 원본 두 장이 아니라 이 합쳐진 한 장만 제공)
+- **레이아웃은 2열 그리드가 아니라 `reviews`와 같은 1열 고정**(2026-08 변경). 실제 업로드되는 합성 이미지는 전신 인물 사진 두 장을 나란히 붙인 형태라 세로가 긴 경우가 흔하고, 스튜디오마다 비율이 제각각이다 — 2열 그리드로 옆 카드와 높이를 맞추려면 특정 박스 비율을 강제하고 `contain`으로 크롭 없이 우겨넣어야 하는데, 그러면 대부분의 경우 카드 절반 가까이가 빈 여백이 된다. 1열이면 그 제약 자체가 없다.
+- **이미지는 강제 비율 없이 원본 비율 그대로**(`width: 100%; height: auto`). 다만 극단적으로 긴 사진에 대한 안전장치로 `max-height`를 두고, 그 한도 안에서만 `object-fit: contain`(크롭 금지 — 상단 라벨·눈금자 텍스트가 잘리면 안 됨)
+- **설명(`description`, 선택)이 있으면 캡션 아래에 별도 문단으로 추가** — 핵심 수치·기간·회원명 캡션과는 시각적으로 구분(예: 한 톤 연한 `body-15`, 캡션과 8px 이상 간격). 없으면 그 문단 자체를 렌더링하지 않는다(빈 공간 남기지 않기)
 - 핵심 수치(예: "−8kg", "12주")는 `--accent` 색으로 강조, `body-17/600`
 - 캡션: `caption-13`, `--ink-muted` — "OOO님 · 12주 변화" 형식, 담당 전문가 태그는 선택적으로 작은 `tag-cert` 스타일로 병기
 - 카드: `card-evidence` 스타일(배경 `--paper`, 테두리 1px `--border`, radius 24px, padding 24px)
@@ -186,13 +187,13 @@ Pretendard Variable 단독 사용(폴백 체인은 general과 동일). 이탤릭
 
 - **Level 0 — 페이지 배경**: `--paper`, 그림자 없음
 - **Level 1 — 기본 카드**: `#FFFFFF` 또는 `--paper` + 1px `--border` — 그림자 대신 테두리로 구분(닥터나우와 동일한 절제 원칙)
-- **Level 2 — 플로팅 요소(비포애프터 슬라이더 핸들, 버튼 hover)**: `shadow.floating`
+- **Level 2 — 플로팅 요소(버튼 hover 등)**: `shadow.floating`
 - **Level 3 — 플로팅 액션 버튼(FAB)**: `shadow.floating`(사방으로 — 2026-07-17 이전엔 화면 폭 전체 바였어서 `shadow.sticky`를 썼으나, FAB로 바뀌며 일반 플로팅 요소와 동일한 그림자 방향으로 통일)
 - **Level 4 — 모달/드롭다운(있다면)**: `shadow.modal`
 
 ## 7. Motion & Interaction
 
-- **비포/애프터 슬라이더**: 드래그 시 150ms ease-out 추종. 자동재생 없음(사용자가 직접 조작해야 발견의 재미가 생김).
+- **비포/애프터 사진**: 정적 이미지, 별도 모션 없음(2026-08: 드래그 슬라이더 폐기).
 - **신뢰 스트립 숫자**: 뷰포트 진입 시 1회 카운트업(800ms).
 - **카드 등장**: 스크롤 트리거 페이드업(20px 이동, 300ms), 리뷰처럼 여러 개면 80ms 간격 순차 등장.
 - **금지**: 바운스, 패럴랙스, 자동 슬라이드. 이 vertical은 "차분한 확신"이 핵심이라 장식적 모션이 오히려 신뢰를 깎는다.

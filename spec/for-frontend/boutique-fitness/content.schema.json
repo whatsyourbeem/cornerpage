@@ -896,20 +896,16 @@
     "TransformationItem": {
       "type": "object",
       "required": [
-        "before_image_url",
-        "after_image_url",
+        "before_after_image_url",
         "duration_label",
         "result_highlight",
         "member_label",
-        "trainer_tag"
+        "trainer_tag",
+        "description"
       ],
       "additionalProperties": false,
       "properties": {
-        "before_image_url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "after_image_url": {
+        "before_after_image_url": {
           "type": "string",
           "format": "uri"
         },
@@ -926,6 +922,12 @@
           "minLength": 1
         },
         "trainer_tag": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
           "type": [
             "string",
             "null"

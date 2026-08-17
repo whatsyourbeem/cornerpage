@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ClipboardList, ImagePlus, Sparkles } from "lucide-react";
+import { ClipboardList, ImagePlus, Sparkles, RefreshCw, Lock } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { MarketingButton, Panel } from "@/components/ui";
+import { Badge, MarketingButton, Panel } from "@/components/ui";
 
 /**
  * 마케팅 서피스(docs/DESIGN.md toss.im 서피스 기준). CTA는 전부
@@ -97,6 +97,38 @@ export default async function Home() {
             <p>✓ 약 3분이면 충분해요</p>
             <p>✓ 대표 사진 몇 장</p>
             <p>✓ 가게 이름·주소·전화번호·영업시간</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto max-w-3xl px-5 py-16 sm:py-20">
+          <h2 className="text-cp-h3 font-bold text-cp-fg">주소를 원하는대로 고정하고 싶다면</h2>
+          <p className="mt-2 text-[14px] text-cp-body">
+            무료 플랜은 보안을 위해 주소가 매주 자동으로 랜덤하게 바뀌어요. 인스타 프로필이나 네이버
+            링크에 걸어두려면 안 바뀌는 주소가 필요하겠죠 — 구독하시면 원하는 주소로 고정할 수 있어요.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <Panel tone="outline" className="flex flex-col gap-3">
+              <RefreshCw className="h-6 w-6 text-cp-muted" aria-hidden />
+              <p className="text-[15px] font-bold text-cp-fg">무료</p>
+              <p className="text-[13px] text-cp-body">
+                지금처럼 무료로 이용해요. 주소는 매주 자동으로 새 값으로 바뀌어요.
+              </p>
+            </Panel>
+            <Panel tone="outline" className="flex flex-col gap-3 border-cp-primary">
+              <div className="flex items-center justify-between">
+                <Lock className="h-6 w-6 text-cp-primary" aria-hidden />
+                <Badge tone="primary" variant="weak">
+                  출시 예정
+                </Badge>
+              </div>
+              <p className="text-[15px] font-bold text-cp-fg">구독</p>
+              <p className="text-[13px] text-cp-body">
+                원하는 주소로 자유롭게 고정해요. 한 번 정하면 인스타바이오·네이버링크에 안심하고 연결할
+                수 있어요.
+              </p>
+            </Panel>
           </div>
         </div>
       </section>

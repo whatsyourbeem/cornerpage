@@ -80,14 +80,16 @@ npx tsx scripts/prospect-discovery/discover.ts "매탄동 필라테스"
       ↓
 [3] link 필드가 blog.naver.com인 업체만 필터링 (인스타/유튜브/자체사이트 등은 제외)
       ↓
-[4] 블로그 글 목록 조회 (최근 것부터 최대 60개)
+[4] 블로그 글 목록 조회 (최근 것부터 최대 100개)
       ↓
 [5] 글이 5개 미만 → "부적합"으로 보고 본문 크롤링 생략 (비용 절약)
-    글이 5개 이상 → "적합"으로 보고 목록에 있는 글 전부(최대 60개) 본문 크롤링
+    글이 5개 이상 → "적합"으로 보고 목록에 있는 글 전부(최대 100개) 본문 크롤링
       ↓
 [6] Claude가 크롤링한 전체 텍스트를 읽고 input-questions.md 항목별 답을 JSON으로 추출
       ↓
-[7] 마크다운 리포트로 조립해 콘솔 출력 + output/ 저장
+[7] 수집한 이미지 URL을 Claude Vision에 보내 로고/공간사진/트레이너사진/기타로 분류
+      ↓
+[8] 마크다운 리포트로 조립해 콘솔 출력 + output/ 저장
 ```
 
 ### 왜 블로그 링크만 고르는가
@@ -101,8 +103,8 @@ npx tsx scripts/prospect-discovery/discover.ts "매탄동 필라테스"
 
 `MIN_POSTS_FOR_ELIGIBLE = 5` ([discover.ts](discover.ts)). **이건 읽는 글 개수의 상한이 아니라
 최소 기준선입니다.** 글이 5개 미만이면 판단 재료 자체가 부족하다고 보고 크롤링을 생략합니다.
-5개 이상이면 그 블로그에 있는 글을 **전부**(단, 목록 조회 자체를 최근 60개로 제한하므로 최대
-60개까지) 읽습니다. 실제로 글이 딱 5개인 작은 블로그를 심사하면 "5/5개 읽음"으로 나올 수
+5개 이상이면 그 블로그에 있는 글을 **전부**(단, 목록 조회 자체를 최근 100개로 제한하므로 최대
+100개까지) 읽습니다. 실제로 글이 딱 5개인 작은 블로그를 심사하면 "5/5개 읽음"으로 나올 수
 있는데, 이건 5개만 읽고 멈춘 게 아니라 그 블로그에 진짜 5개밖에 없기 때문입니다.
 
 이 기준은 이전 버전(6개 필수 항목이 전부 있어야 통과하는 게이트 방식)에서 사용자 지시로
@@ -110,7 +112,11 @@ npx tsx scripts/prospect-discovery/discover.ts "매탄동 필라테스"
 가정입니다. 필수 항목이 비어 있어도 부적합 처리하지 않고, 대신 부족한 항목은 리포트의
 "못 채운 항목"에 기록해서 사람이 나중에 직접 물어보게 합니다.
 
-60이라는 목록 조회 상한(`POST_LIST_FETCH_COUNT`)은 임의로 정한 값입니다 — 글이 아주 많은
+100이라는 목록 조회 상한(`POST_LIST_FETCH_COUNT`, 60에서 100으로 상향— 더 꼼꼼히 살펴봐야
+한다는 사용자 지시)은 여전히 임의로 정한 값입니다 — 이 값을 훨씬 넘는(수백 개 이상) 초대형
+블로그에서 `PostTitleListAsync.naver`가 실제로 상한 없이 다 돌려주는지는 검증 못 했습니다
+(테스트한 실제 부티크 피트니스 블로그들은 전부 글이 5개뿐이라 큰 값을 넣어도 항상 실제
+개수만 돌아옴 — `countPerPage=200`으로 실측해도 에러 없이 정상 동작하는 것만 확인). 글이 아주 많은
 블로그를 더 깊이 읽고 싶으면 이 상수를 올리면 됩니다(크롤링 시간이 그만큼 늘어남).
 
 ---
@@ -122,7 +128,10 @@ npx tsx scripts/prospect-discovery/discover.ts "매탄동 필라테스"
 1. **적합 — 입력 폼 초안**: 업체별로 `spec/for-frontend/boutique-fitness/input-questions.md`의
    STEP 2~6 항목을 채운 결과. 정보가 없는 항목은 "❌ 정보없음"으로 표시하고, 리포트 하단
    "못 채운 항목"에 다시 한번 정리해서 사람이 데모 제작 전 뭘 직접 물어봐야 하는지 한눈에
-   보이게 합니다.
+   보이게 합니다. STEP 2 다음에 **"이미지 후보"** 섹션이 따로 있는데, 크롤링한 블로그 글의
+   이미지 전부를 Claude Vision이 실제로 보고 로고/공간사진/트레이너사진/기타로 분류한
+   결과입니다(6-3절 참고) — 이미지 자체는 다운로드하지 않고 원본 URL만 나열하므로, 데모
+   페이지 제작 시 사람이 URL을 열어서 직접 다운로드해야 합니다.
 2. **부적합 (글 5개 미만)**: 업체명·주소·블로그 URL·실제 글 개수만 간단히 기록.
 3. **처리 실패**: 크롤링/API 오류로 판단 자체를 못 한 업체와 실패 사유.
 4. **제외됨 (블로그 링크 아님)**: 대표 링크가 인스타/유튜브/자체사이트 등이라 애초에 대상에서
@@ -181,13 +190,32 @@ Params:
 
 ```
 GET https://blog.naver.com/PostTitleListAsync.naver
-    ?blogId={blogId}&viewdate=&currentPage=1&categoryNo=&parentCategoryNo=&countPerPage={N}
+    ?blogId={blogId}&viewdate=&currentPage={page}&categoryNo=&parentCategoryNo=&countPerPage={N}
 ```
 
-**함정**: 이 응답의 `pagingHtml` 필드가 작은따옴표를 `\'`로 이스케이프해서 내려오는데, 이건
+**함정 1**: 이 응답의 `pagingHtml` 필드가 작은따옴표를 `\'`로 이스케이프해서 내려오는데, 이건
 유효한 JSON escape가 아닙니다(JSON은 `\"`만 허용, `\'`는 안 됨). `res.json()`이나 그냥
-`JSON.parse`를 쓰면 `Bad escaped character in JSON` 에러로 100% 실패합니다. `fetchRecentPostList()`가
-`.replace(/\\'/g, "'")`로 먼저 치환한 뒤 파싱합니다.
+`JSON.parse`를 쓰면 `Bad escaped character in JSON` 에러로 100% 실패합니다.
+`fetchPostListPage()`가 `.replace(/\\'/g, "'")`로 먼저 치환한 뒤 파싱합니다.
+
+**함정 2 (훨씬 치명적이었음)**: `countPerPage`를 아무리 크게 보내도(100, 200 등) **서버가
+조용히 5로 고정**합니다 — 응답의 `parameters.countPerPage`를 까보면 항상 `"5"`로 찍혀 있고,
+`postList`도 정확히 5개만 옵니다. 에러도 안 나고 `resultCode: "S"`(성공)로 응답하기 때문에
+겉보기엔 요청이 잘 처리된 것처럼 보입니다. **이것 때문에 실제로 사고가 났습니다**: 처음엔
+"이 블로그들은 진짜 글이 5개뿐이구나"라고 잘못 결론 내렸는데, 사용자가 "그 블로그 글 149개인데?"
+라고 지적해서 뒤늦게 발견했습니다 — `totalCount` 필드(응답에 존재하며 실제 총 글 수를 정확히
+줌, 실측으로 149/247/24 등 확인)를 안 보고 `postList.length`만 신뢰한 게 원인이었습니다.
+
+**교훈**: 이런 종류의 스크래핑 대상 API에서 개수 관련 파라미터는 **요청값과 응답의 `parameters`
+echo 필드가 실제로 일치하는지, 그리고 별도 total 필드가 있다면 그것과 대조해서** 확인해야
+합니다 — `resultCode: "S"`만 보고 "정상 응답이니 요청대로 처리됐겠지"라고 넘겨짚으면 안 됩니다.
+
+**해결**: `countPerPage`로 한 번에 많이 받는 걸 포기하고, `currentPage`로 페이지네이션합니다
+— 이건 정상 동작합니다(각 페이지가 서로 다른 5개를 정확히 줌, 실측 확인). `fetchRecentPostList()`가
+`currentPage=1,2,3...`을 돌며 `POST_LIST_FETCH_COUNT`개(현재 100)를 모을 때까지, 또는
+`totalCount`에 도달할 때까지 반복합니다. 적합/부적합 판정(총 글 5개 이상인지)은 **첫 페이지의
+`totalCount`만으로 즉시 결정**하고(`main()`의 `firstPage` 처리), 부적합이면 나머지 페이지를
+안 가져와서 낭비를 줄입니다.
 
 RSS(`https://rss.blog.naver.com/{blogId}.xml`)도 동작하지만 본문이 잘린 요약만 주기 때문에
 목록 조회 용도로는 안 씁니다.
@@ -200,13 +228,39 @@ GET https://m.blog.naver.com/{blogId}/{logNo}
 
 본문은 `<div class="se-main-container">` (네이버 스마트에디터 wrapper) 안에 있습니다.
 정규식으로 자르면 중첩된 `</div>`에서 깨지므로, `extractMainContainer()`가 **태그 개수를
-세어가며 균형 매칭**으로 정확히 잘라냅니다. 그 안의 `<img>` 개수를 세어 "공간 사진 있을
-가능성" 판단의 약한 신호로 Claude에게 같이 줍니다(실제 이미지 분석은 안 함 — vision 미사용,
-텍스트 문맥 + 이미지 개수만으로 추정).
+세어가며 균형 매칭**으로 정확히 잘라냅니다.
 
 User-Agent를 모바일로 위장해야 합니다(`UA` 상수) — 데스크톱 UA로는 리다이렉트/다른 레이아웃이
 나올 수 있습니다. 요청 간 1.5초 딜레이(`CRAWL_DELAY_MS`)를 반드시 유지하세요 — 연속 요청 시
 차단될 수 있습니다.
+
+### 6-3-1. 이미지 URL 추출 + Claude Vision 분류
+
+본문 안의 `<img>` 태그에서 진짜 이미지 URL을 뽑는 게 생각보다 까다롭습니다:
+
+- **함정**: `src` 속성은 지연로딩용 블러 플레이스홀더(`?type=w80_blur`)라 항상 흐릿한
+  썸네일입니다. **진짜 이미지는 `data-lazy-src` 속성에 있습니다**(실측 확인, `?type=w400`
+  또는 `w800` 사이즈). `extractImages()`가 `data-lazy-src`를 우선 쓰고 없으면 `src`로
+  폴백합니다.
+- **함정**: `class="se-sticker-image"`가 붙은 `<img>`는 네이버 블로그 이모티콘 스티커입니다
+  (`storep-phinf.pstatic.net` 호스팅) — 실제 사진이 아니므로 제외해야 합니다.
+
+수집한 이미지 URL(업체당 최대 `MAX_IMAGES_FOR_VISION`개, 현재 24)을 Claude Vision에 보내
+로고/공간사진(space)/트레이너사진(trainer)/기타(other)/제외(exclude) 5개 카테고리로
+분류시킵니다(`classifyImages()`). input-questions.md STEP 2(로고·공간사진·기타사진)와
+STEP 4(트레이너 개인사진)가 요구하는 카테고리와 맞춰져 있습니다.
+
+**함정**: Claude API의 URL 소스 이미지 블록(`source.type: "url"`)에 pstatic.net URL을 그대로
+넘기면 **"Unable to download the file. Please verify the URL and try again."로 100% 실패**합니다
+(실측 확인 — 같은 URL을 우리 쪽에서 `curl`로 요청하면 헤더 없이도 200이 오는 걸 보면 Anthropic
+서버 쪽 다운로더가 이 호스트를 못 받아오는 것으로 보입니다. Referer/UA 문제는 아닌 것으로
+확인됨). 그래서 이미지를 **우리가 직접 다운로드해서 base64로 인코딩**해 보냅니다
+(`fetchImageAsBase64()`, `source.type: "base64"`). 이미지 자체는 메모리에서만 다루고 디스크에
+저장하지 않습니다.
+
+이미지는 다운로드 자체는 하지만(vision 분류를 위해 base64로 변환) **원본을 파일로 저장하지도,
+리포트에 임베드하지도 않습니다** — 리포트에는 분류 결과와 함께 원본 URL만 남습니다. 데모 페이지
+제작 시 사람이 그 URL을 열어서 다운로드하면 됩니다.
 
 ### 6-4. Claude 추출이 가끔 깨진 JSON을 줌
 
@@ -247,6 +301,9 @@ User-Agent를 모바일로 위장해야 합니다(`UA` 상수) — 데스크톱 
 - **`general` vertical 지원 추가**: 지금은 `EXTRACTION_SYSTEM_PROMPT`가 `boutique-fitness`
   전용으로 하드코딩돼 있습니다. 다른 업종을 다루려면 `spec/for-frontend/general/input-questions.md`
   기준으로 별도 프롬프트/스키마를 만들어야 합니다.
-- **목록 조회 상한(60) 조정**: `POST_LIST_FETCH_COUNT` 상수. 글이 많은 블로그를 더 깊이 읽고
+- **목록 조회 상한(100) 조정**: `POST_LIST_FETCH_COUNT` 상수. 글이 많은 블로그를 더 깊이 읽고
   싶으면 올리세요 — 크롤링 시간이 비례해서 늘어납니다.
 - **적합 기준(5개) 조정**: `MIN_POSTS_FOR_ELIGIBLE` 상수.
+- **이미지 분류 상한(24장) 조정**: `MAX_IMAGES_FOR_VISION` 상수. 업체당 이미지가 아주 많으면
+  일부만 분류됩니다(최근 글부터 순서대로 담은 목록의 앞부분만 사용) — 올리면 Vision 호출
+  비용·시간이 늘어납니다.

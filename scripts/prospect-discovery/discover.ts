@@ -7,10 +7,12 @@
  * 흐름: 네이버 지역검색(NAVER API HUB) → blog.naver.com 링크만 필터 →
  * 블로그 글이 5개 이상이면 "적합"으로 보고 모든 글을 크롤링 →
  * Claude로 boutique-fitness 입력폼(input-questions.md) 각 항목의 답을 채움 →
+ * 첨부 이미지는 Claude Vision으로 로고/공간사진/트레이너사진/기타 분류 →
  * 결과를 scripts/prospect-discovery/output/에 마크다운으로 저장.
  *
  * 글이 5개 미만인 블로그는 "부적합"으로 보고 본문 크롤링을 건너뛴다(비용 절약).
- * 크롤링 원문 텍스트는 파일로 저장하지 않는다 — Claude 판단에 쓰고 버린다.
+ * 크롤링 원문 텍스트·이미지 파일은 저장하지 않는다 — Claude 판단에 쓰고 버린다.
+ * 리포트에는 이미지 분류 결과와 원본 URL만 남는다(다운로드는 사람이 직접).
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -144,14 +146,23 @@ interface BlogPostMeta {
 
 // "샅샅이" 기준으로 최근 글을 최대한 많이 가져오되, 무한정 읽지는 않는다 —
 // 이 개수를 넘는 블로그는 최근 것부터 이 개수만큼만 대상으로 삼는다.
-const POST_LIST_FETCH_COUNT = 60;
+const POST_LIST_FETCH_COUNT = 100;
 // 사용자 지시: 글이 이 개수 이상이면 판단 재료가 충분하다고 보고 "적합"으로 취급한다.
 const MIN_POSTS_FOR_ELIGIBLE = 5;
+// PostTitleListAsync.naver는 countPerPage를 몇으로 보내든 서버가 5로 강제 고정한다
+// (실측 확인 — 응답 parameters.countPerPage가 항상 "5"). 그래서 목록을 여러 개
+// 원하면 countPerPage를 올리는 게 아니라 currentPage로 페이지네이션해야 한다.
+const POST_LIST_PAGE_SIZE = 5;
 
-async function fetchRecentPostList(blogId: string, count = POST_LIST_FETCH_COUNT): Promise<BlogPostMeta[]> {
+interface PostListPage {
+  posts: BlogPostMeta[];
+  totalCount: number;
+}
+
+async function fetchPostListPage(blogId: string, page: number): Promise<PostListPage> {
   const url = `https://blog.naver.com/PostTitleListAsync.naver?blogId=${encodeURIComponent(
     blogId
-  )}&viewdate=&currentPage=1&categoryNo=&parentCategoryNo=&countPerPage=${count}`;
+  )}&viewdate=&currentPage=${page}&categoryNo=&parentCategoryNo=&countPerPage=${POST_LIST_PAGE_SIZE}`;
   const res = await fetch(url, { headers: { "User-Agent": UA } });
   if (!res.ok) throw new Error(`글 목록 조회 실패 (${res.status})`);
   // 응답의 pagingHtml 필드가 작은따옴표를 JS 스타일로 \'  이스케이프해서 내려오는데,
@@ -159,21 +170,45 @@ async function fetchRecentPostList(blogId: string, count = POST_LIST_FETCH_COUNT
   const rawText = (await res.text()).replace(/\\'/g, "'");
   const json = JSON.parse(rawText) as {
     resultCode: string;
+    totalCount: number;
     postList: { logNo: string; title: string; addDate: string }[];
   };
   if (json.resultCode !== "S") throw new Error(`글 목록 조회 실패: resultCode=${json.resultCode}`);
-  return json.postList.map((p) => ({
-    logNo: p.logNo,
-    title: decodeURIComponent(p.title.replace(/\+/g, " ")),
-    addDate: p.addDate,
-  }));
+  return {
+    totalCount: json.totalCount,
+    posts: json.postList.map((p) => ({
+      logNo: p.logNo,
+      title: decodeURIComponent(p.title.replace(/\+/g, " ")),
+      addDate: p.addDate,
+    })),
+  };
+}
+
+/** currentPage로 페이지네이션하며 최대 maxCount개까지(또는 블로그에 있는 만큼) 모은다. */
+async function fetchRecentPostList(
+  blogId: string,
+  maxCount = POST_LIST_FETCH_COUNT
+): Promise<{ posts: BlogPostMeta[]; totalCount: number }> {
+  const posts: BlogPostMeta[] = [];
+  let totalCount = 0;
+  let page = 1;
+  while (posts.length < maxCount) {
+    const result = await fetchPostListPage(blogId, page);
+    totalCount = result.totalCount;
+    if (result.posts.length === 0) break; // 더 이상 페이지 없음
+    posts.push(...result.posts);
+    if (posts.length >= totalCount) break; // 블로그의 전체 글을 이미 다 모음
+    page++;
+    await sleep(CRAWL_DELAY_MS);
+  }
+  return { posts: posts.slice(0, maxCount), totalCount };
 }
 
 interface CrawledPost {
   title: string;
   addDate: string;
   text: string;
-  imageCount: number;
+  images: string[];
 }
 
 /** se-main-container(스마트에디터 본문 wrapper)를 태그 균형 매칭으로 잘라낸다. */
@@ -196,15 +231,36 @@ function extractMainContainer(html: string): string | null {
   return html.slice(start);
 }
 
-async function fetchPostText(blogId: string, logNo: string): Promise<{ text: string; imageCount: number } | null> {
+/**
+ * 본문 이미지의 실제 URL을 뽑는다. `src`는 지연로딩용 블러 플레이스홀더
+ * (`?type=w80_blur`)라 항상 비어보이고, 진짜 이미지는 `data-lazy-src`에 있다
+ * (실측 확인). `class="se-sticker-image"`(이모티콘 스티커, storep-phinf.pstatic.net
+ * 호스팅)는 실제 사진이 아니므로 제외한다.
+ */
+function extractImages(container: string): string[] {
+  const urls: string[] = [];
+  const imgRe = /<img\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = imgRe.exec(container))) {
+    const tag = match[0];
+    if (/class="[^"]*se-sticker-image[^"]*"/.test(tag)) continue;
+    const lazySrc = tag.match(/data-lazy-src="([^"]+)"/)?.[1];
+    const src = tag.match(/(?<!data-lazy-)src="([^"]+)"/)?.[1];
+    const url = lazySrc || src;
+    if (!url || url.includes("storep-phinf.pstatic.net")) continue;
+    urls.push(decodeHtmlEntities(url));
+  }
+  return [...new Set(urls)];
+}
+
+async function fetchPostText(blogId: string, logNo: string): Promise<{ text: string; images: string[] } | null> {
   const url = `https://m.blog.naver.com/${encodeURIComponent(blogId)}/${encodeURIComponent(logNo)}`;
   const res = await fetch(url, { headers: { "User-Agent": UA } });
   if (!res.ok) return null;
   const html = await res.text();
   const container = extractMainContainer(html);
   if (!container) return null;
-  const imageCount = (container.match(/<img\b/gi) || []).length;
-  return { text: stripTags(container), imageCount };
+  return { text: stripTags(container), images: extractImages(container) };
 }
 
 /** 적합 판정된 블로그의 글을 전부(postList에 담긴 만큼) 읽는다 — 조기 종료 없음. */
@@ -214,7 +270,7 @@ async function crawlAllPosts(blogId: string, postList: BlogPostMeta[]): Promise<
     await sleep(CRAWL_DELAY_MS);
     const fetched = await fetchPostText(blogId, meta.logNo);
     if (!fetched) continue;
-    posts.push({ title: meta.title, addDate: meta.addDate, text: fetched.text, imageCount: fetched.imageCount });
+    posts.push({ title: meta.title, addDate: meta.addDate, text: fetched.text, images: fetched.images });
   }
   return posts;
 }
@@ -329,7 +385,7 @@ const MAX_JSON_REPAIR_ATTEMPTS = 2;
 /** src/lib/generate-content.ts의 repair loop과 같은 패턴: 파싱 실패 시 오류를 알려주고 재요청. */
 async function extractDraftAnswers(businessName: string, posts: CrawledPost[]): Promise<DraftAnswers> {
   const corpus = posts
-    .map((p) => `### ${p.title} (${p.addDate}, 첨부 이미지 ${p.imageCount}장)\n${p.text}`)
+    .map((p) => `### ${p.title} (${p.addDate}, 첨부 이미지 ${p.images.length}장)\n${p.text}`)
     .join("\n\n---\n\n");
 
   const messages: Anthropic.MessageParam[] = [
@@ -365,6 +421,102 @@ async function extractDraftAnswers(businessName: string, posts: CrawledPost[]): 
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
+// ── 3-2. Claude Vision으로 이미지 분류 (로고/공간사진/트레이너사진/기타) ──
+// input-questions.md STEP 2(로고·공간사진·기타사진)와 STEP 4(트레이너 사진)가
+// 요구하는 이미지 카테고리. 텍스트만으로는 사진 존재 여부를 추정할 수밖에
+// 없었는데(공간 사진 문맥 판단), 이제 실제 이미지 URL을 Claude Vision에 보내
+// 직접 분류한다. 이미지 자체는 다운로드/저장하지 않고 원본 URL만 참조한다.
+const MAX_IMAGES_FOR_VISION = 24; // 비용·시간 상한 — 넘으면 최근 글 순으로 앞에서부터만 사용
+
+interface ImageClassification {
+  logo: string[];
+  space: string[];
+  trainer: string[];
+  other: string[];
+}
+
+const IMAGE_CLASSIFY_SYSTEM_PROMPT = `너는 코너페이지(소상공인 미니 홈페이지 자동생성 서비스)의 영업 리서처다.
+아래 이미지들은 boutique-fitness(PT·필라테스·요가 스튜디오) 업체의 네이버 블로그에서 수집한 사진이다.
+입력 폼이 요구하는 카테고리로 각 이미지를 분류해라:
+- logo: 업체 로고/워드마크/브랜드 마크 이미지
+- space: 스튜디오 내부·외부 공간을 보여주는 사진(인테리어, 기구, 외관, 시설)
+- trainer: 트레이너·강사 개인 인물 사진(얼굴이 나오는 프로필용 사진)
+- other: 위에 안 맞지만 업체 소개에 쓸만한 사진(수업 현장, 회원, 이벤트 등)
+- exclude: 배너/이벤트 포스터/표·차트/음식/무관한 사진 등 부적합한 것
+
+이미지는 순서대로 번호가 매겨져 있다(1번부터). JSON 배열로만 답해라, 다른 텍스트 금지:
+[{"index": 1, "category": "space"}, {"index": 2, "category": "exclude"}, ...]
+모든 이미지에 대해 하나씩 빠짐없이 분류해라.`;
+
+const IMAGE_MEDIA_TYPES: Record<string, "image/jpeg" | "image/png" | "image/gif" | "image/webp"> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+};
+
+/**
+ * Claude API의 URL 소스 이미지 블록(`source.type: "url"`)에 pstatic.net 이미지를
+ * 넘기면 "Unable to download the file"로 매번 실패한다(실측 확인 — 우리 쪽
+ * curl로는 헤더 없이도 200이 오는 걸로 봐서 Anthropic 서버 쪽 다운로더가 이
+ * 호스트를 못 받아오는 것으로 보임). 그래서 이미지를 직접 받아 base64로
+ * 인코딩해 보낸다.
+ */
+async function fetchImageAsBase64(
+  url: string
+): Promise<{ media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; data: string } | null> {
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    if (!res.ok) return null;
+    const ext = url.split("?")[0].split(".").pop()?.toLowerCase() ?? "";
+    const media_type = IMAGE_MEDIA_TYPES[ext] ?? "image/jpeg";
+    const buffer = Buffer.from(await res.arrayBuffer());
+    return { media_type, data: buffer.toString("base64") };
+  } catch {
+    return null;
+  }
+}
+
+async function classifyImages(businessName: string, imageUrls: string[]): Promise<ImageClassification> {
+  const candidates = imageUrls.slice(0, MAX_IMAGES_FOR_VISION);
+  const content: Anthropic.ContentBlockParam[] = [{ type: "text", text: `업체명: ${businessName}` }];
+  // capped: 다운로드에 실패한 이미지는 건너뛰므로, content에 실제로 실린 순서와
+  // 번호가 capped 배열의 인덱스와 1:1로 대응하도록 성공한 것만 모은다.
+  const capped: string[] = [];
+  for (const url of candidates) {
+    const image = await fetchImageAsBase64(url);
+    if (!image) continue;
+    capped.push(url);
+    content.push({ type: "text", text: `이미지 ${capped.length}:` });
+    content.push({ type: "image", source: { type: "base64", ...image } });
+  }
+  if (capped.length === 0) return { logo: [], space: [], trainer: [], other: [] };
+  content.push({ type: "text", text: "위 이미지 전부를 분류해라." });
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-5",
+    max_tokens: 4096,
+    system: IMAGE_CLASSIFY_SYSTEM_PROMPT,
+    messages: [{ role: "user", content }],
+  });
+  const block = response.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") throw new Error("Claude 응답에 텍스트 블록이 없음");
+  const fenced = block.text.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/);
+  const jsonText = fenced ? fenced[1] : block.text;
+  const parsed = JSON.parse(jsonText) as { index: number; category: string }[];
+
+  const result: ImageClassification = { logo: [], space: [], trainer: [], other: [] };
+  for (const { index, category } of parsed) {
+    const url = capped[index - 1];
+    if (!url) continue;
+    if (category === "logo" || category === "space" || category === "trainer" || category === "other") {
+      result[category].push(url);
+    }
+  }
+  return result;
+}
+
 // ── 4. 결과 조립 + 리포트 ────────────────────────────────────────────────
 interface EligibleResult {
   name: string;
@@ -372,8 +524,9 @@ interface EligibleResult {
   roadAddress: string;
   blogUrl: string;
   answers: DraftAnswers;
+  images: ImageClassification;
   postsRead: number;
-  postListSize: number;
+  totalCount: number;
 }
 
 interface IneligibleResult {
@@ -381,7 +534,7 @@ interface IneligibleResult {
   address: string;
   roadAddress: string;
   blogUrl: string;
-  postListSize: number;
+  totalCount: number;
 }
 
 interface FailedResult {
@@ -396,7 +549,7 @@ function formatFullReport(r: EligibleResult): string {
   lines.push(`## ${r.name}`, "");
   lines.push(`- **주소**: ${r.roadAddress || r.address}`);
   lines.push(`- **블로그**: ${r.blogUrl}`);
-  lines.push(`- **읽은 글**: ${r.postsRead}/${r.postListSize}`);
+  lines.push(`- **읽은 글**: ${r.postsRead} (블로그 전체 글 ${r.totalCount}개 중)`);
   lines.push("");
 
   lines.push("### STEP 2 — 기본 정보");
@@ -405,8 +558,16 @@ function formatFullReport(r: EligibleResult): string {
   lines.push(
     `- 연락 링크: ${a.contact_links.length ? a.contact_links.map((c) => `${c.platform}(${c.url_or_note})`).join(", ") : "❌ 정보없음"}`
   );
-  lines.push(`- 공간 사진: ${a.space_photos.present ? "✅" : "❌"} ${a.space_photos.note}`);
-  lines.push(`- 로고: ${a.logo.present ? "✅" : "❌"} ${a.logo.note}`);
+  lines.push(`- 공간 사진(문맥 판단): ${a.space_photos.present ? "✅" : "❌"} ${a.space_photos.note}`);
+  lines.push(`- 로고(문맥 판단): ${a.logo.present ? "✅" : "❌"} ${a.logo.note}`);
+  lines.push("");
+
+  const img = r.images;
+  lines.push("### 이미지 후보 (Claude Vision 분류, URL만 — 다운로드는 사람이 직접)");
+  lines.push(`- 로고: ${img.logo.length ? img.logo.join(", ") : "❌ 없음"}`);
+  lines.push(`- 공간 사진: ${img.space.length ? `${img.space.length}장 — ${img.space.join(", ")}` : "❌ 없음"}`);
+  lines.push(`- 트레이너 사진: ${img.trainer.length ? `${img.trainer.length}장 — ${img.trainer.join(", ")}` : "❌ 없음"}`);
+  lines.push(`- 기타: ${img.other.length ? `${img.other.length}장 — ${img.other.join(", ")}` : "-"}`);
   lines.push("");
 
   lines.push("### STEP 3 — 프로그램·이용방법");
@@ -502,7 +663,7 @@ function buildReport(
   if (ineligible.length > 0) {
     lines.push("# 부적합 (글 5개 미만)", "");
     for (const r of ineligible) {
-      lines.push(`- ${r.name} (${r.roadAddress || r.address}) — ${r.blogUrl} — 글 ${r.postListSize}개`);
+      lines.push(`- ${r.name} (${r.roadAddress || r.address}) — ${r.blogUrl} — 글 ${r.totalCount}개`);
     }
     lines.push("");
   }
@@ -561,20 +722,24 @@ async function main() {
     const blogId = extractBlogId(item.link)!;
     console.log(`[3/4] 확인 중: ${item.title} (${item.link})`);
     try {
-      const postList = await fetchRecentPostList(blogId);
-      if (postList.length < MIN_POSTS_FOR_ELIGIBLE) {
-        console.log(`  → 글 ${postList.length}개, 기준(${MIN_POSTS_FOR_ELIGIBLE}개) 미달 — 부적합`);
+      // 적합/부적합 판정은 실제 총 글 개수(totalCount)만 있으면 되므로, 첫 페이지(5개)만
+      // 먼저 가벼운 확인용으로 조회한다 — 부적합이면 나머지 페이지를 안 가져와도 된다.
+      const firstPage = await fetchPostListPage(blogId, 1);
+      if (firstPage.totalCount < MIN_POSTS_FOR_ELIGIBLE) {
+        console.log(`  → 글 ${firstPage.totalCount}개, 기준(${MIN_POSTS_FOR_ELIGIBLE}개) 미달 — 부적합`);
         ineligible.push({
           name: item.title,
           address: item.address,
           roadAddress: item.roadAddress,
           blogUrl: item.link,
-          postListSize: postList.length,
+          totalCount: firstPage.totalCount,
         });
         continue;
       }
 
-      console.log(`  → 글 ${postList.length}개, 적합 — 전체 크롤링 시작`);
+      console.log(`  → 전체 글 ${firstPage.totalCount}개, 적합 — 목록 페이지네이션 시작`);
+      const { posts: postList, totalCount } = await fetchRecentPostList(blogId);
+      console.log(`  → 목록 ${postList.length}개 확보(전체 ${totalCount}개 중), 본문 크롤링 시작`);
       const posts = await crawlAllPosts(blogId, postList);
       if (posts.length === 0) {
         failed.push({ name: item.title, blogUrl: item.link, reason: "본문 추출 가능한 글 없음" });
@@ -582,14 +747,21 @@ async function main() {
       }
       console.log(`  → ${posts.length}/${postList.length}개 글 읽음, Claude로 입력폼 항목 채우는 중...`);
       const answers = await extractDraftAnswers(item.title, posts);
+
+      const allImages = [...new Set(posts.flatMap((p) => p.images))];
+      console.log(`  → 이미지 ${allImages.length}장 발견, Claude Vision으로 분류 중...`);
+      const images =
+        allImages.length > 0 ? await classifyImages(item.title, allImages) : { logo: [], space: [], trainer: [], other: [] };
+
       eligible.push({
         name: item.title,
         address: item.address,
         roadAddress: item.roadAddress,
         blogUrl: item.link,
         answers,
+        images,
         postsRead: posts.length,
-        postListSize: postList.length,
+        totalCount,
       });
       console.log(`  → 완료`);
     } catch (err) {

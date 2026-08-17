@@ -161,12 +161,12 @@
     "transformations": {
       "items": [
         {
-          "before_image_url": "https://example.com/before.jpg",
-          "after_image_url": "https://example.com/after.jpg",
+          "before_after_image_url": "https://example.com/transformation-1.jpg",
           "duration_label": "12주",
           "result_highlight": "체지방률 6%p 감소",
           "member_label": "김○영님",
-          "trainer_tag": "박현우 트레이너"
+          "trainer_tag": "박현우 트레이너",
+          "description": "허리 통증 때문에 시작하셨는데, 코어 안정화 위주로 8주 지나면서 통증이 눈에 띄게 줄었어요"
         }
       ]
     },

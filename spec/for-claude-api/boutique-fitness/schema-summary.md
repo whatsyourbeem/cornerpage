@@ -130,17 +130,17 @@
 "transformations": {
   "items": [
     {
-      "before_image_url": "url, required",
-      "after_image_url": "url, required",
+      "before_after_image_url": "url, required (비포/애프터가 이미 한 장으로 합쳐진 이미지 — 사장님이 SNS 등에 이미 올려둔, 라벨·주석이 박혀 있는 완성된 콘텐츠 사진을 그대로 받는다. 스킬이 좌우로 자르거나 재가공하지 않는다)",
       "duration_label": "string, required (예: '12주')",
       "result_highlight": "string, required (예: '-8kg')",
       "member_label": "string (익명 처리, 예: '김○영님')",
-      "trainer_tag": "string | null, required key (원문에 이름이 있을 때만 값 채움 — 추론 금지, 없어도 키는 포함하고 null)"
+      "trainer_tag": "string | null, required key (원문에 이름이 있을 때만 값 채움 — 추론 금지, 없어도 키는 포함하고 null)",
+      "description": "string | null, required key (이 변화에 대한 사장님의 설명 — 사진·수치 밑에 보조로 붙는 문단. 없으면 null. 다른 필드보다 더 서술적이어도 되지만 사실 조작 금지 원칙은 동일하게 엄격 적용)"
     }
   ]
 } | null
 ```
-4개 필드(before/after/duration/result) 전부 필수 — 하나라도 없으면 그 항목 자체를 만들지 않는다. 결과 수치·기간 없는 사진만으로는 이 블록을 켜지 않는다. **사실 조작 리스크가 가장 큰 블록 — 사장님이 준 데이터만.** 권장 개수 1~4개(리뷰·갤러리처럼 채워야 할 목표 개수가 아니라, 사장님이 준 만큼만 — 하나도 없으면 `null`).
+5개 필드(이미지/duration/result/member/trainer_tag) 중 이미지·duration·result·member 4개는 실질 필수 — 하나라도 없으면 그 항목 자체를 만들지 않는다. `description`은 순수 보너스이므로 없어도 항목 생성을 막지 않는다. 결과 수치·기간 없는 사진만으로는 이 블록을 켜지 않는다. **사실 조작 리스크가 가장 큰 블록 — 사장님이 준 데이터만.** 권장 개수 1~4개(리뷰·갤러리처럼 채워야 할 목표 개수가 아니라, 사장님이 준 만큼만 — 하나도 없으면 `null`).
 
 ### 3-1. reviews (선택, 사실상 필수급)
 ```json

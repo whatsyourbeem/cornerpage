@@ -109,14 +109,15 @@ export interface TrustStrip {
 // ---------- 블록 3: transformations (신규, 선택이나 사실상 필수급) ----------
 
 export interface TransformationItem {
-  before_image_url: string;
-  after_image_url: string;
+  before_after_image_url: string;
   duration_label: string;
   result_highlight: string;
   /** 익명 처리, 예: '김○영님' */
   member_label: string;
   /** 리뷰 원문에 이름이 실제로 언급된 경우만 — 추론·생성 금지 */
   trainer_tag: string | null;
+  /** 이 변화 사례에 대한 사장님의 설명 — 선택, 없으면 null. 지어내지 않는다 */
+  description: string | null;
 }
 
 export interface Transformations {

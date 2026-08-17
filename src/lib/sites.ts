@@ -12,6 +12,7 @@ export interface SiteRow {
   content_json: unknown;
   created_at: string;
   updated_at: string;
+  slug_rotates_at: string;
 }
 
 /** DNS 서브도메인 라벨 규칙과 동일 — supabase/migrations의 sites_slug_format 체크와 짝을 맞춘다. */

@@ -61,7 +61,7 @@ const DRAFT_KEY = "cornerpage-draft:boutique-fitness";
 
 /**
  * localStorage 임시저장용 스냅샷. File 객체(spacePhotos·miscPhotos·logoFiles·
- * professionals[].photo·transformations[].beforeImage/afterImage)는 제외한다 —
+ * professionals[].photo·transformations[].image)는 제외한다 —
  * 문자열만 저장 가능해서 사진은 복원 시 다시 첨부해야 한다.
  */
 interface DraftSnapshot {
@@ -83,7 +83,7 @@ interface DraftSnapshot {
   registrationNumber: string;
   leadEmphasis: "" | "transformations" | "reviews" | "professionals" | "facility";
   professionals: Omit<ProfessionalDraft, "photo">[];
-  transformations: Omit<TransformationDraft, "beforeImage" | "afterImage">[];
+  transformations: Omit<TransformationDraft, "image">[];
   reviews: BfReviewDraft[];
   sizePyeong: string;
   hasShower: boolean;
@@ -134,12 +134,12 @@ interface ProfessionalDraft {
 }
 
 interface TransformationDraft {
-  beforeImage: File[];
-  afterImage: File[];
+  image: File[];
   durationLabel: string;
   resultHighlight: string;
   memberLabel: string;
   trainerTag: string;
+  description: string;
 }
 
 interface BfReviewDraft {
@@ -190,7 +190,7 @@ export default function BoutiqueFitnessCreatePage() {
   ]);
 
   const [transformations, setTransformations] = useState<TransformationDraft[]>([
-    { beforeImage: [], afterImage: [], durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
+    { image: [], durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "", description: "" },
   ]);
   const [reviews, setReviews] = useState<BfReviewDraft[]>([
     { body: "", author: "", rating: "", source: "", trainerTag: "" },
@@ -244,7 +244,7 @@ export default function BoutiqueFitnessCreatePage() {
     setRegistrationNumber(draft.registrationNumber);
     setLeadEmphasis(draft.leadEmphasis);
     setProfessionals(draft.professionals.map((p) => ({ ...p, photo: [] })));
-    setTransformations(draft.transformations.map((t) => ({ ...t, beforeImage: [], afterImage: [] })));
+    setTransformations(draft.transformations.map((t) => ({ ...t, image: [] })));
     setReviews(draft.reviews);
     setSizePyeong(draft.sizePyeong);
     setHasShower(draft.hasShower);
@@ -295,6 +295,7 @@ export default function BoutiqueFitnessCreatePage() {
       resultHighlight: t.resultHighlight,
       memberLabel: t.memberLabel,
       trainerTag: t.trainerTag,
+      description: t.description,
     })),
     reviews,
     sizePyeong,
@@ -413,7 +414,7 @@ export default function BoutiqueFitnessCreatePage() {
 
   const finalProfessionalsList = professionals.filter((p) => p.name.trim());
   const finalTransformationsList = transformations.filter(
-    (t) => t.beforeImage[0] || t.afterImage[0] || t.resultHighlight.trim()
+    (t) => t.image[0] || t.resultHighlight.trim()
   );
 
   const pendingUploads: PendingUpload[] = [
@@ -422,8 +423,7 @@ export default function BoutiqueFitnessCreatePage() {
     ...(logoFiles[0] ? [{ slot: "logo", file: logoFiles[0] }] : []),
     ...finalProfessionalsList.flatMap((p, i) => (p.photo[0] ? [{ slot: `professional-${i}-photo`, file: p.photo[0] }] : [])),
     ...finalTransformationsList.flatMap((t, i) => [
-      ...(t.beforeImage[0] ? [{ slot: `transformation-${i}-before`, file: t.beforeImage[0] }] : []),
-      ...(t.afterImage[0] ? [{ slot: `transformation-${i}-after`, file: t.afterImage[0] }] : []),
+      ...(t.image[0] ? [{ slot: `transformation-${i}`, file: t.image[0] }] : []),
     ]),
   ];
 
@@ -442,12 +442,12 @@ export default function BoutiqueFitnessCreatePage() {
     }));
 
     const finalTransformations = finalTransformationsList.map((t, i) => ({
-      before_image_url: urls[`transformation-${i}-before`] ?? null,
-      after_image_url: urls[`transformation-${i}-after`] ?? null,
+      before_after_image_url: urls[`transformation-${i}`] ?? null,
       duration_label: t.durationLabel.trim(),
       result_highlight: t.resultHighlight.trim(),
       member_label: t.memberLabel.trim(),
       trainer_tag: t.trainerTag.trim() || null,
+      description: t.description.trim() || null,
     }));
 
     const finalReviews = reviews
@@ -904,14 +904,11 @@ export default function BoutiqueFitnessCreatePage() {
             </p>
             {transformations.map((t, i) => (
               <div key={i} className="mb-3 flex flex-col gap-1.5 border-b border-cp-border pb-3 last:border-b-0">
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <FileField label="Before" value={t.beforeImage} onChange={(files) => updateTransformation(i, { beforeImage: files })} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <FileField label="After" value={t.afterImage} onChange={(files) => updateTransformation(i, { afterImage: files })} />
-                  </div>
-                </div>
+                <FileField
+                  label="비포/애프터 사진 (이미 합쳐진 한 장)"
+                  value={t.image}
+                  onChange={(files) => updateTransformation(i, { image: files })}
+                />
                 <input
                   placeholder="기간 (예: 12주)"
                   value={t.durationLabel}
@@ -944,6 +941,12 @@ export default function BoutiqueFitnessCreatePage() {
                     </button>
                   )}
                 </div>
+                <textarea
+                  placeholder="이 변화에 대한 설명 (선택) — 예: 허리 통증 때문에 시작하셨는데, 코어 안정화 위주로 8주 지나면서 통증이 눈에 띄게 줄었어요"
+                  value={t.description}
+                  onChange={(e) => updateTransformation(i, { description: e.target.value })}
+                  rows={2}
+                />
               </div>
             ))}
             <button
@@ -951,7 +954,7 @@ export default function BoutiqueFitnessCreatePage() {
               onClick={() =>
                 setTransformations((prev) => [
                   ...prev,
-                  { beforeImage: [], afterImage: [], durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "" },
+                  { image: [], durationLabel: "", resultHighlight: "", memberLabel: "", trainerTag: "", description: "" },
                 ])
               }
               style={{ fontSize: 13 }}

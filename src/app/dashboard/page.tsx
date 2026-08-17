@@ -17,13 +17,13 @@ export default async function DashboardPage() {
     redirect("/login?next=/dashboard");
   }
 
-  const { data: sites } = await supabase
-    .from("sites")
-    .select("*")
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: true });
+  const [{ data: sites }, { data: profile }] = await Promise.all([
+    supabase.from("sites").select("*").eq("owner_id", user.id).order("created_at", { ascending: true }),
+    supabase.from("profiles").select("plan, plan_expires_at").eq("id", user.id).single(),
+  ]);
 
   const mySites = (sites ?? []) as SiteRow[];
+  const isPro = profile?.plan === "pro" && (!profile.plan_expires_at || new Date(profile.plan_expires_at) > new Date());
 
   return (
     <main className="mx-auto w-full max-w-md bg-cp-canvas px-5 py-10 text-cp-fg">
@@ -43,6 +43,11 @@ export default async function DashboardPage() {
             <Link href={`/preview/${site.slug}`}>
               <Panel tone="outline" className="hover:bg-cp-surface">
                 <strong className="text-[15px] font-bold text-cp-fg">{site.business_name}</strong>
+                {!isPro && (
+                  <p className="mt-1 text-[12px] text-cp-muted">
+                    다음 주소 변경 예정일: {new Date(site.slug_rotates_at).toLocaleDateString("ko-KR")}
+                  </p>
+                )}
               </Panel>
             </Link>
           </li>

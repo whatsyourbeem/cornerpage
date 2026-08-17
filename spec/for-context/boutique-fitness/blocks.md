@@ -138,20 +138,22 @@ general 원칙(지표 3개, 진실성, 데이터 없으면 대체)은 유지하�
 "transformations": {
   "items": [
     {
-      "before_image_url": "url, required",
-      "after_image_url": "url, required",
+      "before_after_image_url": "url, required (사장님이 이미 하나로 합쳐서 만든 완성된 비포/애프터 사진 — 2026-08부터 원본 두 장 대신 이 방식. 이유는 아래 참고)",
       "duration_label": "string, required (예: '12주')",
       "result_highlight": "string, required (핵심 수치·변화 요약, 예: '-8kg', '체지방률 6%p 감소')",
       "member_label": "string (익명 처리, 예: '김○영님' — reviews의 author 마스킹 관례와 동일)",
-      "trainer_tag": "string | null (담당 전문가 이름 — professionals 블록과 느슨하게 연결)"
+      "trainer_tag": "string | null (담당 전문가 이름 — professionals 블록과 느슨하게 연결)",
+      "description": "string | null (이 변화 사례에 대한 사장님의 보조 설명 — 선택, 없으면 null. 사진·핵심수치만으로 안 전해지는 맥락을 붙이는 용도, 2026-08 신규)"
     }
   ]
 }
 ```
 `items`가 비었으면 `transformations: null`. 권장 개수 1~4개(리뷰·갤러리처럼 4~8장 채우는 성격이 아니라, 사례 하나하나가 무거운 증거라 억지로 개수를 채우지 않는다).
 
+**왜 원본 두 장이 아니라 합쳐진 한 장인가**: 원래는 `before_image_url`·`after_image_url`을 따로 받아 좌우 드래그로 비교하는 시그니처 인터랙션이 있었다. 하지만 (1) 사장님들은 실제로 블로그·SNS에 이미 올리던, 라벨·주석까지 정성껏 편집해둔 합쳐진 한 장을 갖고 있고 그걸 그대로 쓰고 싶어 하며, (2) 초기 콜드 아웃리치 단계에서는 운영자가 공개된 SNS·블로그에서 자료를 가져오는데 거기엔 합쳐진 사진만 존재해 원본 두 장을 구할 방법이 없다. 두 이유 모두 슬라이더가 실제로 쓰일 여지를 거의 없앤다고 판단해 단일 이미지로 전환했다.
+
 ### 층2 (작성 원칙)
-- **`before_image_url`·`after_image_url`·`duration_label`·`result_highlight` 4개 모두 필수.** 사진만 있고 기간·수치가 없으면 이 블록을 켜지 않는다 — `design-guide.md`의 원칙("맥락 없는 사진은 증거력이 약함")을 스키마 레벨에서 강제하는 것.
+- **`before_after_image_url`·`duration_label`·`result_highlight` 3개 모두 필수.** 사진만 있고 기간·수치가 없으면 이 블록을 켜지 않는다 — `design-guide.md`의 원칙("맥락 없는 사진은 증거력이 약함")을 스키마 레벨에서 강제하는 것.
 - **이 블록은 사실 조작 리스크가 가장 큰 블록이다.** `copywriting.md`의 "없는 걸 지어내지 않는다" 원칙이 다른 어느 블록보다 엄격하게 적용돼야 한다 — 사장님이 실제로 제공한 회원 사진·데이터만 쓴다. 각도를 트는 것(카피 표현)과 결과를 과장하는 것(없는 수치를 만들어내는 것)은 다르다.
 - **`member_label`은 reviews와 동일한 마스킹 관례**를 따른다(`김○영님`). 실명 노출 금지.
 - **`trainer_tag`는 선택이지만 있으면 적극 채운다.** `professionals` 블록과 연결되면 "누가 이 결과를 만들었는지"가 분명해져 직접증거(성과)와 간접증거(전문가)가 서로를 보강한다 — `definition.md` 4장의 증거 위계가 실제로 작동하는 지점.
@@ -162,7 +164,7 @@ general 원칙(지표 3개, 진실성, 데이터 없으면 대체)은 유지하�
 **나쁜 예 1:** `{ "duration_label": null, "result_highlight": "환상적인 변화!" }` — 기간 없음, 수치 없이 감탄사만. 증거력 없음.
 **나쁜 예 2:** 사장님이 안 준 수치를 그럴듯하게 지어내는 것 — 이 블록에서는 특히 절대 금지(광고 신뢰성 문제로 직결).
 
-(디자인: `../../for-frontend/boutique-fitness/design-guide.md` 4-1절 — 좌우 드래그 슬라이더, 시그니처 인터랙션)
+(디자인: `../../for-frontend/boutique-fitness/design-guide.md` 4-1절 — 사장님이 이미 합쳐서 만든 비포/애프터 사진 한 장을 정적 이미지로 노출, 2026-08부터 좌우 드래그 슬라이더 폐기)
 
 ---
 

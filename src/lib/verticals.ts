@@ -14,3 +14,14 @@ export type Vertical = (typeof VERTICALS)[number];
  * 지음필라테스 실데이터 브라우저 검증까지 끝나서 게이트를 풀었다.
  */
 export const RENDERER_READY_VERTICALS: readonly Vertical[] = ["general", "boutique-fitness"];
+
+/**
+ * 관리/편집 화면에서 content_json을 직접 고칠 수 있는 vertical 목록.
+ * 블록 편집기는 vertical별 스키마(필드 구성·판별 유니온·if/then 제약)에 1:1로
+ * 붙는 UI라 vertical마다 따로 만들어야 한다 — boutique-fitness부터 시작한다.
+ * 여기 없는 vertical은 관리 페이지가 읽기 전용(주소·플랜 관리만)으로 열린다.
+ *
+ * 화면(관리 페이지)과 API(PATCH /api/sites/[id]/content) 양쪽이 이 배열 하나를
+ * 보게 해서, 편집기가 안 열리는 vertical에 API로만 쓰기가 뚫리는 일이 없게 한다.
+ */
+export const EDITABLE_VERTICALS: readonly Vertical[] = ["boutique-fitness"];

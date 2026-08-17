@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import type { SiteRow } from "@/lib/sites";
+import { isProPlan } from "@/lib/plan";
 import { LogoutButton } from "./LogoutButton";
+import { SlugEditor } from "./SlugEditor";
 import { Panel } from "@/components/ui";
 
 const MAX_SITES_PER_ACCOUNT = 3;
@@ -23,7 +25,7 @@ export default async function DashboardPage() {
   ]);
 
   const mySites = (sites ?? []) as SiteRow[];
-  const isPro = profile?.plan === "pro" && (!profile.plan_expires_at || new Date(profile.plan_expires_at) > new Date());
+  const isPro = isProPlan(profile);
 
   return (
     <main className="mx-auto w-full max-w-md bg-cp-canvas px-5 py-10 text-cp-fg">
@@ -40,16 +42,18 @@ export default async function DashboardPage() {
       <ul className="flex flex-col gap-2.5">
         {mySites.map((site) => (
           <li key={site.id}>
-            <Link href={`/preview/${site.slug}`}>
-              <Panel tone="outline" className="hover:bg-cp-surface">
+            <Panel tone="outline">
+              <Link href={`/preview/${site.slug}`} className="block hover:opacity-80">
                 <strong className="text-[15px] font-bold text-cp-fg">{site.business_name}</strong>
-                {!isPro && (
-                  <p className="mt-1 text-[12px] text-cp-muted">
-                    다음 주소 변경 예정일: {new Date(site.slug_rotates_at).toLocaleDateString("ko-KR")}
-                  </p>
-                )}
-              </Panel>
-            </Link>
+              </Link>
+              {isPro ? (
+                <SlugEditor siteId={site.id} currentSlug={site.slug} />
+              ) : (
+                <p className="mt-1 text-[12px] text-cp-muted">
+                  다음 주소 변경 예정일: {new Date(site.slug_rotates_at).toLocaleDateString("ko-KR")}
+                </p>
+              )}
+            </Panel>
           </li>
         ))}
       </ul>

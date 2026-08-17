@@ -19,13 +19,13 @@ export default async function DashboardPage() {
     redirect("/login?next=/dashboard");
   }
 
-  const [{ data: sites }, { data: profile }] = await Promise.all([
-    supabase.from("sites").select("*").eq("owner_id", user.id).order("created_at", { ascending: true }),
-    supabase.from("profiles").select("plan, plan_expires_at").eq("id", user.id).single(),
-  ]);
+  const { data: sites } = await supabase
+    .from("sites")
+    .select("*")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: true });
 
   const mySites = (sites ?? []) as SiteRow[];
-  const isPro = isProPlan(profile);
 
   return (
     <main className="mx-auto w-full max-w-md bg-cp-canvas px-5 py-10 text-cp-fg">
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
               <Link href={`/preview/${site.slug}`} className="block hover:opacity-80">
                 <strong className="text-[15px] font-bold text-cp-fg">{site.business_name}</strong>
               </Link>
-              {isPro ? (
+              {isProPlan(site) ? (
                 <SlugEditor siteId={site.id} currentSlug={site.slug} />
               ) : (
                 <p className="mt-1 text-[12px] text-cp-muted">

@@ -5,8 +5,9 @@ import { SLUG_RE } from "@/lib/sites";
 import { isProPlan } from "@/lib/plan";
 
 /**
- * 유료(pro) 계정만 자기 사이트의 slug를 원하는 값으로 바꿀 수 있다.
- * free는 이 경로를 몰라도 되게(로테이션 잡만 slug를 건드림) 403으로 막는다.
+ * 결제는 계정이 아니라 사이트 단위다 — 계정에 사이트가 3개 있으면 slug를
+ * 고정하고 싶은 사이트마다 각각 구독해야 한다. 그래서 plan/plan_expires_at도
+ * profiles가 아니라 이 사이트 row 자체(sites.plan)를 본다.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,24 +30,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     );
   }
 
-  const { data: profile, error: profileError } = await supabaseAdmin
-    .from("profiles")
-    .select("plan, plan_expires_at")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    console.error("profile load failed:", profileError?.message);
-    return NextResponse.json({ error: "failed to load profile" }, { status: 500 });
-  }
-
-  if (!isProPlan(profile)) {
-    return NextResponse.json({ error: "주소 변경은 유료 구독 회원만 가능해요." }, { status: 403 });
-  }
-
   const { data: site, error: siteError } = await supabaseAdmin
     .from("sites")
-    .select("id, owner_id")
+    .select("id, owner_id, plan, plan_expires_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -59,6 +45,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   if (site.owner_id !== user.id) {
     return NextResponse.json({ error: "권한이 없어요." }, { status: 403 });
+  }
+  if (!isProPlan(site)) {
+    return NextResponse.json({ error: "이 홈페이지는 구독 중이 아니에요. 주소 변경은 구독한 사이트만 가능해요." }, { status: 403 });
   }
 
   const { error: updateError } = await supabaseAdmin.from("sites").update({ slug }).eq("id", id);

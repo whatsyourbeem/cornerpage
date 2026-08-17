@@ -6,8 +6,8 @@ import { VERTICALS, type Vertical } from "@/lib/verticals";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// 계정당 생성 가능한 최대 사이트 수. plan이 생기면(profiles.plan) 이 상수 대신
-// 플랜별 한도로 바꾼다.
+// 계정당 생성 가능한 최대 사이트 수. 결제(sites.plan)는 사이트 단위라 이 한도와는
+// 무관하다 — 계정별 한도를 플랜에 따라 바꾸려면 별도 개념이 필요하다.
 const MAX_SITES_PER_ACCOUNT = 3;
 
 // Claude 콘텐츠 생성은 단일 호출도 70초 넘게 걸리는 경우가 실측됐다. 3층

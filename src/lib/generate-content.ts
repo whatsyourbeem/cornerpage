@@ -1,8 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import Ajv2020 from "ajv/dist/2020";
-import contentSchemaGeneral from "../../spec/for-frontend/general/content.schema.json";
-import contentSchemaBoutiqueFitness from "../../spec/for-frontend/boutique-fitness/content.schema.json";
+import { formatValidationErrors, validateContent } from "./content-schema";
 import { geocodeAddress } from "./geocode";
 import { buildClaudeRequestBody, type ClaudeRequestBody } from "./claude-request";
 import { RENDERER_READY_VERTICALS, type Vertical } from "./verticals";
@@ -39,13 +37,8 @@ import type {
  * schema-summary.md — 완성 예시를 뺀 구조 정의만 남긴 문서)로 구조를 지시한 뒤 ajv로 전체
  * 스키마(content.schema.json, if/then 포함)를 최종 검증하는 방식으로 바꿨다 —
  * 애초에 기술 문서 6장이 "이중 안전망"이라 부른 ajv 쪽이 사실상 유일한 강제
- * 수단이 된 것.
- *
- * ajv는 plain `Ajv`가 아니라 `ajv/dist/2020`(Ajv2020)을 써야 한다 —
- * content.schema.json이 "$schema": ".../2020-12/schema"를 선언하는데, plain
- * Ajv(draft-07 기본)로 컴파일하면 "no schema with key or ref
- * .../2020-12/schema" 에러가 난다(실측 확인). Notion 문서 6장의 예시 코드가
- * plain Ajv를 쓰고 있는데 이건 이 스키마에서는 실제로 동작하지 않는다.
+ * 수단이 된 것. 그 ajv 검증기 자체는 content-schema.ts로 분리했다 — 편집
+ * 경로(PATCH /api/sites/[id]/content)와 같은 규칙을 공유해야 하기 때문.
  *
  * vertical(spec/README.md 3장): 콘텐츠 스키마·시스템 프롬프트가 업종별로
  * 갈라져서(현재 general/boutique-fitness), 이 함수는 vertical을 스스로 판단하지
@@ -56,12 +49,10 @@ import type {
  * "PT 전문 짐"·"피티스튜디오" → general로 오판정, 정작 boutique-fitness 폼의
  * placeholder 예시 문구였는데도).
  *
- * boutique-fitness는 2026-07-18 기준 스키마/프롬프트가 실제로 완성됐지만(신규
- * 블록 3종·meta 구조 변경 등 general과 크게 다름), 렌더러는 아직 general
- * 전용이다(MiniHomepageSite.tsx가 axis_a_tone/axis_b_layout이 없으면
- * LAYOUT_ORDER[undefined]에서 크래시하고, professionals/transformations/
- * facility 블록 컴포넌트도 없음). 그래서 RENDERER_READY_VERTICALS로 실제 생성을
- * 막아둔다 — 렌더러가 준비되면 verticals.ts의 그 배열에 추가하는 것만으로 풀린다.
+ * RENDERER_READY_VERTICALS 게이트는 "스키마·프롬프트는 됐지만 렌더러가 아직 그
+ * 블록 구성을 못 그리는" vertical의 생성을 막는다. 2026-07-19에 boutique-fitness
+ * 렌더러(src/components/site-boutique-fitness/)가 완성되면서 현재는 두 vertical이
+ * 모두 열려 있다 — 새 vertical을 추가할 때 다시 쓰게 될 장치다(verticals.ts).
  */
 
 export interface DraftHoursEntry {
@@ -156,20 +147,6 @@ export class ContentGenerationFailedError extends Error {
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// vertical마다 독립된 Ajv 인스턴스를 쓴다 — 두 스키마의 $id가 같아서(현재 동일
-// 복사본) 하나의 Ajv 인스턴스에 둘 다 compile하면 "schema with key already
-// exists" 충돌이 난다. errorsText도 컴파일에 쓴 인스턴스로 호출해야 하므로
-// validate와 ajv를 한 쌍으로 묶어 보관한다.
-function buildValidator(schema: object) {
-  const ajv = new Ajv2020({ strict: false });
-  return { ajv, validate: ajv.compile(schema) };
-}
-
-const validators: Record<Vertical, ReturnType<typeof buildValidator>> = {
-  general: buildValidator(contentSchemaGeneral),
-  "boutique-fitness": buildValidator(contentSchemaBoutiqueFitness),
-};
-
 function extractText(message: Anthropic.Message): string {
   for (const block of message.content) {
     if (block.type === "text") return block.text;
@@ -241,9 +218,9 @@ export function processGeneratedContent(
     content.blocks.atmosphere = null;
   }
 
-  const { ajv, validate } = validators[vertical];
-  if (!validate(content)) {
-    throw new Error(`콘텐츠 스키마 검증 실패: ${ajv.errorsText(validate.errors)}`);
+  const errors = validateContent(vertical, content);
+  if (errors) {
+    throw new Error(`콘텐츠 스키마 검증 실패: ${formatValidationErrors(vertical, errors)}`);
   }
 
   return content;

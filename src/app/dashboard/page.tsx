@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import type { SiteRow } from "@/lib/sites";
 import { isProPlan } from "@/lib/plan";
 import { LogoutButton } from "./LogoutButton";
-import { SlugEditor } from "./SlugEditor";
 import { Panel } from "@/components/ui";
 
 const MAX_SITES_PER_ACCOUNT = 3;
@@ -39,21 +39,28 @@ export default async function DashboardPage() {
         내 홈페이지 {mySites.length}/{MAX_SITES_PER_ACCOUNT}개 사용 중
       </p>
 
+      {/*
+        카드를 누르면 완성된 홈페이지가 아니라 관리/편집 화면으로 들어간다 —
+        사장님이 대시보드에서 하려는 일은 "보기"가 아니라 "고치기"이고, 완성된
+        사이트는 그 안의 "홈페이지 열기"로 언제든 열 수 있다. 주소 변경도 카드가
+        아니라 그 화면에 있다(카드는 목록 역할만).
+      */}
       <ul className="flex flex-col gap-2.5">
         {mySites.map((site) => (
           <li key={site.id}>
-            <Panel tone="outline">
-              <Link href={`/preview/${site.slug}`} className="block hover:opacity-80">
-                <strong className="text-[15px] font-bold text-cp-fg">{site.business_name}</strong>
-              </Link>
-              {isProPlan(site) ? (
-                <SlugEditor siteId={site.id} currentSlug={site.slug} />
-              ) : (
+            <Link href={`/dashboard/sites/${site.id}`} className="block">
+              <Panel tone="outline" className="transition-colors hover:bg-cp-surface">
+                <div className="flex items-center justify-between gap-2">
+                  <strong className="text-[15px] font-bold text-cp-fg">{site.business_name}</strong>
+                  <ChevronRight className="h-4 w-4 flex-none text-cp-muted" aria-hidden />
+                </div>
                 <p className="mt-1 text-[12px] text-cp-muted">
-                  다음 주소 변경 예정일: {new Date(site.slug_rotates_at).toLocaleDateString("ko-KR")}
+                  {isProPlan(site)
+                    ? `주소: ${site.slug}`
+                    : `다음 주소 변경 예정일: ${new Date(site.slug_rotates_at).toLocaleDateString("ko-KR")}`}
                 </p>
-              )}
-            </Panel>
+              </Panel>
+            </Link>
           </li>
         ))}
       </ul>

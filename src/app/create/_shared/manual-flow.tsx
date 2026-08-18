@@ -5,7 +5,7 @@ import type { Vertical } from "@/lib/verticals";
 import { compressImage } from "@/lib/compress-image";
 import { Button } from "@/components/ui";
 
-/** 업로드할 이미지 하나. slot은 /api/upload 저장 경로(site-images/{id}/{slot}.ext)의 이름이 된다. */
+/** 업로드할 이미지 하나. slot은 /api/upload 저장 경로(site-images/{id}/{slot}-{난수}.ext)의 이름이 된다. */
 export interface PendingUpload {
   slot: string;
   file: File;

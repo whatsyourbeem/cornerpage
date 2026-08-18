@@ -7,6 +7,8 @@ import type { Vertical } from "./verticals";
 export interface SiteRow {
   id: string;
   slug: string;
+  /** 생성한 계정. 로그인 도입 이전 fixture row는 null. */
+  owner_id: string | null;
   vertical: Vertical;
   business_name: string;
   content_json: unknown;
